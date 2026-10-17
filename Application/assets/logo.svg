@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180" width="100%" height="100%" fill="none">
+  <!-- RSS Waves (Top Right) -->
+  <path d="M 125 36 A 48 48 0 0 1 173 84" stroke="#4A5D4E" stroke-width="10" stroke-linecap="round" />
+  <path d="M 125 18 A 66 66 0 0 1 191 84" stroke="#4A5D4E" stroke-width="10" stroke-linecap="round" />
+
+  <!-- Bookmark Ribbon (Square top-left, round top-right, clean V bottom) -->
+  <path d="M 45 42 L 122 42 C 137 42 145 50 145 65 L 145 165 L 95 130 L 45 165 Z" fill="#C85A32" />
+
+  <!-- Calendar Container -->
+  <rect x="58" y="70" width="74" height="54" rx="4" fill="#F7F5F0" />
+  
+  <!-- Binder Rings -->
+  <rect x="70" y="63" width="7" height="15" rx="3.5" fill="#1B3B2B" />
+  <rect x="109" y="63" width="7" height="15" rx="3.5" fill="#1B3B2B" />
+
+  <!-- Calendar Grid (7 Asymmetrical Blocks) -->
+  <g fill="#1B3B2B">
+    <!-- Col 1 -->
+    <rect x="66" y="80" width="12" height="10" rx="1.5" />
+    <rect x="66" y="94" width="12" height="10" rx="1.5" />
+    <!-- Col 2 -->
+    <rect x="82" y="80" width="12" height="10" rx="1.5" />
+    <rect x="82" y="94" width="12" height="10" rx="1.5" />
+    <rect x="82" y="108" width="12" height="10" rx="1.5" />
+    <!-- Col 3 -->
+    <rect x="98" y="80" width="12" height="10" rx="1.5" />
+    <rect x="98" y="94" width="12" height="10" rx="1.5" />
+  </g>
+
+  <!-- Typography -->
+  <text x="175" y="98" font-family="&#39;Inter&#39;, sans-serif" font-size="42" font-weight="800" fill="#1B3B2B" letter-spacing="1.2">AGENDAWEB</text>
+  <text x="178" y="122" font-family="&#39;Inter&#39;, sans-serif" font-size="13" font-weight="600" fill="#1B3B2B" letter-spacing="2.2">YOUR CULTURAL WEB FEED</text>
+</svg>

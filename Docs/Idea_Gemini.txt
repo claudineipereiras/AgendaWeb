@@ -1,0 +1,17 @@
+agendaweb-app/
+├── .antigravity/
+│   └── rules.md                  <-- System instructions & constraints for the Antigravity agent
+├── docs/
+│   ├── ARCHITECTURE.md           <-- System, data, and protocol specs
+│   └── BRAND_GUIDELINES.md       <-- Colors, typography, icon geometry, and styling
+├── public_html/
+│   ├── index.html                <-- Client PWA interface
+│   ├── feed.php                  <-- Dual RSS 2.0 / ev: generator
+│   ├── calendar.php              <-- Dynamic RFC 5545 iCal generator
+│   ├── api/
+│   │   └── extract.php           <-- "Read Later" OpenGraph link parser
+│   ├── cron/
+│   │   └── sync_sources.php      <-- Scraper & Australian public RSS ingester
+│   └── assets/
+│       └── logo.svg              <-- Production vector mark
+└── schema.sql                    <-- MariaDB schema & Australian seed feeds

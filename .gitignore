@@ -1,0 +1,19 @@
+# Environment and Secrets
+.env
+.env.*
+!.env.example
+config.local.php
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# IDE & Editor Files
+.idea/
+.vscode/
+*.swp
+*~
+
+# Temporary, Logs and Scratch
+*.log
+scratch/
