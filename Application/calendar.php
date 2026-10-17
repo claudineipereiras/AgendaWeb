@@ -1,20 +1,24 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/src/Database.php';
+
+use AgendaWeb\Database;
+
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 $venue = filter_input(INPUT_GET, 'venue', FILTER_DEFAULT);
 
-$pdo = new PDO('mysql:host=localhost;dbname=u123456789_agenda;charset=utf8mb4', 'u123456789_admin', 'YourSecretPasswordHere');
+$pdo = Database::getConnection();
 
 if ($id) {
     $stmt = $pdo->prepare("SELECT * FROM events WHERE id = ?");
     $stmt->execute([$id]);
-    $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $events = $stmt->fetchAll();
     $filename = "agendaweb-event-{$id}.ics";
 } elseif ($venue) {
     $stmt = $pdo->prepare("SELECT * FROM events WHERE (venue_slug = :v OR :v = 'all') AND start_time >= NOW() ORDER BY start_time ASC LIMIT 100");
     $stmt->execute(['v' => $venue]);
-    $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $events = $stmt->fetchAll();
     $filename = "agendaweb-{$venue}.ics";
 } else {
     http_response_code(400);
@@ -41,7 +45,7 @@ foreach ($events as $e) {
     echo "DTEND:{$end}\r\n";
     echo "SUMMARY:" . addcslashes($e['title'], ",\\;") . "\r\n";
     echo "LOCATION:" . addcslashes($e['venue_name'] . ', ' . $e['address'], ",\\;") . "\r\n";
-    echo "DESCRIPTION:" . addcslashes($e['description'] . "\n\nTickets: " . ($e['ticket_url'] ?: ''), ",\\;") . "\r\n";
+    echo "DESCRIPTION:" . addcslashes(($e['description'] ?? '') . "\n\nTickets: " . ($e['ticket_url'] ?: ''), ",\\;") . "\r\n";
     if (!empty($e['ticket_url'])) {
         echo "URL:{$e['ticket_url']}\r\n";
     }

@@ -1,0 +1,29 @@
+/**
+ * AgendaWeb Design Tokens
+ * Defined in Docs/Brand_Guidelines.md
+ */
+
+:root {
+  /* Brand Palette Tokens */
+  --color-amber-rust: #C85A32;
+  --color-sage-green: #4A5D4E;
+  --color-nightfall:  #1B3B2B;
+  --color-chalk:      #F7F5F0;
+  --color-oat:        #E6E2D8;
+  --color-white:      #FFFFFF;
+  --color-text-muted: #5C675E;
+
+  /* Typography */
+  --font-serif: 'Playfair Display', 'Newsreader', Georgia, serif;
+  --font-sans:  'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Shadows & Radii */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-pill: 20px;
+  --shadow-card: 0 2px 8px rgba(27, 59, 43, 0.04);
+  --shadow-hover: 0 4px 12px rgba(27, 59, 43, 0.08);
+
+  /* Layout */
+  --max-content-width: 680px;
+}

@@ -1,27 +1,37 @@
 <?php
 declare(strict_types=1);
+
+require_once __DIR__ . '/src/Database.php';
+
+use AgendaWeb\Database;
+
 set_time_limit(300);
 
-$pdo = new PDO(
-    'mysql:host=localhost;dbname=u123456789_agenda;charset=utf8mb4',
-    'u123456789_admin',
-    'YourSecretPasswordHere',
-    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-);
+$config = require __DIR__ . '/config/config.php';
+$botUserAgent = $config['app']['bot_user_agent'] ?? 'AgendaWeb-Bot/1.0';
 
-$sources = $pdo->query("SELECT * FROM sources WHERE is_active = 1")->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $pdo = Database::getConnection();
+} catch (\Throwable $e) {
+    if (php_sapi_name() === 'cli') {
+        fwrite(STDERR, "Database connection error: " . $e->getMessage() . "\n");
+    }
+    exit(1);
+}
+
+$sources = $pdo->query("SELECT * FROM sources WHERE is_active = 1")->fetchAll();
 
 foreach ($sources as $source) {
     if ($source['type'] === 'rss') {
-        syncRss($pdo, $source);
+        syncRss($pdo, $source, $botUserAgent);
     } elseif ($source['type'] === 'scrape_event') {
-        syncSchemaOrgEvents($pdo, $source);
+        syncSchemaOrgEvents($pdo, $source, $botUserAgent);
     }
     $pdo->prepare("UPDATE sources SET last_polled_at = NOW() WHERE id = ?")->execute([$source['id']]);
 }
 
-function syncRss(PDO $pdo, array $source): void {
-    $ctx = stream_context_create(['http' => ['timeout' => 10, 'user_agent' => 'AgendaWeb-Sync/1.0']]);
+function syncRss(PDO $pdo, array $source, string $userAgent): void {
+    $ctx = stream_context_create(['http' => ['timeout' => 10, 'user_agent' => $userAgent]]);
     $xmlData = @file_get_contents($source['url'], false, $ctx);
     if (!$xmlData) return;
 
@@ -37,7 +47,7 @@ function syncRss(PDO $pdo, array $source): void {
     $items = isset($xml->channel->item) ? $xml->channel->item : ($xml->entry ?? []);
     $i = 0;
     foreach ($items as $item) {
-        if ($i++ > 20) break;
+        if ($i++ > 25) break;
         $title = (string)$item->title;
         $link  = (string)($item->link['href'] ?? $item->link);
         $desc  = strip_tags((string)($item->description ?? $item->summary ?? ''));
@@ -54,8 +64,8 @@ function syncRss(PDO $pdo, array $source): void {
     }
 }
 
-function syncSchemaOrgEvents(PDO $pdo, array $source): void {
-    $ctx = stream_context_create(['http' => ['timeout' => 12, 'user_agent' => 'AgendaWeb-Bot/1.0']]);
+function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): void {
+    $ctx = stream_context_create(['http' => ['timeout' => 12, 'user_agent' => $userAgent]]);
     $html = @file_get_contents($source['url'], false, $ctx);
     if (!$html) return;
 
@@ -67,10 +77,14 @@ function syncSchemaOrgEvents(PDO $pdo, array $source): void {
     $xpath = new DOMXPath($dom);
     $scripts = $xpath->query('//script[@type="application/ld+json"]');
 
+    // Only update if origin is 'scraped' to protect manual venue updates
     $stmt = $pdo->prepare("
-        INSERT INTO events (venue_slug, title, description, category, start_time, end_time, venue_name, address, ticket_url)
-        VALUES (:slug, :title, :description, :cat, :start, :end, :vname, :addr, :turl)
-        ON DUPLICATE KEY UPDATE description = VALUES(description), ticket_url = VALUES(ticket_url)
+        INSERT INTO events (venue_slug, title, description, category, start_time, end_time, venue_name, address, ticket_url, origin)
+        VALUES (:slug, :title, :description, :cat, :start, :end, :vname, :addr, :turl, 'scraped')
+        ON DUPLICATE KEY UPDATE 
+            description = IF(origin = 'manual', description, VALUES(description)),
+            ticket_url = IF(origin = 'manual', ticket_url, VALUES(ticket_url)),
+            end_time = IF(origin = 'manual', end_time, VALUES(end_time))
     ");
 
     foreach ($scripts as $s) {

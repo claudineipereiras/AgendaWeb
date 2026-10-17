@@ -1,20 +1,19 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/src/Database.php';
+
+use AgendaWeb\Database;
+
 header('Content-Type: application/rss+xml; charset=utf-8');
 header('Cache-Control: public, max-age=300');
 
-$host = 'localhost';
-$db   = 'u123456789_agenda';
-$user = 'u123456789_admin';
-$pass = 'YourSecretPasswordHere';
+$config = require __DIR__ . '/config/config.php';
+$appUrl = rtrim($config['app']['url'], '/');
 
 try {
-    $pdo = new PDO("mysql:host={$host};dbname={$db};charset=utf8mb4", $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-} catch (PDOException $e) {
+    $pdo = Database::getConnection();
+} catch (\Throwable $e) {
     http_response_code(500);
     exit('<error>Database Connection Failed</error>');
 }
@@ -46,15 +45,15 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
      xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>AgendaWeb — <?= htmlspecialchars(ucfirst($venue)) ?></title>
-    <link>https://agendaweb.app</link>
+    <link><?= htmlspecialchars($appUrl) ?></link>
     <description>YOUR CULTURAL WEB FEED</description>
     <language>en-AU</language>
-    <atom:link href="https://agendaweb.app/feed.php" rel="self" type="application/rss+xml" />
+    <atom:link href="<?= htmlspecialchars($appUrl) ?>/feed.php" rel="self" type="application/rss+xml" />
 
     <?php foreach ($events as $row): ?>
     <item>
       <title><?= htmlspecialchars($row['title'], ENT_XML1, 'UTF-8') ?></title>
-      <link><?= htmlspecialchars($row['ticket_url'] ?: 'https://agendaweb.app', ENT_XML1, 'UTF-8') ?></link>
+      <link><?= htmlspecialchars($row['ticket_url'] ?: $appUrl, ENT_XML1, 'UTF-8') ?></link>
       <pubDate><?= date(DATE_RSS, strtotime($row['created_at'])) ?></pubDate>
       <category><?= htmlspecialchars($row['category'], ENT_XML1, 'UTF-8') ?></category>
       <description><![CDATA[<?= $row['description'] ?>]]></description>
@@ -64,7 +63,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
       <ev:enddate><?= date('c', strtotime($row['end_time'])) ?></ev:enddate>
       <?php endif; ?>
       <ev:location><?= htmlspecialchars($row['venue_name'] . ' · ' . $row['address'], ENT_XML1, 'UTF-8') ?></ev:location>
-      <enclosure url="https://agendaweb.app/calendar.php?id=<?= $row['id'] ?>" type="text/calendar" />
+      <enclosure url="<?= htmlspecialchars($appUrl) ?>/calendar.php?id=<?= $row['id'] ?>" type="text/calendar" />
     </item>
     <?php endforeach; ?>
   </channel>

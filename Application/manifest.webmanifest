@@ -1,0 +1,17 @@
+{
+  "name": "AgendaWeb — Your Cultural Web Feed",
+  "short_name": "AgendaWeb",
+  "description": "Open-web cultural calendar and digital magazine reader for Australia",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F7F5F0",
+  "theme_color": "#1B3B2B",
+  "icons": [
+    {
+      "src": "assets/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

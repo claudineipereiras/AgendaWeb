@@ -4,6 +4,9 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
+$config = require __DIR__ . '/config/config.php';
+$botUserAgent = $config['app']['bot_user_agent'] ?? 'AgendaWeb-Bot/1.0 (+https://agendaweb.app)';
+
 $targetUrl = filter_input(INPUT_GET, 'url', FILTER_VALIDATE_URL);
 if (!$targetUrl) {
     http_response_code(400);
@@ -13,8 +16,8 @@ if (!$targetUrl) {
 
 $ctx = stream_context_create([
     'http' => [
-        'timeout' => 6,
-        'user_agent' => 'AgendaWeb-Bot/1.0 (+https://agendaweb.app)'
+        'timeout'    => 6,
+        'user_agent' => $botUserAgent
     ]
 ]);
 

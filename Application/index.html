@@ -4,184 +4,81 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AgendaWeb — Your Cultural Web Feed</title>
+  <meta name="description" content="Open-web, decentralized cultural calendar and editorial magazine reader for Australia.">
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#1B3B2B">
+
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 
-  <style>
-    :root {
-      --color-amber-rust: #C85A32;
-      --color-sage-green: #4A5D4E;
-      --color-nightfall:  #1B3B2B;
-      --color-chalk:      #F7F5F0;
-      --color-oat:        #E6E2D8;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background-color: var(--color-chalk);
-      color: var(--color-nightfall);
-      font-family: 'Inter', sans-serif;
-      line-height: 1.4;
-      padding-bottom: 80px;
-    }
-    header {
-      background: #FFFFFF;
-      border-bottom: 1px solid var(--color-oat);
-      padding: 14px 18px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
-    }
-    .brand img { height: 42px; }
-    .tabs {
-      display: flex;
-      overflow-x: auto;
-      gap: 8px;
-      padding: 12px 18px;
-      background: var(--color-chalk);
-      border-bottom: 1px solid var(--color-oat);
-    }
-    .tab-btn {
-      background: #FFFFFF;
-      border: 1px solid var(--color-oat);
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--color-nightfall);
-      white-space: nowrap;
-      cursor: pointer;
-    }
-    .tab-btn.active {
-      background: var(--color-sage-green);
-      color: #FFFFFF;
-      border-color: var(--color-sage-green);
-    }
-    .sub-filter {
-      display: flex;
-      overflow-x: auto;
-      gap: 6px;
-      padding: 8px 18px;
-      font-size: 0.8rem;
-    }
-    .filter-pill {
-      background: transparent;
-      border: none;
-      padding: 4px 8px;
-      color: var(--color-nightfall);
-      opacity: 0.7;
-      cursor: pointer;
-    }
-    .filter-pill.active {
-      opacity: 1;
-      font-weight: 700;
-      border-bottom: 2px solid var(--color-amber-rust);
-    }
-    .feed-container {
-      max-width: 640px;
-      margin: 16px auto;
-      padding: 0 16px;
-    }
-    .card {
-      background: #FFFFFF;
-      border: 1px solid var(--color-oat);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 14px;
-      box-shadow: 0 2px 4px rgba(27, 59, 43, 0.03);
-    }
-    .card-meta {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--color-amber-rust);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .card-title {
-      font-size: 1.15rem;
-      font-weight: 700;
-      margin: 4px 0 6px 0;
-      color: var(--color-nightfall);
-    }
-    .card-location {
-      font-size: 0.85rem;
-      color: #5C675E;
-      margin-bottom: 12px;
-    }
-    .card-actions {
-      display: flex;
-      gap: 8px;
-    }
-    .btn {
-      padding: 8px 12px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      border-radius: 6px;
-      text-decoration: none;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .btn-primary { background: var(--color-nightfall); color: #FFFFFF; border: none; }
-    .btn-secondary { background: var(--color-amber-rust); color: #FFFFFF; border: none; }
-    .btn-outline { background: transparent; border: 1px solid var(--color-oat); color: var(--color-nightfall); }
-  </style>
+  <!-- Modular Stylesheets -->
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
+  <!-- Brand Header -->
   <header>
     <a href="#" class="brand">
       <img src="assets/logo.svg" alt="AgendaWeb">
     </a>
-    <div style="font-size: 0.8rem; color: var(--color-sage-green); font-weight: 600;">✦ Open Feed</div>
+    <div class="header-actions">
+      <span class="clean-mode-badge" id="clean-mode-indicator">✦ Open Broadsheet</span>
+      <button class="icon-btn" onclick="toggleSettingsModal()">⚙ Settings</button>
+    </div>
   </header>
 
-  <nav class="tabs">
-    <button class="tab-btn active" onclick="setTab('events')">⚡ Events</button>
-    <button class="tab-btn" onclick="setTab('news')">📰 News</button>
-    <button class="tab-btn" onclick="setTab('politics')">🏛 Politics</button>
-    <button class="tab-btn" onclick="setTab('culture')">🎨 Culture</button>
-    <button class="tab-btn" onclick="setTab('reads')">🔖 Reads</button>
+  <!-- 5-Channel Tab Navigation -->
+  <nav class="tabs" id="main-tabs">
+    <button class="tab-btn active" data-tab="events" onclick="setTab('events')">⚡ Events</button>
+    <button class="tab-btn tab-news" data-tab="news" onclick="setTab('news')">📰 News</button>
+    <button class="tab-btn tab-politics" data-tab="politics" onclick="setTab('politics')">🏛 Politics</button>
+    <button class="tab-btn tab-culture" data-tab="culture" onclick="setTab('culture')">🎨 Culture</button>
+    <button class="tab-btn" data-tab="reads" onclick="setTab('reads')">🔖 Reads</button>
   </nav>
 
+  <!-- Event Sub-Category Filters -->
   <div class="sub-filter" id="sub-filter">
-    <button class="filter-pill active">All</button>
-    <button class="filter-pill">Live Music</button>
-    <button class="filter-pill">Art & Fair</button>
-    <button class="filter-pill">Community</button>
+    <button class="filter-pill active" onclick="setFilter('All', this)">All</button>
+    <button class="filter-pill" onclick="setFilter('Live Music', this)">Live Music</button>
+    <button class="filter-pill" onclick="setFilter('Art', this)">Art & Fair</button>
+    <button class="filter-pill" onclick="setFilter('Community', this)">Community</button>
   </div>
 
+  <!-- Dynamic Broadsheet Feed -->
   <main class="feed-container" id="feed">
-    <!-- Sample Event Card -->
-    <article class="card">
-      <div class="card-meta">Fri, 24 Oct · Doors 8:00 PM</div>
-      <h2 class="card-title">The Echoes — Album Launch</h2>
-      <div class="card-location">📍 The Gasometer Hotel, Collingwood</div>
-      <div class="card-actions">
-        <button class="btn btn-primary" onclick="window.location.href='calendar.php?id=1'">📅 Add to Calendar</button>
-        <button class="btn btn-secondary">★ Save</button>
-        <a href="#" class="btn btn-outline" target="_blank">Tickets ($22)</a>
-      </div>
-    </article>
+    <div class="state-message">Loading cultural feed...</div>
   </main>
 
-  <script>
-    function setTab(tabName) {
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
-      document.getElementById('sub-filter').style.display = (tabName === 'events') ? 'flex' : 'none';
-    }
-  </script>
+  <!-- Settings & Customization Modal -->
+  <div class="modal-overlay" id="settings-modal" onclick="if(event.target===this) toggleSettingsModal()">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Reader Preferences</h3>
+        <button class="icon-btn" onclick="toggleSettingsModal()">✕</button>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">
+          <h4>Clean Mode</h4>
+          <p>Hide news and politics tabs; run as an exclusive gig & cultural event guide.</p>
+        </div>
+        <input type="checkbox" id="clean-mode-check" onchange="toggleCleanMode(this)">
+      </div>
+      <div class="setting-row" style="border:none; padding-top:16px;">
+        <div class="setting-label">
+          <h4>Local Data Storage</h4>
+          <p>All bookmarks, saved reads, and preferences are stored exclusively on this device.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modular Scripts -->
+  <script src="js/db.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
