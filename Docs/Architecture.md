@@ -132,20 +132,28 @@ To prevent private house parties and spam from cluttering the city calendar with
 ## Frontend Architecture (Local-First PWA)
 
 ### Broadsheet Information Architecture
-The PWA presents a curated Australian cultural magazine divided into 5 top-level channels:
+The PWA presents a curated Australian cultural magazine divided into 4 primary channels:
 
-| Tab | Content Source | Characteristics |
-| :--- | :--- | :--- |
-| **⚡ Events** | Hostinger MySQL Scraped & Verified Venues | Chronological gigs sorted by `<ev:startdate>` (today, tomorrow, weekend). Sub-filters: Live Music, Art & Fair, Community, Free. One-tap "Add to Calendar". |
-| **📰 News** | ABC News, SBS News | Real-time public broadcaster dispatches. |
-| **🏛 Politics** | ABC National, The Conversation AU | Civic policy analysis, verified journalism. |
-| **🎨 Culture** | ABC Arts, The Guardian AU Culture | In-depth essays, arts coverage, music reviews. |
-| **🔖 Reads** | Client IndexedDB | Private offline queue: bookmarked events, custom RSS items, and "Read Later" articles. |
+| Tab | Visibility | Content Source | Characteristics & Subcategories |
+| :--- | :--- | :--- | :--- |
+| **⚡ Events** | **Always Visible (Core)** | Hostinger MySQL Scraped & Verified Venues | Chronological gigs sorted by `<ev:startdate>` (today, tomorrow, weekend). Auto-grouped subcategories: *Live Music*, *Art & Fair*, *Community*, *Free*. 1-tap "Add to Calendar" and card image support. |
+| **🔖 Reads** | **Always Visible (Core)** | Client IndexedDB | Private offline queue: bookmarked events, custom personal RSS items, and "Read Later" articles. |
+| **📰 News** | *Opt-in Toggle in Settings* | Hostinger MySQL Curated Sources | Real-time reporting from Australian public broadcasters. Subcategories automatically grouped from feed tags (e.g., *Top Stories*, *Regional*, *Policy*). |
+| **✍️ Blogs** | *Opt-in Toggle in Settings* | Hostinger MySQL Curated Sources | Independent cultural zines, music reviews, and essays. Subcategories automatically grouped from feed tags (e.g., *Indie Culture*, *Visual Arts*, *Interviews*). |
+| **📁 Personal** | *Dynamic (if custom feeds exist)* | Client IndexedDB via CORS Proxy | User-added personal RSS feeds grouped under custom category labels (defaults to *Personal*). |
 
-### Clean Mode & Custom Feeds
-- **"Clean Mode" Toggle:** Readers who want a distraction-free gig guide can toggle off News, Politics, and Culture tabs with a single setting in the drawer, transforming the PWA into a dedicated music and arts calendar.
-- **Custom RSS Subscriptions:** Users can paste any external RSS/Atom feed URL (e.g. a local community paper or niche blog) directly into the app; feeds are saved and synced locally in IndexedDB without creating an account on the server.
-- **OPML / JSON Export:** Users can export their entire subscription list and saved events to import into any external RSS or calendar client.
+### Automated Subcategory Grouping & Card Images
+- **Dynamic Subcategory Pills:** The client dynamically inspects the `<category>` tags embedded across active feed items and events, automatically rendering subcategory filter pills without manual database tag maintenance.
+- **Responsive Card Image Support:** Cards render high-resolution hero preview images if an image URL is detected in the RSS `<enclosure>`, `<media:content>`, or Schema.org event object.
+
+### Settings Drawer, Portability & Organizer Tools
+- **Channel Customization:** The default experience runs strictly with **Events** and **Reads** (clean mode). Users can toggle on **News** and **Blogs** individually in Settings.
+- **Personal RSS Feed Manager:** Users can click **"+ Add Feed"** in Settings to paste any external RSS URL and assign it to a category (defaults to `Personal`).
+- **Publisher & Organizer Guides:**
+  - *Schema.org Ingestion:* Instructions on embedding `schema.org/Event` JSON-LD.
+  - *Event RSS Syndication:* Guide for venues on publishing their own RSS 2.0 with `<ev:startdate>` and image enclosures for automatic ingestion.
+  - *Embed Widget:* Copy-paste snippet and configuration for `widget.js`.
+- **Data Portability (Export & Import):** Users can export their entire configuration (bookmarks, reads, personal feeds, settings) as `agendaweb-backup.json` to store on phone or cloud, and restore it on any device with zero server login. OPML export is also supported for desktop feed readers.
 
 ---
 

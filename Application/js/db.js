@@ -31,7 +31,7 @@ class AgendaDB {
           eventStore.createIndex('idx_start_time', 'start_time', { unique: false });
         }
 
-        // 3. Custom Feeds Store
+        // 3. Custom Personal Feeds Store
         if (!db.objectStoreNames.contains('custom_feeds')) {
           db.createObjectStore('custom_feeds', { keyPath: 'feed_url' });
         }
@@ -135,6 +135,46 @@ class AgendaDB {
     });
   }
 
+  // --- Custom Personal Feeds Store ---
+  async addCustomFeed(feed) {
+    await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('custom_feeds', 'readwrite');
+      const store = tx.objectStore('custom_feeds');
+      const data = {
+        feed_url: feed.feed_url,
+        name: feed.name || 'Personal Feed',
+        category: feed.category || 'Personal',
+        added_at: new Date().toISOString()
+      };
+      const req = store.put(data);
+      req.onsuccess = () => resolve(data);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async getCustomFeeds() {
+    await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('custom_feeds', 'readonly');
+      const store = tx.objectStore('custom_feeds');
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async deleteCustomFeed(feedUrl) {
+    await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('custom_feeds', 'readwrite');
+      const store = tx.objectStore('custom_feeds');
+      const req = store.delete(feedUrl);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
   // --- User Settings Store ---
   async getSetting(key, defaultValue = null) {
     await this.init();
@@ -158,6 +198,96 @@ class AgendaDB {
       req.onsuccess = () => resolve(true);
       req.onerror = () => reject(req.error);
     });
+  }
+
+  async getAllSettings() {
+    await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('user_settings', 'readonly');
+      const store = tx.objectStore('user_settings');
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  // --- Data Portability: Export / Import ---
+  async exportBackup() {
+    await this.init();
+    const backup = {
+      version: 1,
+      exported_at: new Date().toISOString(),
+      user_settings: await this.getAllSettings(),
+      starred_events: await this.getStarredEvents(),
+      read_later: await this.getReadItems(),
+      custom_feeds: await this.getCustomFeeds()
+    };
+    const jsonStr = JSON.stringify(backup, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `agendaweb-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async importBackup(jsonString) {
+    await this.init();
+    const data = JSON.parse(jsonString);
+    if (!data.version) throw new Error('Invalid backup format');
+
+    const tx = this.db.transaction(['user_settings', 'starred_events', 'read_later', 'custom_feeds'], 'readwrite');
+
+    if (data.user_settings) {
+      const sStore = tx.objectStore('user_settings');
+      data.user_settings.forEach(s => sStore.put(s));
+    }
+    if (data.starred_events) {
+      const eStore = tx.objectStore('starred_events');
+      data.starred_events.forEach(e => eStore.put(e));
+    }
+    if (data.read_later) {
+      const rStore = tx.objectStore('read_later');
+      data.read_later.forEach(r => rStore.put(r));
+    }
+    if (data.custom_feeds) {
+      const cStore = tx.objectStore('custom_feeds');
+      data.custom_feeds.forEach(c => cStore.put(c));
+    }
+
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async exportOpml() {
+    const customFeeds = await this.getCustomFeeds();
+    const outlines = customFeeds.map(f => 
+      `      <outline text="${f.name.replace(/"/g, '&quot;')}" title="${f.name.replace(/"/g, '&quot;')}" type="rss" xmlUrl="${f.feed_url.replace(/"/g, '&quot;')}" category="${(f.category || 'Personal').replace(/"/g, '&quot;')}" />`
+    ).join('\n');
+
+    const opml = `<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>AgendaWeb Feeds Export</title>
+    <dateCreated>${new Date().toUTCString()}</dateCreated>
+  </head>
+  <body>
+    <outline text="AgendaWeb Feeds">
+${outlines || '      <!-- No personal feeds added -->'}
+    </outline>
+  </body>
+</opml>`;
+
+    const blob = new Blob([opml], { type: 'text/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `agendaweb-feeds-${new Date().toISOString().slice(0, 10)}.opml`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }
 

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2026-10-18
+
+### Added
+- 4-Channel Information Architecture: **Events**, **Reads**, **Blogs**, and **News** (Events + Reads default clean broadsheet).
+- Automated Subcategory Grouping: Dynamic client extraction of `<category>` tags from feed items and events to auto-generate filter pills.
+- Card Hero & Poster Image Support (`image_url` on cards and DB schemas).
+- Personal Feeds Manager: "+ Add Feed" modal with custom grouping tags (`Personal` or custom).
+- Personal Feed CORS Proxy endpoint (`/api/proxy_feed.php`).
+- Settings Data Portability: Single-click JSON backup export/import and OPML export.
+- Publisher & Organizer Guides in Settings (Schema.org JSON-LD, Event RSS syndication guide, and `widget.js` embed).
+
+### Changed
+- Standardized database specification to Hostinger MySQL 8.x across all documentation and schemas.
+
+---
+
 ## [0.2.0] - 2026-10-18
 
 ### Added

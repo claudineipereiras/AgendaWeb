@@ -44,9 +44,22 @@ try {
     $countStmt->execute($params);
     $total = (int)$countStmt->fetchColumn();
 
-    // Query events
+    // Dynamically retrieve distinct available categories for auto-grouping
+    $catQuery = "SELECT DISTINCT category FROM events WHERE start_time >= NOW()";
+    $catParams = [];
+    if ($venue !== 'all') {
+        $catQuery .= " AND venue_slug = :vslug";
+        $catParams['vslug'] = $venue;
+    }
+    $catQuery .= " ORDER BY category ASC";
+    $catStmt = $pdo->prepare($catQuery);
+    $catStmt->execute($catParams);
+    $rawCategories = $catStmt->fetchAll(PDO::FETCH_COLUMN);
+    $categories = array_values(array_unique(array_merge(['All'], array_filter($rawCategories))));
+
+    // Query events with image_url
     $sql = "SELECT id, venue_slug, venue_name, title, description, category, 
-                   start_time, end_time, address, ticket_url, origin, is_verified
+                   start_time, end_time, address, ticket_url, image_url, origin, is_verified
             FROM events
             WHERE {$whereSql}
             ORDER BY start_time ASC
@@ -62,12 +75,13 @@ try {
     }
 
     echo json_encode([
-        'status' => 'success',
-        'count'  => count($events),
-        'total'  => $total,
-        'offset' => $offset,
-        'limit'  => $limit,
-        'data'   => $events
+        'status'     => 'success',
+        'count'      => count($events),
+        'total'      => $total,
+        'offset'     => $offset,
+        'limit'      => $limit,
+        'categories' => $categories,
+        'data'       => $events
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
 } catch (\Throwable $e) {

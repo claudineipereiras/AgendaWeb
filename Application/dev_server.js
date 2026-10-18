@@ -24,7 +24,7 @@ const MIME_TYPES = {
   '.ics': 'text/calendar; charset=utf-8'
 };
 
-// Seed Mock Data matching Docs/Schema.sql & Docs/API_Spec.md
+// Seed Mock Data with image support matching Docs/Schema.sql & Docs/API_Spec.md
 const MOCK_EVENTS = [
   {
     id: 1,
@@ -37,6 +37,7 @@ const MOCK_EVENTS = [
     end_time: "2026-10-24 23:30:00",
     address: "484 Smith St, Collingwood VIC 3066",
     ticket_url: "https://oztix.com.au/event/12345",
+    image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=700&q=80",
     origin: "scraped",
     is_verified: 1,
     calendar_url: "calendar.php?id=1"
@@ -52,6 +53,7 @@ const MOCK_EVENTS = [
     end_time: "2026-10-25 17:00:00",
     address: "128 Gertrude St, Fitzroy VIC 3065",
     ticket_url: "",
+    image_url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=700&q=80",
     origin: "manual",
     is_verified: 1,
     calendar_url: "calendar.php?id=2"
@@ -67,6 +69,7 @@ const MOCK_EVENTS = [
     end_time: "2026-10-26 23:00:00",
     address: "57 Swan St, Richmond VIC 3121",
     ticket_url: "https://thecornerhotel.com",
+    image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=700&q=80",
     origin: "scraped",
     is_verified: 1,
     calendar_url: "calendar.php?id=3"
@@ -82,6 +85,7 @@ const MOCK_EVENTS = [
     end_time: "2026-10-27 18:00:00",
     address: "35 Johnston St, Collingwood VIC 3066",
     ticket_url: "",
+    image_url: "https://images.unsplash.com/photo-1526478806334-5fd488fcaabc?auto=format&fit=crop&w=700&q=80",
     origin: "manual",
     is_verified: 1,
     calendar_url: "calendar.php?id=4"
@@ -94,58 +98,46 @@ const MOCK_ITEMS = {
       id: 101,
       source_name: "ABC News",
       category_tab: "news",
+      category: "Regional Arts",
       title: "Grassroots Music Venues Receive New State Infrastructure Funding",
       link: "https://www.abc.net.au/news",
       summary: "Victoria’s live music and indie venues receive dedicated grants to preserve historic neighborhood stages.",
+      image_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=700&q=80",
       published_at: "2026-10-18 08:30:00"
     },
     {
       id: 102,
       source_name: "SBS News",
       category_tab: "news",
+      category: "Community",
       title: "Multicultural Arts Festivals Expanded Across Regional Hubs",
       link: "https://www.sbs.com.au/news",
       summary: "New community initiatives bring multicultural storytelling and food traditions to regional towns.",
+      image_url: "",
       published_at: "2026-10-18 07:15:00"
     }
   ],
-  politics: [
+  blogs: [
     {
       id: 201,
-      source_name: "The Conversation (AU)",
-      category_tab: "politics",
-      title: "Why Australia's Cultural Infrastructure Needs Decentralized Open Data",
-      link: "https://theconversation.com/au",
-      summary: "Public arts policy is shifting towards community-anchored hubs, open syndication, and digital sovereignty.",
-      published_at: "2026-10-18 07:45:00"
-    },
-    {
-      id: 202,
-      source_name: "ABC Politics",
-      category_tab: "politics",
-      title: "Civic Spaces and Public Gathering Laws Reviewed by Parliament",
-      link: "https://www.abc.net.au/news",
-      summary: "Lawmakers review zoning protections for cultural performance spaces in residential neighborhoods.",
-      published_at: "2026-10-17 18:00:00"
-    }
-  ],
-  culture: [
-    {
-      id: 301,
-      source_name: "The Guardian (AU)",
-      category_tab: "culture",
+      source_name: "Trouble Magazine",
+      category_tab: "blogs",
+      category: "Indie Culture",
       title: "Australian Indie Music Resilience: Behind Collingwood's Gigs",
-      link: "https://www.theguardian.com/au/culture",
       summary: "An in-depth look into independent venues maintaining live stages amidst urban development and noise complaints.",
+      link: "https://www.troublemag.com",
+      image_url: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=700&q=80",
       published_at: "2026-10-17 14:00:00"
     },
     {
-      id: 302,
-      source_name: "ABC Arts & Culture",
-      category_tab: "culture",
-      title: "The Renaissance of Independent Print: Zines and Broadsheets in 2026",
-      link: "https://www.abc.net.au/news",
-      summary: "Young writers and illustrators are turning away from algorithmic feeds toward tactile broadsheets.",
+      id: 202,
+      source_name: "The Conversation (AU)",
+      category_tab: "blogs",
+      category: "Essays",
+      title: "Why Australia's Cultural Infrastructure Needs Decentralized Open Data",
+      link: "https://theconversation.com/au",
+      summary: "Public arts policy is shifting towards community-anchored hubs, open syndication, and digital sovereignty.",
+      image_url: "",
       published_at: "2026-10-17 11:30:00"
     }
   ]
@@ -178,32 +170,74 @@ const server = http.createServer((req, res) => {
       filtered = filtered.filter(e => e.venue_slug === venue);
     }
 
+    const categories = ['All', ...new Set(MOCK_EVENTS.map(e => e.category))];
+
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({
       status: 'success',
       count: filtered.length,
       total: MOCK_EVENTS.length,
+      categories: categories,
       data: filtered
     }));
     return;
   }
 
-  // 2. API: Items Feed (News, Politics, Culture)
+  // 2. API: Items Feed (News, Blogs)
   if (pathname === '/api/items.php') {
     const tab = parsedUrl.query.tab || 'news';
-    const items = MOCK_ITEMS[tab] || [];
+    const category = parsedUrl.query.category || 'all';
+    const rawItems = MOCK_ITEMS[tab] || [];
+
+    let filtered = rawItems;
+    if (category && category !== 'all' && category !== 'All') {
+      filtered = filtered.filter(i => (i.category || '').toLowerCase() === category.toLowerCase());
+    }
+
+    const categories = ['All', ...new Set(rawItems.map(i => i.category).filter(Boolean))];
 
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({
       status: 'success',
       tab: tab,
-      count: items.length,
-      data: items
+      count: filtered.length,
+      categories: categories,
+      data: filtered
     }));
     return;
   }
 
-  // 3. API: OpenGraph Extractor
+  // 3. API: Personal Feed CORS Proxy
+  if (pathname === '/api/proxy_feed.php') {
+    const targetUrl = parsedUrl.query.url;
+    if (!targetUrl) {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: 'Valid URL required' }));
+      return;
+    }
+
+    // Mock parsed personal feed items
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({
+      status: 'success',
+      feed_url: targetUrl,
+      title: "Sample Personal RSS Feed",
+      categories: ["All", "Visual Arts", "Interviews"],
+      items: [
+        {
+          title: "Melbourne Underground Zine Scene 2026",
+          link: "https://example.com/zine-scene",
+          summary: "Local risograph studios are banding together to form neighborhood micro-press collectives.",
+          category: "Visual Arts",
+          image_url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=700&q=80",
+          published_at: new Date().toISOString()
+        }
+      ]
+    }));
+    return;
+  }
+
+  // 4. API: OpenGraph Extractor
   if (pathname === '/api/extract.php' || pathname === '/extract.php') {
     const targetUrl = parsedUrl.query.url;
     if (!targetUrl) {
@@ -229,7 +263,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // 4. Syndication: RFC 5545 iCalendar
+  // 5. Syndication: RFC 5545 iCalendar
   if (pathname === '/calendar.php') {
     const id = parseInt(parsedUrl.query.id, 10);
     const event = MOCK_EVENTS.find(e => e.id === id) || MOCK_EVENTS[0];
@@ -260,7 +294,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // 5. Syndication: RSS 2.0 with ev: Event Module
+  // 6. Syndication: RSS 2.0 with ev: Event Module
   if (pathname === '/feed.php') {
     const rssItems = MOCK_EVENTS.map(e => `
     <item>
@@ -290,7 +324,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // 6. Static File Serving
+  // 7. Static File Serving
   let filePath = path.join(BASE_DIR, pathname === '/' ? 'index.html' : pathname);
 
   fs.stat(filePath, (err, stats) => {
@@ -314,6 +348,8 @@ function startServer(port) {
     console.log(`  - Broadsheet PWA:  http://localhost:${port}/index.html`);
     console.log(`  - Events JSON API: http://localhost:${port}/api/events.php`);
     console.log(`  - News JSON API:   http://localhost:${port}/api/items.php?tab=news`);
+    console.log(`  - Blogs JSON API:  http://localhost:${port}/api/items.php?tab=blogs`);
+    console.log(`  - Proxy Feed API:  http://localhost:${port}/api/proxy_feed.php?url=...`);
     console.log(`  - RSS 2.0 Feed:    http://localhost:${port}/feed.php`);
     console.log(`  - iCal Export:     http://localhost:${port}/calendar.php?id=1\n`);
   });

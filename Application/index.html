@@ -26,53 +26,172 @@
       <img src="assets/logo.svg" alt="AgendaWeb">
     </a>
     <div class="header-actions">
-      <span class="clean-mode-badge" id="clean-mode-indicator">✦ Open Broadsheet</span>
+      <span class="clean-mode-badge" id="clean-mode-indicator">⚡ Clean Gig Guide</span>
       <button class="icon-btn" onclick="toggleSettingsModal()">⚙ Settings</button>
     </div>
   </header>
 
-  <!-- 5-Channel Tab Navigation -->
+  <!-- Channels Navigation -->
   <nav class="tabs" id="main-tabs">
     <button class="tab-btn active" data-tab="events" onclick="setTab('events')">⚡ Events</button>
-    <button class="tab-btn tab-news" data-tab="news" onclick="setTab('news')">📰 News</button>
-    <button class="tab-btn tab-politics" data-tab="politics" onclick="setTab('politics')">🏛 Politics</button>
-    <button class="tab-btn tab-culture" data-tab="culture" onclick="setTab('culture')">🎨 Culture</button>
     <button class="tab-btn" data-tab="reads" onclick="setTab('reads')">🔖 Reads</button>
+    <button class="tab-btn" id="tab-btn-blogs" data-tab="blogs" style="display:none;" onclick="setTab('blogs')">✍️ Blogs</button>
+    <button class="tab-btn" id="tab-btn-news" data-tab="news" style="display:none;" onclick="setTab('news')">📰 News</button>
+    <button class="tab-btn" id="tab-btn-personal" data-tab="personal" style="display:none;" onclick="setTab('personal')">📁 Personal</button>
   </nav>
 
-  <!-- Event Sub-Category Filters -->
-  <div class="sub-filter" id="sub-filter">
-    <button class="filter-pill active" onclick="setFilter('All', this)">All</button>
-    <button class="filter-pill" onclick="setFilter('Live Music', this)">Live Music</button>
-    <button class="filter-pill" onclick="setFilter('Art', this)">Art & Fair</button>
-    <button class="filter-pill" onclick="setFilter('Community', this)">Community</button>
-  </div>
+  <!-- Dynamic Auto-Grouped Subcategory Filters -->
+  <div class="sub-filter" id="sub-filter" style="display:none;"></div>
 
   <!-- Dynamic Broadsheet Feed -->
   <main class="feed-container" id="feed">
     <div class="state-message">Loading cultural feed...</div>
   </main>
 
-  <!-- Settings & Customization Modal -->
+  <!-- Main Settings Drawer Modal -->
   <div class="modal-overlay" id="settings-modal" onclick="if(event.target===this) toggleSettingsModal()">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Reader Preferences</h3>
+        <h3>Reader Preferences & Tools</h3>
         <button class="icon-btn" onclick="toggleSettingsModal()">✕</button>
       </div>
-      <div class="setting-row">
-        <div class="setting-label">
-          <h4>Clean Mode</h4>
-          <p>Hide news and politics tabs; run as an exclusive gig & cultural event guide.</p>
+
+      <!-- Section 1: Broadsheet Channels -->
+      <div class="settings-section">
+        <div class="settings-section-title">1. Curated Channels</div>
+        <div class="setting-row">
+          <div class="setting-label">
+            <h4>⚡ Events & 🔖 Reads</h4>
+            <p>Standard core channels (always active by default).</p>
+          </div>
+          <span style="font-size:0.8rem; color:var(--color-sage-green); font-weight:700;">ACTIVE</span>
         </div>
-        <input type="checkbox" id="clean-mode-check" onchange="toggleCleanMode(this)">
-      </div>
-      <div class="setting-row" style="border:none; padding-top:16px;">
-        <div class="setting-label">
-          <h4>Local Data Storage</h4>
-          <p>All bookmarks, saved reads, and preferences are stored exclusively on this device.</p>
+        <div class="setting-row">
+          <div class="setting-label">
+            <h4>✍️ Independent Blogs & Essays</h4>
+            <p>Curated Australian cultural zines, music reviews, and independent critiques.</p>
+          </div>
+          <input type="checkbox" id="channel-blogs-check" onchange="toggleChannel('show_blogs', this.checked)">
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">
+            <h4>📰 Public Journalism & News</h4>
+            <p>Real-time dispatches from ABC News, SBS, and public broadcasters.</p>
+          </div>
+          <input type="checkbox" id="channel-news-check" onchange="toggleChannel('show_news', this.checked)">
         </div>
       </div>
+
+      <!-- Section 2: Personal RSS Feeds Manager -->
+      <div class="settings-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div class="settings-section-title" style="margin-bottom:0;">2. Personal Feeds</div>
+          <button class="btn btn-primary" onclick="openAddFeedModal()">+ Add Feed</button>
+        </div>
+        <p style="font-size:0.78rem; color:var(--color-text-muted); margin-bottom:12px;">Add custom RSS/Atom feeds stored exclusively in your browser's IndexedDB.</p>
+        <div id="personal-feeds-list"></div>
+      </div>
+
+      <!-- Section 3: Publisher & Venue Integration Guide -->
+      <div class="settings-section">
+        <div class="settings-section-title">3. Publisher & Venue Guides</div>
+
+        <!-- Guide 1: Schema.org Event -->
+        <details class="guide-accordion">
+          <summary class="guide-summary">► Add Your Events (Schema.org JSON-LD)</summary>
+          <div class="guide-body">
+            <p>AgendaWeb automatically scans venue sites for standard Google SEO structured data. Paste this in your gig page <code>&lt;head&gt;</code>:</p>
+            <div class="guide-code">&lt;script type="application/ld+json"&gt;
+{
+  "@context": "https://schema.org",
+  "@type": "MusicEvent",
+  "name": "The Echoes — Album Launch",
+  "startDate": "2026-10-24T20:00:00+11:00",
+  "location": {
+    "@type": "Place",
+    "name": "The Gasometer Hotel",
+    "address": "484 Smith St, Collingwood VIC"
+  },
+  "offers": { "url": "https://oztix.com.au" },
+  "image": "https://example.com/poster.jpg"
+}
+&lt;/script&gt;</div>
+          </div>
+        </details>
+
+        <!-- Guide 2: Event RSS 2.0 Syndication -->
+        <details class="guide-accordion">
+          <summary class="guide-summary">► Create an Event RSS Feed (Future Standard)</summary>
+          <div class="guide-body">
+            <p>Publish an open RSS 2.0 feed with the Event module (<code>xmlns:ev</code>) and image enclosure:</p>
+            <div class="guide-code">&lt;rss version="2.0" xmlns:ev="http://purl.org/rss/1.0/modules/event/"&gt;
+  &lt;channel&gt;
+    &lt;title&gt;Your Venue Gigs&lt;/title&gt;
+    &lt;item&gt;
+      &lt;title&gt;Gig Title&lt;/title&gt;
+      &lt;ev:startdate&gt;2026-10-24T20:00:00+11:00&lt;/ev:startdate&gt;
+      &lt;ev:location&gt;Venue Name, Address&lt;/ev:location&gt;
+      &lt;enclosure url="https://example.com/poster.jpg" type="image/jpeg" /&gt;
+    &lt;/item&gt;
+  &lt;/channel&gt;
+&lt;/rss&gt;</div>
+          </div>
+        </details>
+
+        <!-- Guide 3: Embed Widget -->
+        <details class="guide-accordion">
+          <summary class="guide-summary">► Embed AgendaWeb Widget (widget.js)</summary>
+          <div class="guide-body">
+            <p>Display your upcoming live gigs on your own website automatically:</p>
+            <div class="guide-code">&lt;div class="agendaweb-widget" data-venue="your-venue-slug" data-limit="5"&gt;&lt;/div&gt;
+&lt;script src="https://agendaweb.app/widget.js" async&gt;&lt;/script&gt;</div>
+            <button class="btn btn-outline" style="margin-top:6px;" onclick="copyEmbedSnippet()">📋 Copy Code Snippet</button>
+          </div>
+        </details>
+      </div>
+
+      <!-- Section 4: Data Portability & Device Sync -->
+      <div class="settings-section" style="border:none; margin-bottom:0; padding-bottom:0;">
+        <div class="settings-section-title">4. Data Portability & Sync</div>
+        <p style="font-size:0.78rem; color:var(--color-text-muted); margin-bottom:8px;">Zero server tracking. Save your settings, bookmarks, and personal feeds to your device or cloud to load on another computer or phone.</p>
+        <div class="portability-actions">
+          <button class="btn btn-primary" onclick="handleExportBackup()">⬇ Export Backup (JSON)</button>
+          <label class="btn btn-outline" style="cursor:pointer;">
+            ⬆ Import Backup (JSON)
+            <input type="file" accept=".json" style="display:none;" onchange="handleImportBackupFile(this)">
+          </label>
+          <button class="btn btn-outline" onclick="handleExportOpml()">⬇ Export OPML</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Popup Modal: + Add Personal Feed -->
+  <div class="modal-overlay" id="add-feed-modal" onclick="if(event.target===this) closeAddFeedModal()">
+    <div class="modal-content" style="max-width:400px;">
+      <div class="modal-header">
+        <h3>Add Personal RSS Feed</h3>
+        <button class="icon-btn" onclick="closeAddFeedModal()">✕</button>
+      </div>
+      <form onsubmit="handleAddFeedSubmit(event)">
+        <div class="form-group">
+          <label for="feed-name-input">Feed Name</label>
+          <input type="text" id="feed-name-input" class="form-control" placeholder="e.g. Melbourne Indie Reviews" required>
+        </div>
+        <div class="form-group">
+          <label for="feed-url-input">Feed URL (RSS / Atom)</label>
+          <input type="url" id="feed-url-input" class="form-control" placeholder="https://example.com/feed.xml" required>
+        </div>
+        <div class="form-group">
+          <label for="feed-cat-input">Category / Group</label>
+          <input type="text" id="feed-cat-input" class="form-control" value="Personal" placeholder="e.g. Personal, Zines, Tech">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+          <button type="button" class="btn btn-outline" onclick="closeAddFeedModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save to Feed</button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -36,6 +36,7 @@ Retrieves upcoming cultural events, gigs, and exhibitions sorted chronologically
   "status": "success",
   "count": 1,
   "total": 42,
+  "categories": ["All", "Live Music", "Art", "Community", "Free"],
   "data": [
     {
       "id": 1,
@@ -48,6 +49,7 @@ Retrieves upcoming cultural events, gigs, and exhibitions sorted chronologically
       "end_time": "2026-10-24 23:30:00",
       "address": "484 Smith St, Collingwood VIC 3066",
       "ticket_url": "https://oztix.com.au/event/12345",
+      "image_url": "https://example.com/posters/echoes.jpg",
       "origin": "scraped",
       "is_verified": 1,
       "calendar_url": "https://agendaweb.app/calendar.php?id=1"
@@ -58,14 +60,15 @@ Retrieves upcoming cultural events, gigs, and exhibitions sorted chronologically
 
 ---
 
-### 2.2 Get News & Cultural Dispatches
-Retrieves articles and news headlines ingested from Australian public sources.
+### 2.2 Get News, Cultural Dispatches & Blogs
+Retrieves articles, news headlines, and independent blog posts ingested from Australian public sources.
 
 - **Endpoint:** `GET /api/items.php`
 - **Query Parameters:**
   | Parameter | Type | Required | Default | Description |
   | :--- | :--- | :--- | :--- | :--- |
-  | `tab` | `string` | No | `news` | Content category: `news`, `politics`, `culture`. |
+  | `tab` | `string` | No | `news` | Content category: `news`, `politics`, `culture`, `blogs`. |
+  | `category` | `string` | No | `all` | Filter by auto-extracted subcategory or `all`. |
   | `limit` | `int` | No | `30` | Maximum items to return (1–50). |
   | `offset` | `int` | No | `0` | Pagination offset. |
 
@@ -75,15 +78,50 @@ Retrieves articles and news headlines ingested from Australian public sources.
   "status": "success",
   "tab": "news",
   "count": 1,
+  "categories": ["All", "Top Stories", "Regional Arts", "Music Reviews"],
   "data": [
     {
       "id": 105,
       "source_name": "ABC News",
       "category_tab": "news",
+      "category": "Regional Arts",
       "title": "Community Arts Funding Expanded Across Regional Victoria",
       "link": "https://www.abc.net.au/news/2026-10-18/arts-funding-regional-vic/1000",
       "summary": "State government announces new grants targeting grassroots music venues and indie galleries...",
+      "image_url": "https://images.abc.net.au/news/arts-grant.jpg",
       "published_at": "2026-10-18 08:15:00"
+    }
+  ]
+}
+```
+
+---
+
+### 2.3 Personal Feed CORS Proxy
+Safely proxies external user-added RSS/Atom feeds to bypass browser CORS restrictions for local IndexedDB personal feeds.
+
+- **Endpoint:** `GET /api/proxy_feed.php`
+- **Query Parameters:**
+  | Parameter | Type | Required | Description |
+  | :--- | :--- | :--- | :--- |
+  | `url` | `string` | Yes | Target RSS/Atom feed URL. |
+
+- **Success Response (200 OK):**
+```json
+{
+  "status": "success",
+  "feed_url": "https://example.com/feed.xml",
+  "title": "Melbourne Arts Review",
+  "description": "Independent critique and exhibition reviews",
+  "categories": ["All", "Essays", "Interviews", "Visual Arts"],
+  "items": [
+    {
+      "title": "Spring Printmaking in Collingwood",
+      "link": "https://example.com/spring-printmaking",
+      "summary": "Spotlight on community presses...",
+      "category": "Visual Arts",
+      "image_url": "https://example.com/hero.jpg",
+      "published_at": "2026-10-18T05:00:00Z"
     }
   ]
 }
@@ -207,3 +245,43 @@ A zero-dependency client widget allowing independent venues to display their upc
   </div>
   <script src="https://agendaweb.app/widget.js" async></script>
   ```
+
+---
+
+## 5. Organizer Event RSS Syndication Guide (Future Feature)
+
+Organizers and independent venues who manage their own blogs or CMS (WordPress, Ghost, Craft) can broadcast events to AgendaWeb by publishing a standard RSS 2.0 feed enhanced with the Event (`ev:`) module.
+
+### Feed Specification
+- **Content-Type:** `application/rss+xml; charset=utf-8`
+- **Required Namespaces:** `xmlns:ev="http://purl.org/rss/1.0/modules/event/"`
+
+### Sample Event RSS Template
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:ev="http://purl.org/rss/1.0/modules/event/">
+  <channel>
+    <title>The Gasometer Hotel — Live Gigs</title>
+    <link>https://www.thegasometerhotel.com.au</link>
+    <description>Live music, album launches, and band schedules</description>
+    <language>en-AU</language>
+
+    <item>
+      <title>The Echoes — Album Launch</title>
+      <link>https://oztix.com.au/event/12345</link>
+      <pubDate>Sun, 18 Oct 2026 09:00:00 +1100</pubDate>
+      <category>Live Music</category>
+      <description><![CDATA[Melbourne indie rock outfit celebrating debut LP.]]></description>
+      
+      <!-- Event Module Metadata -->
+      <ev:startdate>2026-10-24T20:00:00+11:00</ev:startdate>
+      <ev:enddate>2026-10-24T23:30:00+11:00</ev:enddate>
+      <ev:location>The Gasometer Hotel, 484 Smith St, Collingwood VIC</ev:location>
+      
+      <!-- Promotional Poster / Card Image -->
+      <enclosure url="https://example.com/posters/echoes.jpg" type="image/jpeg" length="102400" />
+    </item>
+  </channel>
+</rss>
+```
+

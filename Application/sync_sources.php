@@ -39,26 +39,59 @@ function syncRss(PDO $pdo, array $source, string $userAgent): void {
     if (!$xml) return;
 
     $stmt = $pdo->prepare("
-        INSERT INTO items (source_id, category_tab, title, link, summary, published_at)
-        VALUES (:sid, :tab, :title, :link, :summary, :pub_date)
-        ON DUPLICATE KEY UPDATE summary = VALUES(summary)
+        INSERT INTO items (source_id, category_tab, category, title, link, summary, image_url, published_at)
+        VALUES (:sid, :tab, :cat, :title, :link, :summary, :image, :pub_date)
+        ON DUPLICATE KEY UPDATE 
+            summary = VALUES(summary),
+            image_url = IF(image_url IS NULL, VALUES(image_url), image_url)
     ");
 
     $items = isset($xml->channel->item) ? $xml->channel->item : ($xml->entry ?? []);
     $i = 0;
     foreach ($items as $item) {
-        if ($i++ > 25) break;
-        $title = (string)$item->title;
+        if ($i++ > 30) break;
+        $title = trim((string)$item->title);
         $link  = (string)($item->link['href'] ?? $item->link);
-        $desc  = strip_tags((string)($item->description ?? $item->summary ?? ''));
+        $rawDesc = (string)($item->description ?? $item->summary ?? '');
         $date  = (string)($item->pubDate ?? $item->updated ?? date('r'));
+
+        // Extract category tag
+        $cat = 'General';
+        if (isset($item->category)) {
+            $cat = trim((string)$item->category);
+        }
+
+        // Extract image
+        $imageUrl = null;
+        if (isset($item->enclosure)) {
+            $encType = (string)$item->enclosure['type'];
+            if (str_starts_with($encType, 'image/')) {
+                $imageUrl = (string)$item->enclosure['url'];
+            }
+        }
+        if (!$imageUrl) {
+            $namespaces = $item->getNameSpaces(true);
+            if (isset($namespaces['media'])) {
+                $media = $item->children($namespaces['media']);
+                if (isset($media->content) && isset($media->content->attributes()->url)) {
+                    $imageUrl = (string)$media->content->attributes()->url;
+                }
+            }
+        }
+        if (!$imageUrl && preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $rawDesc, $match)) {
+            $imageUrl = $match[1];
+        }
+
+        $desc = strip_tags($rawDesc);
 
         $stmt->execute([
             'sid'      => $source['id'],
             'tab'      => $source['category_tab'],
+            'cat'      => $cat ?: 'General',
             'title'    => $title,
             'link'     => $link,
             'summary'  => mb_substr($desc, 0, 300) . '...',
+            'image'    => $imageUrl,
             'pub_date' => date('Y-m-d H:i:s', strtotime($date))
         ]);
     }
@@ -79,12 +112,13 @@ function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): void {
 
     // Only update if origin is 'scraped' to protect manual venue updates
     $stmt = $pdo->prepare("
-        INSERT INTO events (venue_slug, title, description, category, start_time, end_time, venue_name, address, ticket_url, origin)
-        VALUES (:slug, :title, :description, :cat, :start, :end, :vname, :addr, :turl, 'scraped')
+        INSERT INTO events (venue_slug, title, description, category, start_time, end_time, venue_name, address, ticket_url, image_url, origin)
+        VALUES (:slug, :title, :description, :cat, :start, :end, :vname, :addr, :turl, :image, 'scraped')
         ON DUPLICATE KEY UPDATE 
             description = IF(origin = 'manual', description, VALUES(description)),
             ticket_url = IF(origin = 'manual', ticket_url, VALUES(ticket_url)),
-            end_time = IF(origin = 'manual', end_time, VALUES(end_time))
+            end_time = IF(origin = 'manual', end_time, VALUES(end_time)),
+            image_url = IF(origin = 'manual', image_url, VALUES(image_url))
     ");
 
     foreach ($scripts as $s) {
@@ -100,6 +134,12 @@ function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): void {
                 $start = date('Y-m-d H:i:s', strtotime($node['startDate']));
                 if (strtotime($start) < time()) continue;
 
+                // Extract image from schema.org
+                $imageUrl = null;
+                if (!empty($node['image'])) {
+                    $imageUrl = is_array($node['image']) ? ($node['image'][0] ?? ($node['image']['url'] ?? null)) : (string)$node['image'];
+                }
+
                 $stmt->execute([
                     'slug'        => $source['slug'],
                     'title'       => trim($node['name']),
@@ -109,7 +149,8 @@ function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): void {
                     'end'         => !empty($node['endDate']) ? date('Y-m-d H:i:s', strtotime($node['endDate'])) : null,
                     'vname'       => $node['location']['name'] ?? $source['name'],
                     'addr'        => is_array($node['location']['address'] ?? null) ? ($node['location']['address']['streetAddress'] ?? '') : ($node['location']['address'] ?? ''),
-                    'turl'        => $node['offers']['url'] ?? $node['url'] ?? $source['url']
+                    'turl'        => $node['offers']['url'] ?? $node['url'] ?? $source['url'],
+                    'image'       => $imageUrl
                 ]);
             }
         }

@@ -13,22 +13,43 @@ const AgendaAPI = {
       const res = await fetch(`api/events.php?${params.toString()}`);
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const json = await res.json();
-      return json.data || [];
+      return {
+        data: json.data || [],
+        categories: json.categories || ['All']
+      };
     } catch (err) {
       console.warn('Events API unavailable, using fallback:', err);
-      return [];
+      return { data: [], categories: ['All', 'Live Music', 'Art', 'Community'] };
     }
   },
 
-  async getItems(tab = 'news') {
+  async getItems(tab = 'news', category = 'all') {
     try {
-      const res = await fetch(`api/items.php?tab=${encodeURIComponent(tab)}`);
+      const params = new URLSearchParams();
+      params.append('tab', tab);
+      if (category && category !== 'all' && category !== 'All') params.append('category', category);
+
+      const res = await fetch(`api/items.php?${params.toString()}`);
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const json = await res.json();
-      return json.data || [];
+      return {
+        data: json.data || [],
+        categories: json.categories || ['All']
+      };
     } catch (err) {
       console.warn(`Items API for ${tab} unavailable:`, err);
-      return [];
+      return { data: [], categories: ['All'] };
+    }
+  },
+
+  async fetchCustomFeed(feedUrl) {
+    try {
+      const res = await fetch(`api/proxy_feed.php?url=${encodeURIComponent(feedUrl)}`);
+      if (!res.ok) throw new Error(`HTTP proxy error ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('Custom feed proxy error:', err);
+      return { items: [], categories: ['All'] };
     }
   },
 
