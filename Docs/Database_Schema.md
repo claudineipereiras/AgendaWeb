@@ -1,6 +1,6 @@
 # AgendaWeb Database Schema & Data Dictionary
 
-This document specifies the MariaDB relational database design for AgendaWeb, hosted on Hostinger.
+This document specifies the Hostinger MySQL (8.x) relational database design for AgendaWeb.
 
 ---
 

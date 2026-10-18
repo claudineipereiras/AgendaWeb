@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Embeddable Venue Widget:
   - `Application/widget.js`: Standalone, zero-dependency calendar widget for venue homepages.
   - `Application/widget-demo.html`: Integration test page demonstrating third-party venue embedding.
-  - `Docs/Database_Schema.md`: MariaDB data dictionary and entity-relationship models.
+  - `Docs/Database_Schema.md`: Hostinger MySQL (8.x) data dictionary and entity-relationship models.
   - `Docs/Frontend_IndexedDB.md`: Client-side offline storage specification.
   - `Docs/Deployment_Hostinger.md`: Production deployment runbook.
 
@@ -49,5 +49,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Broadsheet PWA frontend prototype in `index.html`.
 - Production SVG mark (`assets/logo.svg`).
 - System constraints & architectural rules (`Docs/Rules.md`, `.antigravity/rules.md`).
-- MariaDB initial database schema & Australian seed feeds (`Docs/Schema.sql`).
+- Hostinger MySQL (8.x) initial database schema & Australian seed feeds (`Docs/Schema.sql`).
 - Git repository initialization and commit history tracking.

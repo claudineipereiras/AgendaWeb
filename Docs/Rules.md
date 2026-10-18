@@ -15,7 +15,7 @@ Develop, test, and maintain AgendaWeb (`agendaweb.app`), an open-web, decentrali
    - All favorites, custom feeds, reading queues, and settings must reside client-side in the browser's IndexedDB.
 
 2. **Architecture Boundaries:**
-   - **Backend:** Stateless PHP 8.x + MariaDB running on Hostinger. Avoid node/npm dependencies on the server.
+   - **Backend:** Stateless PHP 8.x + MySQL (Hostinger MySQL 8.x). Avoid node/npm dependencies on the server.
    - **Frontend:** Local-first Progressive Web App (HTML5, Vanilla JS or lightweight reactive framework, CSS variables).
    - **Scrapers:** Ingest events using native `schema.org/Event` (JSON-LD) and standard public Australian RSS feeds (ABC, SBS, The Conversation, The Guardian AU).
 

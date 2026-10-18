@@ -17,7 +17,7 @@ AgendaWeb/
 │   ├── Architecture.md       # System topology, protocols, and anti-spam specs
 │   ├── Brand_Guidelines.md   # Design tokens, color palette, typography, logo geometry
 │   ├── Rules.md              # System constraints and architectural directives
-│   ├── Schema.sql            # MariaDB tables & Australian seed feeds
+│   ├── Schema.sql            # Hostinger MySQL tables & Australian seed feeds
 │   ├── Whole_Ideas.pdf       # Initial project evolution & design conversation transcript
 │   ├── Idea_Gemini.txt       # Early folder structure notes
 │   ├── Logo.svg              # Master vector mark
@@ -30,7 +30,7 @@ AgendaWeb/
 ## Core Principles
 
 1. **Zero User Accounts:** Zero consumer login barriers, passwords, or tracking databases. All favorites, feeds, and reading lists live client-side in the browser's IndexedDB.
-2. **Stateless PHP Backend:** Pure PHP 8.x + MariaDB designed for shared hosting (Hostinger) with zero Node.js/npm dependencies on the server.
+2. **Stateless PHP Backend:** Pure PHP 8.x + MySQL (Hostinger MySQL 8.x) designed for shared hosting (Hostinger) with zero Node.js/npm dependencies on the server.
 3. **Open Standards:** Built on RSS 2.0 with the Event module (`ev:`), RFC 5545 iCalendar (`webcal://`), and `schema.org/Event` JSON-LD scraping.
 4. **Editorial Broadsheet Aesthetic:** Distinctive color palette (Amber Rust `#C85A32`, Sage Green `#4A5D4E`, Nightfall `#1B3B2B`, Chalk `#F7F5F0`, Oat `#E6E2D8`).
 5. **Decentralized & Direct:** 0% ticket fee cut, direct checkout links to venues, and embeddable venue widgets (`widget.js`).

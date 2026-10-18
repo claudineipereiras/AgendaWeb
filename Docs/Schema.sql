@@ -1,4 +1,4 @@
--- AgendaWeb Database Schema for MariaDB (Hostinger)
+-- AgendaWeb Database Schema for Hostinger MySQL (8.x)
 
 CREATE TABLE IF NOT EXISTS `sources` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,

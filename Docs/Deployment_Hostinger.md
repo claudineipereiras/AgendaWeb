@@ -13,14 +13,14 @@ This guide details the step-by-step production deployment for AgendaWeb on Hosti
   - `simplexml` (RSS/Atom ingestion)
   - `curl` (High-performance HTTP requests)
   - `mbstring` (Multibyte text manipulation)
-- **Database:** MariaDB 10.6+ / MySQL 8.0+.
+- **Database:** Hostinger MySQL 8.0+.
 
 ---
 
 ## 2. Database Provisioning
 
 1. In Hostinger hPanel, navigate to **Databases ➔ Management**.
-2. Create a new MariaDB database:
+2. Create a new MySQL database:
    - Database Name: `u123456789_agenda`
    - Username: `u123456789_admin`
    - Password: `[StrongSecretPassword]`

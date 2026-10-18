@@ -31,7 +31,7 @@ Unlike commercial platforms (Eventbrite, Humanitix, Meetup, Ticketmaster) that i
                                │
                                ▼
                ┌────────────────────────────────┐
-               │    MariaDB Database (Hostinger)│
+               │  Hostinger MySQL 8.x Database │
                │  - sources (Feeds & Registry)  │
                │  - events  (Gigs, Exhibitions) │
                │  - items   (News, Articles)    │
@@ -136,7 +136,7 @@ The PWA presents a curated Australian cultural magazine divided into 5 top-level
 
 | Tab | Content Source | Characteristics |
 | :--- | :--- | :--- |
-| **⚡ Events** | MariaDB Scraped & Verified Venues | Chronological gigs sorted by `<ev:startdate>` (today, tomorrow, weekend). Sub-filters: Live Music, Art & Fair, Community, Free. One-tap "Add to Calendar". |
+| **⚡ Events** | Hostinger MySQL Scraped & Verified Venues | Chronological gigs sorted by `<ev:startdate>` (today, tomorrow, weekend). Sub-filters: Live Music, Art & Fair, Community, Free. One-tap "Add to Calendar". |
 | **📰 News** | ABC News, SBS News | Real-time public broadcaster dispatches. |
 | **🏛 Politics** | ABC National, The Conversation AU | Civic policy analysis, verified journalism. |
 | **🎨 Culture** | ABC Arts, The Guardian AU Culture | In-depth essays, arts coverage, music reviews. |
