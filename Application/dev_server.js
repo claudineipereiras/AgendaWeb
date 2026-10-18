@@ -9,7 +9,9 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
-const DEFAULT_PORT = parseInt(process.env.PORT, 10) || 8000;
+const PORTS_TO_SERVE = process.env.PORT 
+  ? [parseInt(process.env.PORT, 10)] 
+  : [8001, 8000]; // Port 8001 is primary; Port 8000 is synchronized mirror
 const BASE_DIR = __dirname;
 
 const MIME_TYPES = {
@@ -160,7 +162,7 @@ const MOCK_ITEMS = {
   ]
 };
 
-const server = http.createServer((req, res) => {
+const requestHandler = (req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
 
@@ -534,11 +536,13 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': contentType });
     fs.createReadStream(filePath).pipe(res);
   });
-});
+};
 
-function startServer(port) {
-  server.listen(port, '0.0.0.0', () => {
-    console.log(`\n✦ AgendaWeb Server is LIVE at: http://localhost:${port}`);
+function startServer(port, isPrimary = false) {
+  const srv = http.createServer(requestHandler);
+
+  srv.listen(port, '0.0.0.0', () => {
+    console.log(`\n✦ AgendaWeb Server is LIVE at: http://localhost:${port}${isPrimary ? ' (PRIMARY)' : ''}`);
     console.log(`  - Broadsheet PWA:  http://localhost:${port}/index.html`);
     console.log(`  - Admin Manager:   http://localhost:${port}/admin/index.html`);
     console.log(`  - Events JSON API: http://localhost:${port}/api/events.php`);
@@ -551,14 +555,16 @@ function startServer(port) {
     console.log(`  - iCal Export:     http://localhost:${port}/calendar.php?id=1\n`);
   });
 
-  server.on('error', (err) => {
+  srv.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-      console.log(`Port ${port} in use, trying port ${port + 1}...`);
-      startServer(port + 1);
+      console.warn(`[dev_server] Port ${port} is already in use. Skipping port ${port}.`);
     } else {
-      console.error('Server error:', err);
+      console.error(`[dev_server] Server error on port ${port}:`, err);
     }
   });
+
+  return srv;
 }
 
-startServer(DEFAULT_PORT);
+// Bind both primary port 8001 and port 8000 so all clients remain 100% updated
+PORTS_TO_SERVE.forEach((p, idx) => startServer(p, idx === 0));
