@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Gasometer Hotel — Live Gigs (Widget Demo)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #111111;
+      color: #EEEEEE;
+      margin: 0;
+      padding: 40px 20px;
+    }
+    .venue-container {
+      max-width: 650px;
+      margin: 0 auto;
+    }
+    .venue-header {
+      border-bottom: 2px solid #333333;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+    h1 {
+      font-size: 2rem;
+      margin: 0 0 8px 0;
+      color: #FFFFFF;
+      letter-spacing: -0.5px;
+    }
+    p.tagline {
+      color: #999999;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+    .embed-code-box {
+      background: #1A1A1A;
+      border: 1px solid #333333;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 40px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #CCCCCC;
+      line-height: 1.5;
+    }
+    .embed-code-box pre { margin: 0; }
+  </style>
+</head>
+<body>
+
+  <div class="venue-container">
+    <div class="venue-header">
+      <h1>The Gasometer Hotel</h1>
+      <p class="tagline">Live Music & Corner Pub · 484 Smith St, Collingwood VIC</p>
+    </div>
+
+    <!-- AgendaWeb Embeddable Calendar Widget -->
+    <div class="agendaweb-widget" 
+         data-venue="the-gasometer-hotel" 
+         data-title="Upcoming Gigs & Live Bands" 
+         data-limit="5">
+    </div>
+
+    <!-- Integration Code Example -->
+    <div class="embed-code-box">
+      <strong>How this is embedded on the venue's site:</strong>
+      <pre>
+&lt;!-- 1. Target Container --&gt;
+&lt;div class="agendaweb-widget" 
+     data-venue="the-gasometer-hotel" 
+     data-limit="5"&gt;
+&lt;/div&gt;
+
+&lt;!-- 2. Single Lightweight Script --&gt;
+&lt;script src="widget.js" async&gt;&lt;/script&gt;
+      </pre>
+    </div>
+  </div>
+
+  <!-- Include AgendaWeb Widget -->
+  <script src="widget.js" async></script>
+</body>
+</html>

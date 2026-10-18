@@ -182,3 +182,28 @@ Generates valid iCalendar files for single-click event additions or persistent l
   END:VEVENT
   END:VCALENDAR
   ```
+
+---
+
+## 4. Embeddable Venue Widget (`widget.js`)
+
+A zero-dependency client widget allowing independent venues to display their upcoming events directly on their own website without double-handling data.
+
+- **Script Source:** `https://agendaweb.app/widget.js`
+- **Target Container:** `<div class="agendaweb-widget" ...></div>` or `<div id="agendaweb-widget" ...></div>`
+- **Configuration Attributes:**
+  | Attribute | Type | Default | Description |
+  | :--- | :--- | :--- | :--- |
+  | `data-venue` | `string` | `'all'` | Target venue slug (e.g., `the-gasometer-hotel`). |
+  | `data-limit` | `number` | `5` | Maximum number of upcoming events to render. |
+  | `data-title` | `string` | `'Upcoming Gigs & Live Events'` | Header title displayed on top of the widget. |
+  | `data-api` | `string` | Script origin | API base URL hosting `/api/events.php`. |
+
+- **Integration Snippet:**
+  ```html
+  <div class="agendaweb-widget" 
+       data-venue="the-gasometer-hotel" 
+       data-limit="5">
+  </div>
+  <script src="https://agendaweb.app/widget.js" async></script>
+  ```
