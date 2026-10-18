@@ -1,33 +1,72 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 180" width="100%" height="100%" fill="none">
-  <!-- RSS Waves (Top Right) -->
-  <path d="M 125 36 A 48 48 0 0 1 173 84" stroke="#4A5D4E" stroke-width="10" stroke-linecap="round" />
-  <path d="M 125 18 A 66 66 0 0 1 191 84" stroke="#4A5D4E" stroke-width="10" stroke-linecap="round" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 400" width="100%" height="100%" fill="none">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&amp;family=Inter:wght@700;800&amp;display=swap');
+      .brand-title {
+        font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 68px;
+        font-weight: 800;
+        fill: #1B3B2B;
+        letter-spacing: 0.03em;
+      }
+      .brand-slogan {
+        font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 22px;
+        font-weight: 700;
+        fill: #1B3B2B;
+        letter-spacing: 0.16em;
+      }
+    </style>
+  </defs>
 
-  <!-- Bookmark Ribbon (Square top-left, round top-right, clean V bottom) -->
-  <path d="M 45 42 L 122 42 C 137 42 145 50 145 65 L 145 165 L 95 130 L 45 165 Z" fill="#C85A32" />
+  <!-- ==================== EMBLEM ==================== -->
+  <g id="emblem">
+    <!-- RSS Waves (Top Right of Ribbon, Sage Green #4A5D4E) -->
+    <g stroke="#4A5D4E" stroke-width="16" stroke-linecap="round">
+      <!-- Inner Arc (Radius ~65) -->
+      <path d="M 160 52 A 65 65 0 0 1 225 117" />
+      <!-- Outer Arc (Radius ~104) -->
+      <path d="M 160 13 A 104 104 0 0 1 264 117" />
+    </g>
 
-  <!-- Calendar Container -->
-  <rect x="58" y="70" width="74" height="54" rx="4" fill="#F7F5F0" />
-  
-  <!-- Binder Rings -->
-  <rect x="70" y="63" width="7" height="15" rx="3.5" fill="#1B3B2B" />
-  <rect x="109" y="63" width="7" height="15" rx="3.5" fill="#1B3B2B" />
+    <!-- Bookmark Ribbon (Amber Rust #C85A32) -->
+    <!-- Square top-left, large rounded top-right shoulder, clean V-notch bottom -->
+    <path d="M 40 75 H 160 A 55 55 0 0 1 215 130 V 380 L 127.5 330 L 40 380 Z" fill="#C85A32" />
 
-  <!-- Calendar Grid (7 Asymmetrical Blocks) -->
-  <g fill="#1B3B2B">
-    <!-- Col 1 -->
-    <rect x="66" y="80" width="12" height="10" rx="1.5" />
-    <rect x="66" y="94" width="12" height="10" rx="1.5" />
-    <!-- Col 2 -->
-    <rect x="82" y="80" width="12" height="10" rx="1.5" />
-    <rect x="82" y="94" width="12" height="10" rx="1.5" />
-    <rect x="82" y="108" width="12" height="10" rx="1.5" />
-    <!-- Col 3 -->
-    <rect x="98" y="80" width="12" height="10" rx="1.5" />
-    <rect x="98" y="94" width="12" height="10" rx="1.5" />
+    <!-- Calendar Outer Body (Nightfall Green #1B3B2B with rounded corners) -->
+    <rect x="63" y="142" width="129" height="152" rx="12" fill="#1B3B2B" />
+
+    <!-- Calendar Inner Plate (Chalk #F7F5F0) -->
+    <rect x="70" y="174" width="115" height="113" rx="6" fill="#F7F5F0" />
+
+    <!-- Top Binder Rings (Chalk #F7F5F0 loops with Nightfall #1B3B2B interior) -->
+    <rect x="85" y="125" width="16" height="34" rx="8" fill="#1B3B2B" stroke="#F7F5F0" stroke-width="3.5" />
+    <rect x="154" y="125" width="16" height="34" rx="8" fill="#1B3B2B" stroke="#F7F5F0" stroke-width="3.5" />
+
+    <!-- Calendar Grid: 7 Asymmetrical Blocks in Nightfall #1B3B2B -->
+    <!-- Arranged in 3 columns: Left (2), Center (3), Right (2) -->
+    <g fill="#1B3B2B">
+      <!-- Row 1: Col 1 is empty -->
+      <rect x="116" y="186" width="23" height="23" rx="3" />
+      <rect x="152" y="186" width="23" height="23" rx="3" />
+
+      <!-- Row 2: Col 1, Col 2, Col 3 are filled -->
+      <rect x="80" y="219" width="23" height="23" rx="3" />
+      <rect x="116" y="219" width="23" height="23" rx="3" />
+      <rect x="152" y="219" width="23" height="23" rx="3" />
+
+      <!-- Row 3: Col 1, Col 2 are filled; Col 3 is empty -->
+      <rect x="80" y="252" width="23" height="23" rx="3" />
+      <rect x="116" y="252" width="23" height="23" rx="3" />
+    </g>
   </g>
 
-  <!-- Typography -->
-  <text x="175" y="98" font-family="&#39;Inter&#39;, sans-serif" font-size="42" font-weight="800" fill="#1B3B2B" letter-spacing="1.2">AGENDAWEB</text>
-  <text x="178" y="122" font-family="&#39;Inter&#39;, sans-serif" font-size="13" font-weight="600" fill="#1B3B2B" letter-spacing="2.2">YOUR CULTURAL WEB FEED</text>
+  <!-- ==================== TYPOGRAPHY ==================== -->
+  <!-- Centered horizontally under the text lockup, vertically centered relative to emblem -->
+  <g id="typography" text-anchor="middle">
+    <!-- Brand Title -->
+    <text x="560" y="222" class="brand-title">AGENDAWEB</text>
+    <!-- Brand Slogan -->
+    <text x="560" y="262" class="brand-slogan">YOUR CULTURAL WEB FEED</text>
+  </g>
 </svg>
