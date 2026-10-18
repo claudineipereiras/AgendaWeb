@@ -34,6 +34,7 @@
   <!-- Channels Navigation -->
   <nav class="tabs" id="main-tabs">
     <button class="tab-btn active" data-tab="events" onclick="setTab('events')">⚡ Events</button>
+    <button class="tab-btn" id="tab-btn-following" data-tab="following" onclick="setTab('following')">📡 Following</button>
     <button class="tab-btn" data-tab="reads" onclick="setTab('reads')">🔖 Reads</button>
     <button class="tab-btn" id="tab-btn-blogs" data-tab="blogs" style="display:none;" onclick="setTab('blogs')">✍️ Blogs</button>
     <button class="tab-btn" id="tab-btn-news" data-tab="news" style="display:none;" onclick="setTab('news')">📰 News</button>
@@ -92,9 +93,19 @@
         <div id="personal-feeds-list"></div>
       </div>
 
-      <!-- Section 3: Publisher & Venue Integration Guide -->
+      <!-- Section 3: Followed Venues & Artists -->
       <div class="settings-section">
-        <div class="settings-section-title">3. Publisher & Venue Guides</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div class="settings-section-title" style="margin-bottom:0;">3. Followed Lineup</div>
+          <span id="followed-count-badge" style="font-size:0.75rem; color:var(--color-sage-green); font-weight:700;">0 Followed</span>
+        </div>
+        <p style="font-size:0.78rem; color:var(--color-text-muted); margin-bottom:10px;">Venues and organizers you follow appear in the <strong>📡 Following</strong> tab.</p>
+        <div id="followed-entities-list"></div>
+      </div>
+
+      <!-- Section 4: Publisher & Venue Integration Guide -->
+      <div class="settings-section">
+        <div class="settings-section-title">4. Publisher & Venue Guides</div>
 
         <!-- Guide 1: Schema.org Event -->
         <details class="guide-accordion">
@@ -150,9 +161,9 @@
         </details>
       </div>
 
-      <!-- Section 4: Data Portability & Device Sync -->
+      <!-- Section 5: Data Portability & Device Sync -->
       <div class="settings-section" style="border:none; margin-bottom:0; padding-bottom:0;">
-        <div class="settings-section-title">4. Data Portability & Sync</div>
+        <div class="settings-section-title">5. Data Portability & Sync</div>
         <p style="font-size:0.78rem; color:var(--color-text-muted); margin-bottom:8px;">Zero server tracking. Save your settings, bookmarks, and personal feeds to your device or cloud to load on another computer or phone.</p>
         <div class="portability-actions">
           <button class="btn btn-primary" onclick="handleExportBackup()">⬇ Export Backup (JSON)</button>

@@ -188,10 +188,55 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+}
+
+.card-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .card-meta-source {
   color: var(--color-sage-green);
+}
+
+/* Circle Check Mark Button */
+.card-check-btn {
+  background: transparent;
+  border: none;
+  padding: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  transition: transform 0.15s ease, color 0.15s ease, background 0.15s ease;
+  line-height: 1;
+}
+
+.card-check-btn:hover {
+  transform: scale(1.15);
+  color: var(--color-nightfall);
+  background: var(--color-chalk);
+}
+
+.card-check-btn.is-read {
+  color: #2E7D32;
+}
+
+.card-check-btn.is-read:hover {
+  color: var(--color-nightfall);
+}
+
+.card.is-read {
+  opacity: 0.88;
+}
+
+.card.is-read .card-title {
+  color: #3b5042;
 }
 
 .card-title {
@@ -228,9 +273,102 @@ header {
 
 .card-actions {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-oat);
+}
+
+.card-actions-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.card-actions-right {
+  margin-left: auto;
+}
+
+/* Follow Button with RSS Icon */
+.btn-follow {
+  background: transparent;
+  border: 1px solid var(--color-oat);
+  color: var(--color-nightfall);
+  padding: 6px 11px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-follow:hover {
+  border-color: var(--color-sage-green);
+  color: var(--color-sage-green);
+}
+
+.btn-follow.is-following {
+  background: var(--color-nightfall);
+  color: var(--color-chalk);
+  border-color: var(--color-nightfall);
+}
+
+.btn-follow.is-following .rss-icon {
+  color: var(--color-amber-rust);
+}
+
+/* Following Channel Header & Chips */
+.following-header {
+  background: var(--color-chalk);
+  border: 1px solid var(--color-oat);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.following-header-label {
+  font-weight: 700;
+  color: var(--color-nightfall);
+  margin-right: 4px;
+}
+
+.following-chip {
+  background: var(--color-white);
+  border: 1px solid var(--color-oat);
+  border-radius: 12px;
+  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--color-nightfall);
+  font-size: 0.75rem;
+}
+
+.following-chip-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  padding: 0;
+  line-height: 1;
+}
+
+.following-chip-remove:hover {
+  color: var(--color-amber-rust);
 }
 
 /* Buttons */

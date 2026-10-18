@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2026-10-18
+
+### Added
+- **Circular Checkmark Indicator (`read_cards`):** Circle with check inside indicating read/checked status on all cards. Automatically triggers when a card or action link is opened, with full manual toggle support.
+- **Event Card Follow Button (with RSS icon):** Dedicated follow button placed in the bottom-right corner of event cards with open RSS iconography to follow venues, artists, and independent organisers.
+- **Following Channel (`📡 Following`):** Top-level navigation tab displaying exclusively upcoming events from followed entities. Includes dynamic subcategory pills and interactive header chips with one-tap unfollow.
+- **IndexedDB Schema v2 (`AgendaWebDB`):** Added `read_cards` and `followed_entities` stores with seamless database migration, plus backup export/import synchronization.
+- **Settings Followed Lineup Manager:** Direct management list within the Settings drawer showing followed entities and quick removal.
+
+---
+
 ## [0.3.0] - 2026-10-18
 
 ### Added

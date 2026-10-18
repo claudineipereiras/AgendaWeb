@@ -105,8 +105,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   applyChannelVisibility();
 
-  // Load Personal Feeds count
+  // Load Personal Feeds count and Followed Lineup count
   await refreshPersonalFeedsUI();
+  await refreshFollowedUI();
 
   // Render initial tab
   await setTab('events');
@@ -118,6 +119,101 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 });
+
+// Circle Check Mark Helpers (Mark as Read / Checked)
+function renderCheckCircleSvg(isRead) {
+  if (isRead) {
+    return `
+      <svg class="check-icon is-checked" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </svg>
+    `;
+  }
+  return `
+    <svg class="check-icon is-unchecked" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <polyline points="9 12 11.5 14.5 15.5 9.5" stroke-opacity="0.35"/>
+    </svg>
+  `;
+}
+
+async function toggleCardCheck(cardKey, event, btnElement) {
+  if (event) event.stopPropagation();
+  const isNowRead = await window.agendaDB.toggleCardRead(cardKey);
+  const cardElement = btnElement ? btnElement.closest('.card') : document.querySelector(`[data-card-id="${cardKey}"]`);
+  if (cardElement) {
+    cardElement.classList.toggle('is-read', isNowRead);
+  }
+  if (btnElement) {
+    btnElement.classList.toggle('is-read', isNowRead);
+    btnElement.innerHTML = renderCheckCircleSvg(isNowRead);
+    btnElement.title = isNowRead ? 'Mark as unread' : 'Mark as read';
+  }
+}
+
+async function handleCardOpen(cardKey) {
+  await window.agendaDB.markCardRead(cardKey, true);
+  const cardElement = document.querySelector(`[data-card-id="${cardKey}"]`);
+  if (cardElement) {
+    cardElement.classList.add('is-read');
+    const checkBtn = cardElement.querySelector('.card-check-btn');
+    if (checkBtn) {
+      checkBtn.classList.add('is-read');
+      checkBtn.innerHTML = renderCheckCircleSvg(true);
+      checkBtn.title = 'Mark as unread';
+    }
+  }
+}
+
+// Follow Venue / Artist / Organiser Handler (with RSS icon)
+async function toggleFollow(entityName, type = 'venue', btnElement) {
+  const isNowFollowed = await window.agendaDB.toggleFollowEntity(entityName, type);
+  if (btnElement) {
+    btnElement.classList.toggle('is-following', isNowFollowed);
+    btnElement.title = isNowFollowed ? `Unfollow ${entityName}` : `Follow ${entityName}`;
+    const span = btnElement.querySelector('span');
+    if (span) span.textContent = isNowFollowed ? 'Following' : 'Follow';
+  }
+  await refreshFollowedUI();
+  if (currentTab === 'following') {
+    await renderFollowing(false);
+  }
+}
+
+async function refreshFollowedUI() {
+  const followed = await window.agendaDB.getFollowedEntities();
+  const badge = document.getElementById('followed-count-badge');
+  if (badge) {
+    badge.textContent = `${followed.length} Followed`;
+  }
+
+  const listContainer = document.getElementById('followed-entities-list');
+  if (listContainer) {
+    if (followed.length === 0) {
+      listContainer.innerHTML = '<p style="font-size:0.75rem; color:var(--color-text-muted); font-style:italic;">No venues or artists followed yet. Tap the Follow button on any event card.</p>';
+    } else {
+      listContainer.innerHTML = followed.map(f => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid var(--color-oat); font-size:0.8rem;">
+          <div>
+            <strong>${escapeHtml(f.name)}</strong>
+            <span style="font-size:0.7rem; color:var(--color-sage-green); margin-left:6px;">${escapeHtml(f.type || 'venue')}</span>
+          </div>
+          <button class="icon-btn" style="color:var(--color-amber-rust);" onclick="unfollowFromSettings('${escapeQuote(f.name)}')">✕</button>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+async function unfollowFromSettings(name) {
+  await window.agendaDB.toggleFollowEntity(name);
+  await refreshFollowedUI();
+  if (currentTab === 'following') {
+    await renderFollowing();
+  } else if (currentTab === 'events') {
+    await renderEvents(false);
+  }
+}
 
 // Tab Switcher
 async function setTab(tabName) {
@@ -137,6 +233,8 @@ async function renderCurrentTab() {
 
   if (currentTab === 'events') {
     await renderEvents();
+  } else if (currentTab === 'following') {
+    await renderFollowing();
   } else if (currentTab === 'reads') {
     hideSubFilter();
     await renderReads();
@@ -178,6 +276,8 @@ async function setFilter(category, btnElement) {
 
   if (currentTab === 'events') {
     await renderEvents(false);
+  } else if (currentTab === 'following') {
+    await renderFollowing(false);
   } else if (currentTab === 'personal') {
     await renderPersonalFeeds(false);
   } else {
@@ -211,35 +311,178 @@ async function renderEvents(refreshPills = true) {
 
   const html = await Promise.all(events.map(async (ev) => {
     const isStarred = await window.agendaDB.isEventStarred(ev.id);
+    const isRead = await window.agendaDB.isCardRead(ev.id);
+    const isFollowed = await window.agendaDB.isEntityFollowed(ev.venue_name);
     const dateStr = formatDate(ev.start_time);
     const starBtnClass = isStarred ? 'btn-secondary starred' : 'btn-secondary';
     const starBtnText = isStarred ? '★ Saved' : '★ Save';
 
     return `
-      <article class="card">
+      <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${ev.id}">
         ${ev.image_url ? `
           <div class="card-image-wrapper">
             <img src="${ev.image_url}" class="card-image" alt="${escapeHtml(ev.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
           </div>` : ''}
         <div class="card-meta">
-          <span>${dateStr}</span>
-          <span class="card-meta-source">${escapeHtml(ev.category || 'Culture')}</span>
+          <div class="card-meta-left">
+            <span>${dateStr}</span>
+            <span class="card-meta-source">${escapeHtml(ev.category || 'Culture')}</span>
+          </div>
+          <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
+                  onclick="toggleCardCheck('${ev.id}', event, this)" 
+                  title="${isRead ? 'Mark as unread' : 'Mark as read'}">
+            ${renderCheckCircleSvg(isRead)}
+          </button>
         </div>
-        <h2 class="card-title">${escapeHtml(ev.title)}</h2>
+        <h2 class="card-title">
+          <a href="#" onclick="handleCardOpen('${ev.id}'); return false;">${escapeHtml(ev.title)}</a>
+        </h2>
         <div class="card-location">📍 ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || '')}</div>
         ${ev.description ? `<p class="card-summary">${escapeHtml(ev.description)}</p>` : ''}
         <div class="card-actions">
-          <a href="calendar.php?id=${ev.id}" class="btn btn-primary" target="_blank">📅 Add to Calendar</a>
-          <button class="btn ${starBtnClass}" onclick="toggleStar(${JSON.stringify(ev).replace(/"/g, '&quot;')}, this)">
-            ${starBtnText}
-          </button>
-          ${ev.ticket_url ? `<a href="${ev.ticket_url}" class="btn btn-outline" target="_blank" rel="noopener">Tickets</a>` : ''}
+          <div class="card-actions-left">
+            <a href="calendar.php?id=${ev.id}" class="btn btn-primary" target="_blank" onclick="handleCardOpen('${ev.id}')">📅 Add to Calendar</a>
+            <button class="btn ${starBtnClass}" onclick="toggleStar(${JSON.stringify(ev).replace(/"/g, '&quot;')}, this)">
+              ${starBtnText}
+            </button>
+            ${ev.ticket_url ? `<a href="${ev.ticket_url}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${ev.id}')">Tickets</a>` : ''}
+          </div>
+          <div class="card-actions-right">
+            <button class="btn btn-follow ${isFollowed ? 'is-following' : ''}" 
+                    onclick="toggleFollow('${escapeQuote(ev.venue_name)}', 'venue', this)" 
+                    title="${isFollowed ? 'Unfollow ' + escapeHtml(ev.venue_name) : 'Follow ' + escapeHtml(ev.venue_name)}">
+              <svg class="rss-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+                <circle cx="6.18" cy="17.82" r="2.18"/>
+                <path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"/>
+              </svg>
+              <span>${isFollowed ? 'Following' : 'Follow'}</span>
+            </button>
+          </div>
         </div>
       </article>
     `;
   }));
 
   container.innerHTML = html.join('');
+}
+
+// Render Following Tab (Events from Followed Venues / Artists)
+async function renderFollowing(refreshPills = true) {
+  const container = document.getElementById('feed');
+  const followedList = await window.agendaDB.getFollowedEntities();
+  const followedNames = followedList.map(f => f.name.toLowerCase());
+
+  if (followedList.length === 0) {
+    hideSubFilter();
+    container.innerHTML = `
+      <div class="state-message">
+        <h3 style="font-size:1.05rem; margin-bottom:8px; color:var(--color-nightfall);">Your Following Lineup is Empty</h3>
+        <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:14px; max-width:440px; margin-left:auto; margin-right:auto;">
+          Follow your favorite venues, artists, and independent organisers by tapping the <strong>Follow [RSS]</strong> button on any gig card.
+        </p>
+        <button class="btn btn-primary" onclick="setTab('events')">⚡ Browse All Gigs</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Fetch all events
+  const res = await window.agendaAPI.getEvents('All');
+  let events = res.data;
+  if (!events || events.length === 0) {
+    events = FALLBACK_EVENTS;
+  }
+
+  // Filter events from followed venues
+  let followedEvents = events.filter(e => followedNames.includes((e.venue_name || '').toLowerCase()));
+
+  // Extract dynamic categories for followed events
+  const autoCategories = ['All', ...new Set(followedEvents.map(e => e.category).filter(Boolean))];
+  if (refreshPills) {
+    renderSubFilterPills(autoCategories);
+  }
+
+  if (currentCategory !== 'All') {
+    followedEvents = followedEvents.filter(e => e.category === currentCategory);
+  }
+
+  // Header showing followed chips
+  let headerHtml = `
+    <div class="following-header">
+      <span class="following-header-label">Following (${followedList.length}):</span>
+      ${followedList.map(f => `
+        <span class="following-chip">
+          📍 ${escapeHtml(f.name)}
+          <button class="following-chip-remove" onclick="unfollowFromSettings('${escapeQuote(f.name)}')">✕</button>
+        </span>
+      `).join('')}
+    </div>
+  `;
+
+  if (followedEvents.length === 0) {
+    container.innerHTML = headerHtml + `
+      <div class="state-message">
+        No upcoming events found from your followed lineup${currentCategory !== 'All' ? ' in category "' + escapeHtml(currentCategory) + '"' : ''}.
+      </div>
+    `;
+    return;
+  }
+
+  const html = await Promise.all(followedEvents.map(async (ev) => {
+    const isStarred = await window.agendaDB.isEventStarred(ev.id);
+    const isRead = await window.agendaDB.isCardRead(ev.id);
+    const isFollowed = await window.agendaDB.isEntityFollowed(ev.venue_name);
+    const dateStr = formatDate(ev.start_time);
+    const starBtnClass = isStarred ? 'btn-secondary starred' : 'btn-secondary';
+    const starBtnText = isStarred ? '★ Saved' : '★ Save';
+
+    return `
+      <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${ev.id}">
+        ${ev.image_url ? `
+          <div class="card-image-wrapper">
+            <img src="${ev.image_url}" class="card-image" alt="${escapeHtml(ev.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
+          </div>` : ''}
+        <div class="card-meta">
+          <div class="card-meta-left">
+            <span>${dateStr}</span>
+            <span class="card-meta-source">${escapeHtml(ev.category || 'Culture')}</span>
+          </div>
+          <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
+                  onclick="toggleCardCheck('${ev.id}', event, this)" 
+                  title="${isRead ? 'Mark as unread' : 'Mark as read'}">
+            ${renderCheckCircleSvg(isRead)}
+          </button>
+        </div>
+        <h2 class="card-title">
+          <a href="#" onclick="handleCardOpen('${ev.id}'); return false;">${escapeHtml(ev.title)}</a>
+        </h2>
+        <div class="card-location">📍 ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || '')}</div>
+        ${ev.description ? `<p class="card-summary">${escapeHtml(ev.description)}</p>` : ''}
+        <div class="card-actions">
+          <div class="card-actions-left">
+            <a href="calendar.php?id=${ev.id}" class="btn btn-primary" target="_blank" onclick="handleCardOpen('${ev.id}')">📅 Add to Calendar</a>
+            <button class="btn ${starBtnClass}" onclick="toggleStar(${JSON.stringify(ev).replace(/"/g, '&quot;')}, this)">
+              ${starBtnText}
+            </button>
+            ${ev.ticket_url ? `<a href="${ev.ticket_url}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${ev.id}')">Tickets</a>` : ''}
+          </div>
+          <div class="card-actions-right">
+            <button class="btn btn-follow ${isFollowed ? 'is-following' : ''}" 
+                    onclick="toggleFollow('${escapeQuote(ev.venue_name)}', 'venue', this)" 
+                    title="${isFollowed ? 'Unfollow ' + escapeHtml(ev.venue_name) : 'Follow ' + escapeHtml(ev.venue_name)}">
+              <svg class="rss-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+                <circle cx="6.18" cy="17.82" r="2.18"/>
+                <path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"/>
+              </svg>
+              <span>${isFollowed ? 'Following' : 'Follow'}</span>
+            </button>
+          </div>
+        </div>
+      </article>
+    `;
+  }));
+
+  container.innerHTML = headerHtml + html.join('');
 }
 
 // Render Curated News / Blogs Tab
@@ -267,31 +510,43 @@ async function renderItems(tab, refreshPills = true) {
     return;
   }
 
-  const html = items.map(item => {
+  const html = await Promise.all(items.map(async (item) => {
+    const cardKey = item.link || String(item.id);
+    const isRead = await window.agendaDB.isCardRead(cardKey);
     const dateStr = formatDate(item.published_at);
+
     return `
-      <article class="card">
+      <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${cardKey}">
         ${item.image_url ? `
           <div class="card-image-wrapper">
             <img src="${item.image_url}" class="card-image" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
           </div>` : ''}
         <div class="card-meta">
-          <span>${dateStr}</span>
-          <span class="card-meta-source">${escapeHtml(item.category || item.source_name || 'Dispatch')}</span>
+          <div class="card-meta-left">
+            <span>${dateStr}</span>
+            <span class="card-meta-source">${escapeHtml(item.category || item.source_name || 'Dispatch')}</span>
+          </div>
+          <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
+                  onclick="toggleCardCheck('${cardKey}', event, this)" 
+                  title="${isRead ? 'Mark as unread' : 'Mark as read'}">
+            ${renderCheckCircleSvg(isRead)}
+          </button>
         </div>
         <h2 class="card-title">
-          <a href="${item.link}" target="_blank" rel="noopener">${escapeHtml(item.title)}</a>
+          <a href="${item.link}" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">${escapeHtml(item.title)}</a>
         </h2>
         <p class="card-summary">${escapeHtml(item.summary || '')}</p>
         <div class="card-actions">
-          <a href="${item.link}" class="btn btn-primary" target="_blank" rel="noopener">Read Full ↗</a>
-          <button class="btn btn-outline" onclick="saveToReads('${item.link}', '${escapeQuote(item.title)}', '${escapeQuote(item.summary || '')}', '${escapeQuote(item.source_name || '')}', '${escapeQuote(item.image_url || '')}')">
-            🔖 Read Later
-          </button>
+          <div class="card-actions-left">
+            <a href="${item.link}" class="btn btn-primary" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Read Full ↗</a>
+            <button class="btn btn-outline" onclick="saveToReads('${item.link}', '${escapeQuote(item.title)}', '${escapeQuote(item.summary || '')}', '${escapeQuote(item.source_name || '')}', '${escapeQuote(item.image_url || '')}')">
+              🔖 Read Later
+            </button>
+          </div>
         </div>
       </article>
     `;
-  });
+  }));
 
   container.innerHTML = html.join('');
 }
@@ -350,28 +605,42 @@ async function renderPersonalFeeds(refreshPills = true) {
     return;
   }
 
-  const html = filtered.map(item => `
-    <article class="card">
-      ${item.image_url ? `
-        <div class="card-image-wrapper">
-          <img src="${item.image_url}" class="card-image" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
-        </div>` : ''}
-      <div class="card-meta">
-        <span>${formatDate(item.published_at)}</span>
-        <span class="card-meta-source">${escapeHtml(item.category || item.feed_name)}</span>
-      </div>
-      <h2 class="card-title">
-        <a href="${item.link}" target="_blank" rel="noopener">${escapeHtml(item.title)}</a>
-      </h2>
-      <p class="card-summary">${escapeHtml(item.summary || '')}</p>
-      <div class="card-actions">
-        <a href="${item.link}" class="btn btn-primary" target="_blank" rel="noopener">Read Article ↗</a>
-        <button class="btn btn-outline" onclick="saveToReads('${item.link}', '${escapeQuote(item.title)}', '${escapeQuote(item.summary || '')}', '${escapeQuote(item.feed_name)}', '${escapeQuote(item.image_url || '')}')">
-          🔖 Read Later
-        </button>
-      </div>
-    </article>
-  `);
+  const html = await Promise.all(filtered.map(async (item) => {
+    const cardKey = item.link;
+    const isRead = await window.agendaDB.isCardRead(cardKey);
+
+    return `
+      <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${cardKey}">
+        ${item.image_url ? `
+          <div class="card-image-wrapper">
+            <img src="${item.image_url}" class="card-image" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
+          </div>` : ''}
+        <div class="card-meta">
+          <div class="card-meta-left">
+            <span>${formatDate(item.published_at)}</span>
+            <span class="card-meta-source">${escapeHtml(item.category || item.feed_name)}</span>
+          </div>
+          <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
+                  onclick="toggleCardCheck('${cardKey}', event, this)" 
+                  title="${isRead ? 'Mark as unread' : 'Mark as read'}">
+            ${renderCheckCircleSvg(isRead)}
+          </button>
+        </div>
+        <h2 class="card-title">
+          <a href="${item.link}" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">${escapeHtml(item.title)}</a>
+        </h2>
+        <p class="card-summary">${escapeHtml(item.summary || '')}</p>
+        <div class="card-actions">
+          <div class="card-actions-left">
+            <a href="${item.link}" class="btn btn-primary" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Read Article ↗</a>
+            <button class="btn btn-outline" onclick="saveToReads('${item.link}', '${escapeQuote(item.title)}', '${escapeQuote(item.summary || '')}', '${escapeQuote(item.feed_name)}', '${escapeQuote(item.image_url || '')}')">
+              🔖 Read Later
+            </button>
+          </div>
+        </div>
+      </article>
+    `;
+  }));
 
   container.innerHTML = html.join('');
 }
@@ -396,44 +665,86 @@ async function renderReads() {
 
   if (starredEvents.length > 0) {
     html += '<h3 style="font-size:0.95rem; margin-bottom:12px; color:var(--color-nightfall);">★ Saved Gigs</h3>';
-    starredEvents.forEach(ev => {
-      html += `
-        <article class="card">
+    const eventCards = await Promise.all(starredEvents.map(async (ev) => {
+      const isRead = await window.agendaDB.isCardRead(ev.id);
+      const isFollowed = await window.agendaDB.isEntityFollowed(ev.venue_name);
+
+      return `
+        <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${ev.id}">
           ${ev.image_url ? `
             <div class="card-image-wrapper">
               <img src="${ev.image_url}" class="card-image" alt="${escapeHtml(ev.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
             </div>` : ''}
-          <div class="card-meta"><span>${formatDate(ev.start_time)}</span></div>
+          <div class="card-meta">
+            <div class="card-meta-left">
+              <span>${formatDate(ev.start_time)}</span>
+            </div>
+            <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
+                    onclick="toggleCardCheck('${ev.id}', event, this)" 
+                    title="${isRead ? 'Mark as unread' : 'Mark as read'}">
+              ${renderCheckCircleSvg(isRead)}
+            </button>
+          </div>
           <h2 class="card-title">${escapeHtml(ev.title)}</h2>
           <div class="card-location">📍 ${escapeHtml(ev.venue_name)}</div>
           <div class="card-actions">
-            <a href="calendar.php?id=${ev.id}" class="btn btn-primary">📅 Add to Calendar</a>
-            <button class="btn btn-outline" onclick="removeStarred(${ev.id})">✕ Remove</button>
+            <div class="card-actions-left">
+              <a href="calendar.php?id=${ev.id}" class="btn btn-primary" onclick="handleCardOpen('${ev.id}')">📅 Add to Calendar</a>
+              <button class="btn btn-outline" onclick="removeStarred(${ev.id})">✕ Remove</button>
+            </div>
+            <div class="card-actions-right">
+              <button class="btn btn-follow ${isFollowed ? 'is-following' : ''}" 
+                      onclick="toggleFollow('${escapeQuote(ev.venue_name)}', 'venue', this)">
+                <svg class="rss-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+                  <circle cx="6.18" cy="17.82" r="2.18"/>
+                  <path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"/>
+                </svg>
+                <span>${isFollowed ? 'Following' : 'Follow'}</span>
+              </button>
+            </div>
           </div>
         </article>
       `;
-    });
+    }));
+    html += eventCards.join('');
   }
 
   if (readLaterItems.length > 0) {
     html += '<h3 style="font-size:0.95rem; margin:20px 0 12px 0; color:var(--color-nightfall);">🔖 Offline Reading Queue</h3>';
-    readLaterItems.forEach(item => {
-      html += `
-        <article class="card">
+    const readCards = await Promise.all(readLaterItems.map(async (item) => {
+      const cardKey = item.url;
+      const isRead = await window.agendaDB.isCardRead(cardKey);
+
+      return `
+        <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${cardKey}">
           ${item.image_url ? `
             <div class="card-image-wrapper">
               <img src="${item.image_url}" class="card-image" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
             </div>` : ''}
-          <div class="card-meta"><span>${escapeHtml(item.domain || 'External')}</span></div>
-          <h2 class="card-title"><a href="${item.url}" target="_blank" rel="noopener">${escapeHtml(item.title)}</a></h2>
+          <div class="card-meta">
+            <div class="card-meta-left">
+              <span>${escapeHtml(item.domain || 'External')}</span>
+            </div>
+            <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
+                    onclick="toggleCardCheck('${cardKey}', event, this)" 
+                    title="${isRead ? 'Mark as unread' : 'Mark as read'}">
+              ${renderCheckCircleSvg(isRead)}
+            </button>
+          </div>
+          <h2 class="card-title">
+            <a href="${item.url}" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">${escapeHtml(item.title)}</a>
+          </h2>
           <p class="card-summary">${escapeHtml(item.description || '')}</p>
           <div class="card-actions">
-            <a href="${item.url}" class="btn btn-primary" target="_blank" rel="noopener">Open Link ↗</a>
-            <button class="btn btn-outline" onclick="removeRead('${item.url}')">✕ Remove</button>
+            <div class="card-actions-left">
+              <a href="${item.url}" class="btn btn-primary" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Open Link ↗</a>
+              <button class="btn btn-outline" onclick="removeRead('${item.url}')">✕ Remove</button>
+            </div>
           </div>
         </article>
       `;
-    });
+    }));
+    html += readCards.join('');
   }
 
   container.innerHTML = html;

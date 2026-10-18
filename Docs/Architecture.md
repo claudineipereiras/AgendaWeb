@@ -132,23 +132,27 @@ To prevent private house parties and spam from cluttering the city calendar with
 ## Frontend Architecture (Local-First PWA)
 
 ### Broadsheet Information Architecture
-The PWA presents a curated Australian cultural magazine divided into 4 primary channels:
+The PWA presents a curated Australian cultural magazine divided into primary channels:
 
 | Tab | Visibility | Content Source | Characteristics & Subcategories |
 | :--- | :--- | :--- | :--- |
-| **⚡ Events** | **Always Visible (Core)** | Hostinger MySQL Scraped & Verified Venues | Chronological gigs sorted by `<ev:startdate>` (today, tomorrow, weekend). Auto-grouped subcategories: *Live Music*, *Art & Fair*, *Community*, *Free*. 1-tap "Add to Calendar" and card image support. |
+| **⚡ Events** | **Always Visible (Core)** | Hostinger MySQL Scraped & Verified Venues | Chronological gigs sorted by `<ev:startdate>` (today, tomorrow, weekend). Auto-grouped subcategories: *Live Music*, *Art & Fair*, *Community*, *Free*. Hero card image, circular read check, and bottom-right RSS follow button. |
+| **📡 Following** | **Always Visible (Core)** | Client IndexedDB (`followed_entities`) + MySQL Events | Personalized gig guide featuring only events from followed venues, artists, and independent organisers. Dynamic subcategory pills and venue chips. |
 | **🔖 Reads** | **Always Visible (Core)** | Client IndexedDB | Private offline queue: bookmarked events, custom personal RSS items, and "Read Later" articles. |
 | **📰 News** | *Opt-in Toggle in Settings* | Hostinger MySQL Curated Sources | Real-time reporting from Australian public broadcasters. Subcategories automatically grouped from feed tags (e.g., *Top Stories*, *Regional*, *Policy*). |
 | **✍️ Blogs** | *Opt-in Toggle in Settings* | Hostinger MySQL Curated Sources | Independent cultural zines, music reviews, and essays. Subcategories automatically grouped from feed tags (e.g., *Indie Culture*, *Visual Arts*, *Interviews*). |
 | **📁 Personal** | *Dynamic (if custom feeds exist)* | Client IndexedDB via CORS Proxy | User-added personal RSS feeds grouped under custom category labels (defaults to *Personal*). |
 
-### Automated Subcategory Grouping & Card Images
+### Automated Subcategory Grouping & Card Enhancements
+- **Circular Checkmark Indicator (`read_cards`):** A clean circle with check inside indicates read/checked status. Cards automatically mark as read upon opening or clicking action buttons, or can be manually toggled.
+- **Bottom-Right RSS Follow Button (`followed_entities`):** Each event card includes a follow button with the open RSS icon in the bottom-right corner, enabling users to curate their personalized **Following** channel.
 - **Dynamic Subcategory Pills:** The client dynamically inspects the `<category>` tags embedded across active feed items and events, automatically rendering subcategory filter pills without manual database tag maintenance.
 - **Responsive Card Image Support:** Cards render high-resolution hero preview images if an image URL is detected in the RSS `<enclosure>`, `<media:content>`, or Schema.org event object.
 
 ### Settings Drawer, Portability & Organizer Tools
-- **Channel Customization:** The default experience runs strictly with **Events** and **Reads** (clean mode). Users can toggle on **News** and **Blogs** individually in Settings.
+- **Channel Customization:** The default clean mode runs strictly with **Events**, **Following**, and **Reads**. Users can toggle on **News** and **Blogs** individually in Settings.
 - **Personal RSS Feed Manager:** Users can click **"+ Add Feed"** in Settings to paste any external RSS URL and assign it to a category (defaults to `Personal`).
+- **Followed Lineup Manager:** Users can view, inspect, and unfollow venues and artists directly within the Settings drawer.
 - **Publisher & Organizer Guides:**
   - *Schema.org Ingestion:* Instructions on embedding `schema.org/Event` JSON-LD.
   - *Event RSS Syndication:* Guide for venues on publishing their own RSS 2.0 with `<ev:startdate>` and image enclosures for automatic ingestion.

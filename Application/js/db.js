@@ -6,7 +6,7 @@
 class AgendaDB {
   constructor() {
     this.dbName = 'AgendaWebDB';
-    this.dbVersion = 1;
+    this.dbVersion = 2;
     this.db = null;
   }
 
@@ -39,6 +39,17 @@ class AgendaDB {
         // 4. User Settings Store
         if (!db.objectStoreNames.contains('user_settings')) {
           db.createObjectStore('user_settings', { keyPath: 'key' });
+        }
+
+        // 5. Read Cards Status Store (Check Circle)
+        if (!db.objectStoreNames.contains('read_cards')) {
+          db.createObjectStore('read_cards', { keyPath: 'id' });
+        }
+
+        // 6. Followed Entities Store (Venues, Artists, Organisers)
+        if (!db.objectStoreNames.contains('followed_entities')) {
+          const followStore = db.createObjectStore('followed_entities', { keyPath: 'name' });
+          followStore.createIndex('idx_type', 'type', { unique: false });
         }
       };
 
@@ -211,16 +222,115 @@ class AgendaDB {
     });
   }
 
+  // --- Read Cards Store (Circle Check) ---
+  async markCardRead(id, isRead = true) {
+    await this.init();
+    const key = String(id);
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('read_cards', 'readwrite');
+      const store = tx.objectStore('read_cards');
+      if (isRead) {
+        const req = store.put({ id: key, read_at: new Date().toISOString() });
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => reject(req.error);
+      } else {
+        const req = store.delete(key);
+        req.onsuccess = () => resolve(false);
+        req.onerror = () => reject(req.error);
+      }
+    });
+  }
+
+  async isCardRead(id) {
+    await this.init();
+    const key = String(id);
+    return new Promise((resolve) => {
+      const tx = this.db.transaction('read_cards', 'readonly');
+      const store = tx.objectStore('read_cards');
+      const req = store.get(key);
+      req.onsuccess = () => resolve(!!req.result);
+      req.onerror = () => resolve(false);
+    });
+  }
+
+  async toggleCardRead(id) {
+    const current = await this.isCardRead(id);
+    const next = !current;
+    await this.markCardRead(id, next);
+    return next;
+  }
+
+  async getAllReadCardIds() {
+    await this.init();
+    return new Promise((resolve) => {
+      const tx = this.db.transaction('read_cards', 'readonly');
+      const store = tx.objectStore('read_cards');
+      const req = store.getAll();
+      req.onsuccess = () => resolve((req.result || []).map(r => r.id));
+      req.onerror = () => resolve([]);
+    });
+  }
+
+  // --- Followed Entities Store (Venues, Artists, Organisers) ---
+  async isEntityFollowed(name) {
+    await this.init();
+    if (!name) return false;
+    return new Promise((resolve) => {
+      const tx = this.db.transaction('followed_entities', 'readonly');
+      const store = tx.objectStore('followed_entities');
+      const req = store.get(name);
+      req.onsuccess = () => resolve(!!req.result);
+      req.onerror = () => resolve(false);
+    });
+  }
+
+  async toggleFollowEntity(name, type = 'venue') {
+    await this.init();
+    if (!name) return false;
+    const isFollowed = await this.isEntityFollowed(name);
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('followed_entities', 'readwrite');
+      const store = tx.objectStore('followed_entities');
+      if (isFollowed) {
+        const req = store.delete(name);
+        req.onsuccess = () => resolve(false);
+        req.onerror = () => reject(req.error);
+      } else {
+        const data = {
+          name: name,
+          type: type,
+          followed_at: new Date().toISOString()
+        };
+        const req = store.put(data);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => reject(req.error);
+      }
+    });
+  }
+
+  async getFollowedEntities() {
+    await this.init();
+    return new Promise((resolve) => {
+      const tx = this.db.transaction('followed_entities', 'readonly');
+      const store = tx.objectStore('followed_entities');
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+  }
+
   // --- Data Portability: Export / Import ---
   async exportBackup() {
     await this.init();
     const backup = {
-      version: 1,
+      version: 2,
       exported_at: new Date().toISOString(),
       user_settings: await this.getAllSettings(),
       starred_events: await this.getStarredEvents(),
       read_later: await this.getReadItems(),
-      custom_feeds: await this.getCustomFeeds()
+      custom_feeds: await this.getCustomFeeds(),
+      read_cards: await this.getAllReadCardIds(),
+      followed_entities: await this.getFollowedEntities()
     };
     const jsonStr = JSON.stringify(backup, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -237,7 +347,8 @@ class AgendaDB {
     const data = JSON.parse(jsonString);
     if (!data.version) throw new Error('Invalid backup format');
 
-    const tx = this.db.transaction(['user_settings', 'starred_events', 'read_later', 'custom_feeds'], 'readwrite');
+    const activeStores = ['user_settings', 'starred_events', 'read_later', 'custom_feeds', 'read_cards', 'followed_entities'];
+    const tx = this.db.transaction(activeStores, 'readwrite');
 
     if (data.user_settings) {
       const sStore = tx.objectStore('user_settings');
@@ -254,6 +365,14 @@ class AgendaDB {
     if (data.custom_feeds) {
       const cStore = tx.objectStore('custom_feeds');
       data.custom_feeds.forEach(c => cStore.put(c));
+    }
+    if (data.read_cards && Array.isArray(data.read_cards)) {
+      const rcStore = tx.objectStore('read_cards');
+      data.read_cards.forEach(id => rcStore.put({ id: String(id), read_at: new Date().toISOString() }));
+    }
+    if (data.followed_entities && Array.isArray(data.followed_entities)) {
+      const feStore = tx.objectStore('followed_entities');
+      data.followed_entities.forEach(fe => feStore.put(fe));
     }
 
     return new Promise((resolve, reject) => {
