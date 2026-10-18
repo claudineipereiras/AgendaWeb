@@ -88,6 +88,7 @@ Retrieves articles, news headlines, and independent blog posts ingested from Aus
       "title": "Community Arts Funding Expanded Across Regional Victoria",
       "link": "https://www.abc.net.au/news/2026-10-18/arts-funding-regional-vic/1000",
       "summary": "State government announces new grants targeting grassroots music venues and indie galleries...",
+      "content": "<p>Full text article or essay from RSS content:encoded module for distraction-free reading...</p>",
       "image_url": "https://images.abc.net.au/news/arts-grant.jpg",
       "published_at": "2026-10-18 08:15:00"
     }
@@ -129,7 +130,7 @@ Safely proxies external user-added RSS/Atom feeds to bypass browser CORS restric
 
 ---
 
-### 2.3 OpenGraph "Read Later" Extractor
+### 2.4 OpenGraph "Read Later" Extractor
 Scrapes public URL metadata so the client can save bookmark preview cards into local IndexedDB.
 
 - **Endpoint:** `GET /api/extract.php`
@@ -153,6 +154,49 @@ Scrapes public URL metadata so the client can save bookmark preview cards into l
 - **Error Responses:**
   - `400 Bad Request`: `{"error": "Valid URL required"}`
   - `422 Unprocessable Entity`: `{"error": "Unable to read target page"}`
+
+---
+
+### 2.5 Reader Suggestion Box (`/api/suggestions.php`)
+Allows readers to submit recommendations, venue tips, and feed nominations via the in-app Help & Suggestion modal. Suggestions are stored directly in the Hostinger MySQL `suggestions` table.
+
+- **Endpoint:** `POST /api/suggestions.php`
+- **Request Body (`application/json`):**
+  ```json
+  {
+    "name": "Jane Reader",
+    "email": "jane@example.com",
+    "category": "feed_nomination",
+    "message": "Please consider adding The Northcote Theatre live music gig guide RSS feed!"
+  }
+  ```
+- **Categories:** `feed_nomination`, `venue_tip`, `feature_idea`, `bug_report`, `other`
+- **Success Response (201 Created):**
+  ```json
+  {
+    "status": "success",
+    "message": "Suggestion submitted successfully. Thank you!",
+    "id": 14
+  }
+  ```
+
+---
+
+### 2.6 Curator Admin Management API (`/api/admin.php`)
+Dedicated administration endpoint enabling the curator to manage curated sources, monitor ingestion stats, triage suggestions, and trigger sync. Protected by passkey (`X-Admin-Key` header or `?key=` query param).
+
+- **Endpoint:** `GET|POST /api/admin.php`
+- **Authentication:** `X-Admin-Key: <admin_key>`
+- **Actions:**
+  - `GET /api/admin.php?action=stats`: Returns platform metrics (active sources, total events, dispatches, pending suggestions).
+  - `GET /api/admin.php?action=sources&channel=all`: Lists curated sources with filters (`events`, `news`, `blogs`).
+  - `POST /api/admin.php?action=add_source`: Adds a new curated source feed (`name`, `channel_tab`, `feed_url`, `site_url`, `subcategories`).
+  - `POST /api/admin.php?action=toggle_source`: Pauses or activates a curated feed (`id`, `is_active`).
+  - `POST /api/admin.php?action=delete_source`: Removes a feed source.
+  - `GET /api/admin.php?action=suggestions&status=new`: Retrieves reader suggestions filtered by status (`new`, `read`, `archived`).
+  - `POST /api/admin.php?action=update_suggestion`: Changes suggestion status (`id`, `status`).
+  - `POST /api/admin.php?action=delete_suggestion`: Deletes a suggestion item.
+  - `POST /api/admin.php?action=sync_now`: Manually initiates `sync_sources.php` ingestion pass.
 
 ---
 

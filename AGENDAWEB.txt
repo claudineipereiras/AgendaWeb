@@ -1,0 +1,9 @@
+AGENDAWEB
+
+- increas the icon and the text by 25%.
+- Include the option to read full text rss.
+-  remove the text curated broadsheet and clean gig guide. 
+ - rename the settings: change independend blog and essays to Blogs & Articles. the subtitle change to curated blogs and cultural reviews.
+ - rename the public journalism and News to News. change the subtitle to public broadcasters.
+
+include a help button next to settings. it will show what the application is and the version used. include a link called leave a suggestion that will open a form to sent it to me. it will be stored in the database so I can read 

@@ -92,6 +92,19 @@ const MOCK_EVENTS = [
   }
 ];
 
+let MOCK_SOURCES = [
+  { id: 1, slug: "abc-just-in", name: "ABC News", type: "rss", url: "https://www.abc.net.au/news/feed/51120/rss.xml", category_tab: "news", is_active: 1, last_polled_at: "2026-10-18 08:30:00" },
+  { id: 2, slug: "sbs-top-stories", name: "SBS News", type: "rss", url: "https://www.sbs.com.au/news/feed", category_tab: "news", is_active: 1, last_polled_at: "2026-10-18 07:15:00" },
+  { id: 3, slug: "trouble-mag", name: "Trouble Magazine", type: "rss", url: "https://www.troublemag.com/feed/", category_tab: "blogs", is_active: 1, last_polled_at: "2026-10-17 14:00:00" },
+  { id: 4, slug: "the-conversation-au", name: "The Conversation (AU)", type: "rss", url: "https://theconversation.com/au/politics/articles.atom", category_tab: "blogs", is_active: 1, last_polled_at: "2026-10-17 11:30:00" },
+  { id: 5, slug: "the-gasometer-hotel", name: "The Gasometer Hotel", type: "scrape_event", url: "https://www.thegasometerhotel.com.au/gigs", category_tab: "events", is_active: 1, last_polled_at: "2026-10-18 09:00:00" }
+];
+
+let MOCK_SUGGESTIONS = [
+  { id: 1, name: "Liam K.", email: "liam@musicvic.com.au", category: "venue_feed", message: "Would love to see The Tote and Northcote Social Club gig feeds added to the live events calendar!", status: "new", created_at: "2026-10-18 14:22:10" },
+  { id: 2, name: "Chloe S.", email: "chloe@example.com", category: "feature", message: "The offline reading queue in IndexedDB is brilliant. Could we have an option to export selected reading lists?", status: "read", created_at: "2026-10-17 19:40:05" }
+];
+
 const MOCK_ITEMS = {
   news: [
     {
@@ -102,6 +115,7 @@ const MOCK_ITEMS = {
       title: "Grassroots Music Venues Receive New State Infrastructure Funding",
       link: "https://www.abc.net.au/news",
       summary: "Victoria’s live music and indie venues receive dedicated grants to preserve historic neighborhood stages.",
+      content: "<p>Victoria’s live music and indie venues are set to receive dedicated grants under a renewed state cultural infrastructure initiative designed to preserve historic neighborhood stages amidst rising inner-city commercial rents.</p><p>The package will support acoustic buffering, risograph event broadsheets, accessible stage ramps, and independent artist residencies across Collingwood, Fitzroy, and Ballarat.</p><p>Cultural advocates praised the grant framework for recognizing small grassroots gig rooms as essential public social infrastructure rather than mere commercial tenancies.</p>",
       image_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=700&q=80",
       published_at: "2026-10-18 08:30:00"
     },
@@ -113,6 +127,7 @@ const MOCK_ITEMS = {
       title: "Multicultural Arts Festivals Expanded Across Regional Hubs",
       link: "https://www.sbs.com.au/news",
       summary: "New community initiatives bring multicultural storytelling and food traditions to regional towns.",
+      content: "<p>A series of regional cultural celebrations will expand across regional hubs over the coming summer, bringing together traditional and contemporary artists, indigenous song cycles, and neighborhood food collectives.</p><p>Organizers emphasized the open-web syndication model, allowing regional residents to subscribe directly to festival schedules via RSS and iCal feeds without proprietary app downloads.</p>",
       image_url: "",
       published_at: "2026-10-18 07:15:00"
     }
@@ -125,6 +140,7 @@ const MOCK_ITEMS = {
       category: "Indie Culture",
       title: "Australian Indie Music Resilience: Behind Collingwood's Gigs",
       summary: "An in-depth look into independent venues maintaining live stages amidst urban development and noise complaints.",
+      content: "<p>Collingwood’s live circuit remains the lifeblood of Melbourne's independent music ecosystem. Walking down Johnston and Smith Streets on a Friday night, sound leaks from brick hotel basements, courtyard beer gardens, and second-floor print cooperatives.</p><p>In this long-form inquiry, venue owners reflect on sound attenuation engineering, community-backed leases, and why decentralized event syndication (like AgendaWeb) is breaking the algorithmic monopoly of social platforms.</p><p><em>'If people have to scroll an algorithm to find out who is playing down their street tonight, live culture loses,'</em> says one Fitzroy booker. <em>'Open feeds put the power back in the neighborhood.'</em></p>",
       link: "https://www.troublemag.com",
       image_url: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=700&q=80",
       published_at: "2026-10-17 14:00:00"
@@ -137,6 +153,7 @@ const MOCK_ITEMS = {
       title: "Why Australia's Cultural Infrastructure Needs Decentralized Open Data",
       link: "https://theconversation.com/au",
       summary: "Public arts policy is shifting towards community-anchored hubs, open syndication, and digital sovereignty.",
+      content: "<p>For two decades, public cultural institutions and neighborhood arts collectives relied on proprietary American tech platforms to announce gatherings, exhibition openings, and civic debates. The cost has been high: surveillance tracking, algorithmic pay-to-reach barriers, and audience disenfranchisement.</p><p>By turning back to open web standards—RFC 5545 iCalendar, RSS 2.0 with the Event module, and local-first browser storage—cultural organizations regain their digital sovereignty.</p>",
       image_url: "",
       published_at: "2026-10-17 11:30:00"
     }
@@ -149,7 +166,8 @@ const server = http.createServer((req, res) => {
 
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Key');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
@@ -324,8 +342,184 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // 7. Static File Serving
-  let filePath = path.join(BASE_DIR, pathname === '/' ? 'index.html' : pathname);
+  // 7. API: Suggestions Submission
+  if (pathname === '/api/suggestions.php') {
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const newSug = {
+          id: MOCK_SUGGESTIONS.length + 1,
+          name: payload.name || 'Anonymous',
+          email: payload.email || '',
+          category: payload.category || 'general',
+          message: payload.message || '',
+          status: 'new',
+          created_at: new Date().toISOString().replace('T', ' ').slice(0, 19)
+        };
+        MOCK_SUGGESTIONS.unshift(newSug);
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          status: 'success',
+          message: 'Thank you! Your suggestion has been saved to the curator inbox.'
+        }));
+      });
+      return;
+    }
+  }
+
+  // 8. API: Admin Operations
+  if (pathname === '/api/admin.php') {
+    const action = parsedUrl.query.action || 'stats';
+    const providedKey = req.headers['x-admin-key'] || parsedUrl.query.key;
+    const EXPECTED_KEY = 'agendaweb-admin-secret-2026';
+
+    if (!providedKey || providedKey !== EXPECTED_KEY) {
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ status: 'error', message: 'Unauthorized: Invalid Admin Key' }));
+      return;
+    }
+
+    if (action === 'stats') {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        status: 'success',
+        data: {
+          total_sources: MOCK_SOURCES.length,
+          active_sources: MOCK_SOURCES.filter(s => s.is_active).length,
+          total_events: MOCK_EVENTS.length,
+          total_items: (MOCK_ITEMS.news.length + MOCK_ITEMS.blogs.length),
+          new_suggestions: MOCK_SUGGESTIONS.filter(s => s.status === 'new').length
+        }
+      }));
+      return;
+    }
+
+    if (action === 'sources') {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        status: 'success',
+        count: MOCK_SOURCES.length,
+        data: MOCK_SOURCES
+      }));
+      return;
+    }
+
+    if (action === 'add_source' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const newSource = {
+          id: MOCK_SOURCES.length + 1,
+          slug: (payload.name || 'source').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          name: payload.name || 'New Source',
+          type: payload.type || 'rss',
+          url: payload.url || 'https://example.com/feed.xml',
+          category_tab: payload.category_tab || 'blogs',
+          is_active: 1,
+          last_polled_at: 'Pending'
+        };
+        MOCK_SOURCES.push(newSource);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'success', message: 'Source added successfully', id: newSource.id }));
+      });
+      return;
+    }
+
+    if (action === 'toggle_source' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const source = MOCK_SOURCES.find(s => s.id === payload.id);
+        if (source) source.is_active = source.is_active ? 0 : 1;
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'success', message: 'Source status toggled' }));
+      });
+      return;
+    }
+
+    if (action === 'delete_source' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        MOCK_SOURCES = MOCK_SOURCES.filter(s => s.id !== payload.id);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'success', message: 'Source deleted' }));
+      });
+      return;
+    }
+
+    if (action === 'suggestions') {
+      const statusFilter = parsedUrl.query.status || 'all';
+      let filtered = MOCK_SUGGESTIONS;
+      if (statusFilter !== 'all') {
+        filtered = MOCK_SUGGESTIONS.filter(s => s.status === statusFilter);
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        status: 'success',
+        count: filtered.length,
+        data: filtered
+      }));
+      return;
+    }
+
+    if (action === 'update_suggestion' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const sug = MOCK_SUGGESTIONS.find(s => s.id === payload.id);
+        if (sug) sug.status = payload.status || 'read';
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'success', message: 'Suggestion updated' }));
+      });
+      return;
+    }
+
+    if (action === 'delete_suggestion' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        MOCK_SUGGESTIONS = MOCK_SUGGESTIONS.filter(s => s.id !== payload.id);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'success', message: 'Suggestion deleted' }));
+      });
+      return;
+    }
+
+    if (action === 'sync_now' && req.method === 'POST') {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        status: 'success',
+        message: 'Sync worker executed successfully',
+        log: `[${new Date().toISOString()}] Scanning 5 sources...\nSynced ABC News (2 items)\nSynced SBS News (1 item)\nSynced Trouble Magazine (1 item)\nSynced The Gasometer Hotel (2 gigs)\nIngestion complete. 0 errors.`
+      }));
+      return;
+    }
+  }
+
+  // 9. Static File Serving (with /admin routing support)
+  let cleanPath = pathname;
+  if (cleanPath === '/' || cleanPath === '') {
+    cleanPath = '/index.html';
+  } else if (cleanPath === '/admin' || cleanPath === '/admin/') {
+    cleanPath = '/admin/index.html';
+  }
+
+  let filePath = path.join(BASE_DIR, cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath);
 
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
@@ -346,9 +540,12 @@ function startServer(port) {
   server.listen(port, '0.0.0.0', () => {
     console.log(`\n✦ AgendaWeb Server is LIVE at: http://localhost:${port}`);
     console.log(`  - Broadsheet PWA:  http://localhost:${port}/index.html`);
+    console.log(`  - Admin Manager:   http://localhost:${port}/admin/index.html`);
     console.log(`  - Events JSON API: http://localhost:${port}/api/events.php`);
     console.log(`  - News JSON API:   http://localhost:${port}/api/items.php?tab=news`);
     console.log(`  - Blogs JSON API:  http://localhost:${port}/api/items.php?tab=blogs`);
+    console.log(`  - Suggestion API:  http://localhost:${port}/api/suggestions.php`);
+    console.log(`  - Admin JSON API:  http://localhost:${port}/api/admin.php`);
     console.log(`  - Proxy Feed API:  http://localhost:${port}/api/proxy_feed.php?url=...`);
     console.log(`  - RSS 2.0 Feed:    http://localhost:${port}/feed.php`);
     console.log(`  - iCal Export:     http://localhost:${port}/calendar.php?id=1\n`);

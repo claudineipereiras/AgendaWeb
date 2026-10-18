@@ -44,7 +44,7 @@ try {
     $rawCats = $catStmt->fetchAll(PDO::FETCH_COLUMN);
     $categories = array_values(array_unique(array_merge(['All'], array_filter($rawCats))));
 
-    $sql = "SELECT i.id, s.name as source_name, i.category_tab, i.category, i.title, i.link, i.summary, i.image_url, i.published_at
+    $sql = "SELECT i.id, s.name as source_name, i.category_tab, i.category, i.title, i.link, i.summary, i.content, i.image_url, i.published_at
             FROM items i
             JOIN sources s ON s.id = i.source_id
             WHERE {$whereSql}

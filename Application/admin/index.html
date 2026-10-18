@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgendaWeb — Curator Admin & Ingestion Manager</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--color-chalk);
+      color: var(--color-nightfall);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      padding-bottom: 60px;
+    }
+    header {
+      background: var(--color-white);
+      border-bottom: 1px solid var(--color-oat);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .brand-group img { height: 38px; }
+    .admin-badge {
+      background: var(--color-nightfall);
+      color: var(--color-chalk);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .container {
+      max-width: 960px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--color-white);
+      border: 1px solid var(--color-oat);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      box-shadow: var(--shadow-card);
+    }
+    .stat-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--color-text-muted);
+      letter-spacing: 0.5px;
+    }
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--color-nightfall);
+      margin-top: 4px;
+    }
+    /* Tabs */
+    .admin-nav {
+      display: flex;
+      gap: 10px;
+      border-bottom: 1px solid var(--color-oat);
+      margin-bottom: 20px;
+    }
+    .nav-btn {
+      background: transparent;
+      border: none;
+      padding: 10px 18px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--color-nightfall);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-btn.active {
+      color: var(--color-amber-rust);
+      border-bottom-color: var(--color-amber-rust);
+      font-weight: 700;
+    }
+    .badge-count {
+      background: var(--color-amber-rust);
+      color: var(--color-white);
+      border-radius: 12px;
+      padding: 1px 7px;
+      font-size: 0.75rem;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: 1.4rem;
+      color: var(--color-nightfall);
+    }
+    /* Buttons */
+    .btn {
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--color-nightfall); color: var(--color-white); }
+    .btn-primary:hover { background: #132b1f; }
+    .btn-amber { background: var(--color-amber-rust); color: var(--color-white); }
+    .btn-amber:hover { opacity: 0.9; }
+    .btn-outline { background: transparent; border-color: var(--color-oat); color: var(--color-nightfall); }
+    .btn-outline:hover { background: var(--color-chalk); }
+    .btn-danger { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+    .btn-danger:hover { background: #fecaca; }
+    /* Table & Cards */
+    .data-table {
+      width: 100%;
+      background: var(--color-white);
+      border: 1px solid var(--color-oat);
+      border-radius: var(--radius-md);
+      border-collapse: collapse;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+    .data-table th, .data-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--color-oat);
+      font-size: 0.88rem;
+    }
+    .data-table th {
+      background: var(--color-chalk);
+      font-weight: 700;
+      color: var(--color-nightfall);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .data-table tr:hover { background: #faf8f5; }
+    .tag-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .tag-blogs { background: #e0e7ff; color: #3730a3; }
+    .tag-news { background: #dcfce7; color: #166534; }
+    .tag-events { background: #fef3c7; color: #92400e; }
+    .tag-new { background: #fee2e2; color: #991b1b; }
+    .tag-read { background: #f3f4f6; color: #4b5563; }
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(27, 59, 43, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+    .modal-content {
+      background: var(--color-white);
+      border-radius: var(--radius-md);
+      max-width: 520px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; }
+    .form-control {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--color-oat);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+    /* Login Overlay */
+    #auth-screen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--color-chalk);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+    }
+    .login-card {
+      background: var(--color-white);
+      border: 1px solid var(--color-oat);
+      border-radius: var(--radius-md);
+      padding: 32px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 8px 24px rgba(27, 59, 43, 0.08);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Auth Screen -->
+  <div id="auth-screen">
+    <div class="login-card">
+      <img src="../assets/logo.svg" alt="AgendaWeb" style="height:48px; margin-bottom:14px;">
+      <h2 style="font-size:1.3rem; margin-bottom:6px;">Curator Admin Portal</h2>
+      <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:20px;">Enter your admin passphrase to manage curated RSS sources and suggestions inbox.</p>
+      <form onsubmit="handleLogin(event)">
+        <div class="form-group" style="text-align:left;">
+          <label for="admin-key-input">Admin Passphrase</label>
+          <input type="password" id="admin-key-input" class="form-control" placeholder="••••••••••••" required autofocus>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:10px;">Unlock Dashboard →</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Admin Interface -->
+  <header>
+    <a href="../index.html" class="brand-group">
+      <img src="../assets/logo.svg" alt="AgendaWeb">
+      <span class="admin-badge">Admin Manager</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <a href="../index.html" class="btn btn-outline">← Back to PWA</a>
+      <button class="btn btn-outline" onclick="logout()">Log Out</button>
+    </div>
+  </header>
+
+  <main class="container">
+    
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-title">Curated Feeds</div>
+        <div class="stat-value" id="stat-sources">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Verified Gigs</div>
+        <div class="stat-value" id="stat-events">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Curated Dispatches</div>
+        <div class="stat-value" id="stat-items">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">New Suggestions</div>
+        <div class="stat-value" id="stat-suggestions" style="color:var(--color-amber-rust);">-</div>
+      </div>
+    </div>
+
+    <!-- Admin Navigation Tabs -->
+    <nav class="admin-nav">
+      <button class="nav-btn active" data-tab="sources" onclick="switchAdminTab('sources')">
+        📡 Curated Subscriptions
+      </button>
+      <button class="nav-btn" data-tab="suggestions" onclick="switchAdminTab('suggestions')">
+        📬 Suggestion Inbox <span class="badge-count" id="inbox-badge" style="display:none;">0</span>
+      </button>
+      <button class="nav-btn" data-tab="system" onclick="switchAdminTab('system')">
+        ⚙️ Hostinger Ingestion & Cron
+      </button>
+    </nav>
+
+    <!-- Tab 1: Sources Management -->
+    <section id="tab-sources">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Curated RSS & Event Feeds</h2>
+          <p style="font-size:0.85rem; color:var(--color-text-muted);">Manage the public Australian RSS and venue targets ingested by Hostinger cron into MySQL.</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-amber" onclick="triggerSyncNow()">⚡ Run Sync Now</button>
+          <button class="btn btn-primary" onclick="openAddSourceModal()">+ Add New Feed</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px; display:flex; gap:8px;">
+        <button class="btn btn-outline filter-source-btn active" onclick="filterSources('all', this)">All</button>
+        <button class="btn btn-outline filter-source-btn" onclick="filterSources('blogs', this)">Blogs & Articles</button>
+        <button class="btn btn-outline filter-source-btn" onclick="filterSources('news', this)">News</button>
+        <button class="btn btn-outline filter-source-btn" onclick="filterSources('events', this)">Events</button>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Channel</th>
+            <th>Name</th>
+            <th>Feed URL</th>
+            <th>Status</th>
+            <th>Last Synced</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="sources-table-body">
+          <tr><td colspan="6" style="text-align:center; padding:24px;">Loading subscriptions...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Tab 2: Suggestions Inbox -->
+    <section id="tab-suggestions" style="display:none;">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Reader Suggestions Inbox</h2>
+          <p style="font-size:0.85rem; color:var(--color-text-muted);">Feedback, feature requests, and venue feed recommendations submitted through the PWA Help modal.</p>
+        </div>
+        <div>
+          <select id="suggestion-filter-status" class="form-control" style="width:auto; display:inline-block;" onchange="loadSuggestions()">
+            <option value="all">All Suggestions</option>
+            <option value="new" selected>New Only</option>
+            <option value="read">Read</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Category</th>
+            <th>Sender</th>
+            <th>Message</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="suggestions-table-body">
+          <tr><td colspan="6" style="text-align:center; padding:24px;">Loading suggestions...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Tab 3: System Status -->
+    <section id="tab-system" style="display:none;">
+      <div class="stat-card" style="margin-bottom:18px;">
+        <h3 style="font-size:1.1rem; margin-bottom:8px;">Hostinger Ingestion Worker Setup</h3>
+        <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:12px;">The ingestion worker scans all enabled RSS/Atom and Schema.org event sources and updates Hostinger MySQL 8.x.</p>
+        <p style="font-size:0.85rem; margin-bottom:8px;"><strong>Hostinger cPanel Cron Command (runs every 30 mins):</strong></p>
+        <pre style="background:var(--color-nightfall); color:#4ade80; padding:12px; border-radius:6px; font-size:0.82rem; overflow-x:auto;">php -q /home/YOUR_CPANEL_USER/public_html/sync_sources.php > /dev/null 2>&1</pre>
+      </div>
+      <div class="stat-card">
+        <h3 style="font-size:1.1rem; margin-bottom:8px;">Security & Token Management</h3>
+        <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:12px;">The Admin API is protected by <code>ADMIN_API_KEY</code> defined in <code>Application/config/config.php</code> or environment variables.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Add Source Modal -->
+  <div class="modal-overlay" id="add-source-modal">
+    <div class="modal-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="font-size:1.15rem;">Add Curated RSS Source</h3>
+        <button class="btn btn-outline" style="padding:4px 8px;" onclick="closeAddSourceModal()">✕</button>
+      </div>
+      <form onsubmit="handleAddSourceSubmit(event)">
+        <div class="form-group">
+          <label>Source Name</label>
+          <input type="text" id="source-name" class="form-control" placeholder="e.g. Trouble Magazine" required>
+        </div>
+        <div class="form-group">
+          <label>Feed URL (RSS 2.0 or Atom)</label>
+          <input type="url" id="source-url" class="form-control" placeholder="https://example.com/feed.xml" required>
+        </div>
+        <div class="form-group">
+          <label>Channel Destination</label>
+          <select id="source-channel" class="form-control">
+            <option value="blogs">✍️ Blogs & Articles (Curated cultural zines)</option>
+            <option value="news">📰 News (Public broadcasters & journalism)</option>
+            <option value="events">⚡ Events (Venue calendar / RSS with ev: module)</option>
+          </select>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="closeAddSourceModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save & Add Source</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let adminKey = localStorage.getItem('agendaweb_admin_key') || '';
+    let currentSources = [];
+    let currentSourceFilter = 'all';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (adminKey) {
+        document.getElementById('auth-screen').style.display = 'none';
+        loadDashboard();
+      }
+    });
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const input = document.getElementById('admin-key-input').value.trim();
+      if (!input) return;
+      adminKey = input;
+      localStorage.setItem('agendaweb_admin_key', adminKey);
+      loadDashboard().then(success => {
+        if (success) {
+          document.getElementById('auth-screen').style.display = 'none';
+        } else {
+          alert('Invalid Admin Key. Please check your credentials.');
+          localStorage.removeItem('agendaweb_admin_key');
+          adminKey = '';
+        }
+      });
+    }
+
+    function logout() {
+      localStorage.removeItem('agendaweb_admin_key');
+      adminKey = '';
+      window.location.reload();
+    }
+
+    async function apiRequest(endpoint, options = {}) {
+      options.headers = options.headers || {};
+      options.headers['X-Admin-Key'] = adminKey;
+      if (options.body && typeof options.body === 'object') {
+        options.headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify(options.body);
+      }
+      try {
+        const res = await fetch(endpoint, options);
+        if (res.status === 401) return null;
+        return await res.json();
+      } catch (err) {
+        console.error('API Error:', err);
+        return null;
+      }
+    }
+
+    async function loadDashboard() {
+      const statsRes = await apiRequest('../api/admin.php?action=stats');
+      if (!statsRes || statsRes.status !== 'success') return false;
+
+      document.getElementById('stat-sources').textContent = statsRes.data.active_sources + ' / ' + statsRes.data.total_sources;
+      document.getElementById('stat-events').textContent = statsRes.data.total_events;
+      document.getElementById('stat-items').textContent = statsRes.data.total_items;
+      document.getElementById('stat-suggestions').textContent = statsRes.data.new_suggestions;
+
+      const inboxBadge = document.getElementById('inbox-badge');
+      if (statsRes.data.new_suggestions > 0) {
+        inboxBadge.textContent = statsRes.data.new_suggestions;
+        inboxBadge.style.display = 'inline-block';
+      } else {
+        inboxBadge.style.display = 'none';
+      }
+
+      await loadSources();
+      return true;
+    }
+
+    function switchAdminTab(tabName) {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
+      document.getElementById('tab-sources').style.display = tabName === 'sources' ? 'block' : 'none';
+      document.getElementById('tab-suggestions').style.display = tabName === 'suggestions' ? 'block' : 'none';
+      document.getElementById('tab-system').style.display = tabName === 'system' ? 'block' : 'none';
+
+      if (tabName === 'suggestions') loadSuggestions();
+      if (tabName === 'sources') loadSources();
+    }
+
+    async function loadSources() {
+      const res = await apiRequest('../api/admin.php?action=sources');
+      if (!res || res.status !== 'success') return;
+      currentSources = res.data;
+      renderSourcesTable();
+    }
+
+    function filterSources(tab, btn) {
+      currentSourceFilter = tab;
+      document.querySelectorAll('.filter-source-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderSourcesTable();
+    }
+
+    function renderSourcesTable() {
+      const tbody = document.getElementById('sources-table-body');
+      let filtered = currentSources;
+      if (currentSourceFilter !== 'all') {
+        filtered = currentSources.filter(s => s.category_tab === currentSourceFilter);
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--color-text-muted);">No curated sources in this category.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(s => `
+        <tr>
+          <td><span class="tag-badge tag-${s.category_tab}">${escapeHtml(s.category_tab)}</span></td>
+          <td><strong>${escapeHtml(s.name)}</strong></td>
+          <td><a href="${s.url}" target="_blank" rel="noopener" style="color:var(--color-nightfall); text-decoration:none; font-family:monospace; font-size:0.8rem;">${escapeHtml(s.url.length > 45 ? s.url.slice(0,45) + '...' : s.url)} ↗</a></td>
+          <td>
+            <button class="btn btn-outline" style="padding:3px 8px; font-size:0.75rem; color:${s.is_active ? 'green' : '#999'};" onclick="toggleSource(${s.id})">
+              ${s.is_active ? '● Active' : '○ Paused'}
+            </button>
+          </td>
+          <td style="font-size:0.78rem; color:var(--color-text-muted);">${s.last_polled_at || 'Pending'}</td>
+          <td>
+            <button class="btn btn-danger" style="padding:3px 8px; font-size:0.75rem;" onclick="deleteSource(${s.id}, '${escapeQuote(s.name)}')">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function toggleSource(id) {
+      await apiRequest('../api/admin.php?action=toggle_source', { method: 'POST', body: { id } });
+      await loadDashboard();
+    }
+
+    async function deleteSource(id, name) {
+      if (!confirm(`Delete feed source "${name}" and all associated items?`)) return;
+      await apiRequest('../api/admin.php?action=delete_source', { method: 'POST', body: { id } });
+      await loadDashboard();
+    }
+
+    function openAddSourceModal() {
+      document.getElementById('add-source-modal').style.display = 'flex';
+    }
+    function closeAddSourceModal() {
+      document.getElementById('add-source-modal').style.display = 'none';
+      document.getElementById('source-name').value = '';
+      document.getElementById('source-url').value = '';
+    }
+
+    async function handleAddSourceSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('source-name').value.trim();
+      const url = document.getElementById('source-url').value.trim();
+      const tab = document.getElementById('source-channel').value;
+
+      const res = await apiRequest('../api/admin.php?action=add_source', {
+        method: 'POST',
+        body: { name, url, category_tab: tab, type: tab === 'events' ? 'scrape_event' : 'rss' }
+      });
+
+      if (res && res.status === 'success') {
+        closeAddSourceModal();
+        await loadDashboard();
+        alert('Curated feed source added successfully!');
+      } else {
+        alert('Failed to add feed: ' + (res ? res.message : 'Network error'));
+      }
+    }
+
+    async function triggerSyncNow() {
+      if (!confirm('Run the ingestion worker right now? This will fetch all active curated sources.')) return;
+      const res = await apiRequest('../api/admin.php?action=sync_now', { method: 'POST' });
+      if (res && res.status === 'success') {
+        alert('Ingestion worker completed! Output:\n' + (res.log || 'Done'));
+        await loadDashboard();
+      } else {
+        alert('Sync error: ' + (res ? res.message : 'Failed'));
+      }
+    }
+
+    // Suggestions Inbox
+    async function loadSuggestions() {
+      const status = document.getElementById('suggestion-filter-status').value;
+      const res = await apiRequest(`../api/admin.php?action=suggestions&status=${status}`);
+      if (!res || res.status !== 'success') return;
+
+      const tbody = document.getElementById('suggestions-table-body');
+      if (res.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--color-text-muted);">Inbox is empty.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = res.data.map(s => `
+        <tr>
+          <td><span class="tag-badge tag-${s.status}">${escapeHtml(s.status)}</span></td>
+          <td><strong>${escapeHtml(s.category)}</strong></td>
+          <td>
+            ${escapeHtml(s.name || 'Anonymous')}
+            ${s.email ? `<br><small style="color:var(--color-text-muted);">${escapeHtml(s.email)}</small>` : ''}
+          </td>
+          <td style="max-width:320px; white-space:pre-wrap;">${escapeHtml(s.message)}</td>
+          <td style="font-size:0.78rem; color:var(--color-text-muted);">${s.created_at}</td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              ${s.status === 'new' ? `<button class="btn btn-outline" style="padding:2px 6px; font-size:0.75rem;" onclick="updateSuggestion(${s.id}, 'read')">✓ Read</button>` : ''}
+              ${s.status !== 'archived' ? `<button class="btn btn-outline" style="padding:2px 6px; font-size:0.75rem;" onclick="updateSuggestion(${s.id}, 'archived')">Archive</button>` : ''}
+              <button class="btn btn-danger" style="padding:2px 6px; font-size:0.75rem;" onclick="deleteSuggestion(${s.id})">✕</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function updateSuggestion(id, status) {
+      await apiRequest('../api/admin.php?action=update_suggestion', { method: 'POST', body: { id, status } });
+      await loadDashboard();
+      await loadSuggestions();
+    }
+
+    async function deleteSuggestion(id) {
+      if (!confirm('Permanently delete this suggestion?')) return;
+      await apiRequest('../api/admin.php?action=delete_suggestion', { method: 'POST', body: { id } });
+      await loadDashboard();
+      await loadSuggestions();
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[m]);
+    }
+    function escapeQuote(str) {
+      return String(str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

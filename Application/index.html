@@ -26,7 +26,7 @@
       <img src="assets/logo.svg" alt="AgendaWeb">
     </a>
     <div class="header-actions">
-      <span class="clean-mode-badge" id="clean-mode-indicator">⚡ Clean Gig Guide</span>
+      <button class="icon-btn" onclick="toggleHelpModal()">ℹ Help</button>
       <button class="icon-btn" onclick="toggleSettingsModal()">⚙ Settings</button>
     </div>
   </header>
@@ -69,17 +69,20 @@
         </div>
         <div class="setting-row">
           <div class="setting-label">
-            <h4>✍️ Independent Blogs & Essays</h4>
-            <p>Curated Australian cultural zines, music reviews, and independent critiques.</p>
+            <h4>✍️ Blogs & Articles</h4>
+            <p>Curated blogs and cultural reviews.</p>
           </div>
           <input type="checkbox" id="channel-blogs-check" onchange="toggleChannel('show_blogs', this.checked)">
         </div>
         <div class="setting-row">
           <div class="setting-label">
-            <h4>📰 Public Journalism & News</h4>
-            <p>Real-time dispatches from ABC News, SBS, and public broadcasters.</p>
+            <h4>📰 News</h4>
+            <p>Public broadcasters.</p>
           </div>
           <input type="checkbox" id="channel-news-check" onchange="toggleChannel('show_news', this.checked)">
+        </div>
+        <div style="margin-top:14px; padding-top:10px; border-top:1px dashed var(--color-oat); text-align:right;">
+          <a href="admin/index.html" target="_blank" style="font-size:0.85rem; color:var(--color-sage-green); font-weight:600; text-decoration:none;">🔑 Curator Admin Manager ↗</a>
         </div>
       </div>
 
@@ -203,6 +206,101 @@
           <button type="submit" class="btn btn-primary">Save to Feed</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Full-Text Broadsheet Reader -->
+  <div class="modal-overlay" id="reader-modal" onclick="if(event.target===this) closeReaderModal()">
+    <div class="reader-modal-content">
+      <div class="reader-header">
+        <div class="reader-meta">
+          <span id="reader-source-cat">Source · Category</span>
+          <button class="icon-btn" style="padding:4px 8px;" onclick="closeReaderModal()">✕ Close</button>
+        </div>
+        <h1 class="reader-title" id="reader-title">Article Title</h1>
+        <div style="font-size:0.88rem; color:var(--color-text-muted);" id="reader-date">Published Date</div>
+      </div>
+      <div id="reader-image-container"></div>
+      <div class="reader-body" id="reader-body">
+        Article content loading...
+      </div>
+      <div class="reader-actions">
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-primary" id="reader-save-btn">🔖 Save to Reads</button>
+          <a href="#" class="btn btn-outline" id="reader-source-link" target="_blank" rel="noopener">Open Source ↗</a>
+        </div>
+        <button class="btn btn-outline" onclick="closeReaderModal()">Done Reading</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Help & Suggestion -->
+  <div class="modal-overlay" id="help-modal" onclick="if(event.target===this) toggleHelpModal()">
+    <div class="modal-content" style="max-width:540px;">
+      <div class="modal-header">
+        <h3>About AgendaWeb</h3>
+        <button class="icon-btn" onclick="toggleHelpModal()">✕</button>
+      </div>
+
+      <div class="help-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div class="help-title" style="margin-bottom:0;">What is AgendaWeb?</div>
+          <span class="version-pill">Version 0.5.0</span>
+        </div>
+        <p class="help-text">
+          AgendaWeb is an open-web, decentralized cultural calendar and editorial magazine reader for Australia.
+        </p>
+        <p class="help-text" style="font-size:0.88rem;">
+          • <strong>Zero Consumer Auth:</strong> No accounts, passwords, or tracking cookies. All your reading lists, custom feeds, and followed venues live privately in your browser's IndexedDB.<br>
+          • <strong>Open Syndication:</strong> Ingests live cultural gigs and dispatches directly from venues and public broadcasters via open RSS 2.0 (with <code>ev:</code> event tags), Schema.org JSON-LD, and RFC 5545 iCal.<br>
+          • <strong>Curated & Personal:</strong> Explore verified city events and Australian journalism, or curate your own personal feeds and followed venues.
+        </p>
+      </div>
+
+      <!-- Suggestion Box -->
+      <div id="suggestion-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div class="help-title" style="margin-bottom:0;">📬 Leave a Suggestion</div>
+          <button class="btn btn-outline" id="toggle-suggestion-form-btn" style="font-size:0.82rem; padding:4px 10px;" onclick="toggleSuggestionForm()">
+            + Write Suggestion
+          </button>
+        </div>
+        <p class="help-text" style="font-size:0.88rem; margin-bottom:12px;">
+          Have an idea for a feature, a bug to report, or an indie venue / zine RSS feed you’d like curated in our database? Send it directly to our curator inbox.
+        </p>
+
+        <form id="suggestion-form" style="display:none;" onsubmit="handleSuggestionSubmit(event)">
+          <div class="form-group">
+            <label for="suggestion-name" style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px;">Your Name (Optional)</label>
+            <input type="text" id="suggestion-name" class="form-control" placeholder="e.g. Alex M.">
+          </div>
+          <div class="form-group">
+            <label for="suggestion-email" style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px;">Email (Optional, if you'd like a reply)</label>
+            <input type="email" id="suggestion-email" class="form-control" placeholder="alex@example.com">
+          </div>
+          <div class="form-group">
+            <label for="suggestion-cat" style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px;">Category</label>
+            <select id="suggestion-cat" class="form-control">
+              <option value="feature">💡 Feature Request</option>
+              <option value="venue_feed">📍 Suggest Venue / RSS Feed to Curate</option>
+              <option value="bug">🐛 Bug / Issue Report</option>
+              <option value="general">💬 General Feedback</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="suggestion-msg" style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px;">Your Suggestion / Message</label>
+            <textarea id="suggestion-msg" class="form-control" rows="4" placeholder="Tell us what you'd love to see or what feed we should add..." required></textarea>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
+            <button type="button" class="btn btn-outline" onclick="toggleSuggestionForm()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="suggestion-submit-btn">Send Suggestion ↗</button>
+          </div>
+        </form>
+        <div id="suggestion-success-msg" style="display:none; background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; padding:12px; border-radius:6px; font-size:0.9rem; text-align:center;">
+          ✓ Thank you! Your suggestion has been sent to our curator inbox.
+        </div>
+      </div>
+
     </div>
   </div>
 

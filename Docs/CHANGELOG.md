@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2026-10-19
+
+### Added
+- **Curator Admin Manager (`/admin/` & `/api/admin.php`):** Standalone management portal for the platform curator. Features:
+  - Secure passkey login (`X-Admin-Key` header matching `config['app']['admin_key']`).
+  - Real-time directory overview stats (active feeds, total events, articles, pending suggestions).
+  - Curated feed subscription management across channels (`events`, `news`, `blogs`) with instant pause/active toggles, deletion, and new feed registration.
+  - One-click "⚡ Run Sync Now" button to trigger scraper passes on demand with live execution feedback.
+  - Complete Hostinger Cron configuration runbook.
+- **Suggestion Inbox & Help Modal (`/api/suggestions.php`):**
+  - Added Help button (`ℹ Help`) in the application header displaying app philosophy and version (`v0.5.0`).
+  - Built-in reader suggestion form with category picker (`feed_nomination`, `venue_tip`, `feature_idea`, `bug_report`, `other`).
+  - Stored in Hostinger MySQL `suggestions` table and directly triaged in the Curator Admin Manager (`new`, `read`, `archived`).
+- **Full-Text Broadsheet Reader Modal (`items.content`):**
+  - Ingests `<content:encoded>` and `<content>` modules from RSS feeds into Hostinger MySQL `items.content MEDIUMTEXT`.
+  - Added **"📖 Full Text"** button on news, blog, and personal feed cards for distraction-free reading without navigating away to third-party ad-heavy websites.
+- **UI Scaling & Typography Refinements:**
+  - Scaled typography, navigation tabs, filter pills, and action icons by 25% for readability.
+  - Increased card title size (1.45rem), summary size (1.1rem), circular checkmark icons (25px), and RSS icons (17px).
+  - Removed "curated broadsheet" and "clean gig guide" text badges for a cleaner broadsheet layout.
+  - Renamed Settings channel: "✍️ Independent Blogs & Essays" → "✍️ Blogs & Articles" (subtitle: "Curated blogs and cultural reviews").
+  - Renamed Settings channel: "📰 Public Journalism & News" → "📰 News" (subtitle: "Public broadcasters").
+  - Added direct link to Curator Admin Manager inside Settings drawer.
+
+---
+
 ## [0.4.0] - 2026-10-18
 
 ### Added

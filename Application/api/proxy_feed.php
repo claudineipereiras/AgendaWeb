@@ -80,9 +80,23 @@ foreach ($xmlItems as $item) {
         }
     }
     
+    $namespaces = $item->getNameSpaces(true);
+    $fullContent = null;
+    if (isset($namespaces['content'])) {
+        $contentNs = $item->children($namespaces['content']);
+        if (isset($contentNs->encoded)) {
+            $fullContent = (string)$contentNs->encoded;
+        }
+    }
+    if (!$fullContent && isset($item->content)) {
+        $fullContent = (string)$item->content;
+    }
+    if (!$fullContent) {
+        $fullContent = $rawDesc;
+    }
+
     // Check media:content namespace if no enclosure image
     if (!$imageUrl) {
-        $namespaces = $item->getNameSpaces(true);
         if (isset($namespaces['media'])) {
             $media = $item->children($namespaces['media']);
             if (isset($media->content) && isset($media->content->attributes()->url)) {
@@ -94,7 +108,7 @@ foreach ($xmlItems as $item) {
     }
 
     // Fallback: check <img> tag in HTML description
-    if (!$imageUrl && preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $rawDesc, $match)) {
+    if (!$imageUrl && preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $fullContent ?: $rawDesc, $match)) {
         $imageUrl = $match[1];
     }
 
@@ -107,6 +121,7 @@ foreach ($xmlItems as $item) {
         'title'        => $itemTitle,
         'link'         => $itemLink,
         'summary'      => $summary,
+        'content'      => $fullContent,
         'category'     => $itemCat ?: 'General',
         'image_url'    => $imageUrl,
         'published_at' => date('Y-m-d H:i:s', strtotime($itemDate))

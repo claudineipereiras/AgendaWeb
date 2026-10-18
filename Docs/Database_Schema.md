@@ -114,6 +114,7 @@ Stores news, commentary, and editorial dispatches from syndicated public media s
 | `title` | `VARCHAR(255)` | `NOT NULL` | Article headline. |
 | `link` | `VARCHAR(255)` | `UNIQUE`, `NOT NULL` | Canonical article link (also acts as natural unique key). |
 | `summary` | `TEXT` | `NULL` | Short summary / snippet (capped at 300 characters). |
+| `content` | `MEDIUMTEXT` | `NULL` | Full-text article content / HTML extracted from `<content:encoded>` or `<content>`. |
 | `image_url` | `VARCHAR(500)` | `NULL` | Hero preview image extracted from feed enclosure or `<media:content>`. |
 | `published_at` | `DATETIME` | `NOT NULL` | Original publication date. |
 | `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` | Ingestion timestamp. |
@@ -122,3 +123,22 @@ Stores news, commentary, and editorial dispatches from syndicated public media s
 - `INDEX (published_at)`: Reverse chronological sorting for news feeds.
 - `INDEX (category_tab)`: Fast category tab queries.
 - `INDEX (category)`: Dynamic subcategory grouping and filtering.
+
+---
+
+### 2.4 `suggestions`
+Stores reader suggestions, feedback, and venue recommendations submitted via the Help modal.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INT` | `AUTO_INCREMENT`, `PRIMARY KEY` | Suggestion identifier. |
+| `name` | `VARCHAR(150)` | `NULL` | Sender name (optional). |
+| `email` | `VARCHAR(150)` | `NULL` | Sender email (optional). |
+| `category` | `VARCHAR(60)` | `NOT NULL DEFAULT 'general'` | Feedback category (`feature`, `venue_feed`, `bug`, `feedback`). |
+| `message` | `TEXT` | `NOT NULL` | Suggestion text content. |
+| `status` | `ENUM` | `'new', 'read', 'archived'` | Admin management status. |
+| `created_at` | `DATETIME` | `DEFAULT CURRENT_TIMESTAMP` | Submission timestamp. |
+
+**Indexes:**
+- `INDEX (status)`: Fast filtering in Admin Suggestion Inbox.
+- `INDEX (created_at)`: Reverse chronological sorting.

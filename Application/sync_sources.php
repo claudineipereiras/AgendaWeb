@@ -39,10 +39,11 @@ function syncRss(PDO $pdo, array $source, string $userAgent): void {
     if (!$xml) return;
 
     $stmt = $pdo->prepare("
-        INSERT INTO items (source_id, category_tab, category, title, link, summary, image_url, published_at)
-        VALUES (:sid, :tab, :cat, :title, :link, :summary, :image, :pub_date)
+        INSERT INTO items (source_id, category_tab, category, title, link, summary, content, image_url, published_at)
+        VALUES (:sid, :tab, :cat, :title, :link, :summary, :content, :image, :pub_date)
         ON DUPLICATE KEY UPDATE 
             summary = VALUES(summary),
+            content = VALUES(content),
             image_url = IF(image_url IS NULL, VALUES(image_url), image_url)
     ");
 
@@ -54,6 +55,22 @@ function syncRss(PDO $pdo, array $source, string $userAgent): void {
         $link  = (string)($item->link['href'] ?? $item->link);
         $rawDesc = (string)($item->description ?? $item->summary ?? '');
         $date  = (string)($item->pubDate ?? $item->updated ?? date('r'));
+
+        // Extract full content (<content:encoded> or <content>)
+        $namespaces = $item->getNameSpaces(true);
+        $fullContent = null;
+        if (isset($namespaces['content'])) {
+            $contentNs = $item->children($namespaces['content']);
+            if (isset($contentNs->encoded)) {
+                $fullContent = (string)$contentNs->encoded;
+            }
+        }
+        if (!$fullContent && isset($item->content)) {
+            $fullContent = (string)$item->content;
+        }
+        if (!$fullContent) {
+            $fullContent = $rawDesc;
+        }
 
         // Extract category tag
         $cat = 'General';
@@ -70,7 +87,6 @@ function syncRss(PDO $pdo, array $source, string $userAgent): void {
             }
         }
         if (!$imageUrl) {
-            $namespaces = $item->getNameSpaces(true);
             if (isset($namespaces['media'])) {
                 $media = $item->children($namespaces['media']);
                 if (isset($media->content) && isset($media->content->attributes()->url)) {
@@ -78,7 +94,7 @@ function syncRss(PDO $pdo, array $source, string $userAgent): void {
                 }
             }
         }
-        if (!$imageUrl && preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $rawDesc, $match)) {
+        if (!$imageUrl && preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $fullContent ?: $rawDesc, $match)) {
             $imageUrl = $match[1];
         }
 
@@ -91,6 +107,7 @@ function syncRss(PDO $pdo, array $source, string $userAgent): void {
             'title'    => $title,
             'link'     => $link,
             'summary'  => mb_substr($desc, 0, 300) . '...',
+            'content'  => $fullContent,
             'image'    => $imageUrl,
             'pub_date' => date('Y-m-d H:i:s', strtotime($date))
         ]);

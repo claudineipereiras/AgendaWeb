@@ -17,6 +17,7 @@ $defaults = [
         'env'      => getenv('APP_ENV') ?: 'production',
         'url'      => getenv('APP_URL') ?: 'https://agendaweb.app',
         'timezone' => getenv('APP_TIMEZONE') ?: 'Australia/Melbourne',
+        'admin_key' => getenv('ADMIN_API_KEY') ?: 'agendaweb-admin-secret-2026',
         'bot_user_agent' => 'AgendaWeb-Bot/1.0 (+https://agendaweb.app; cultural calendar indexer)',
     ]
 ];

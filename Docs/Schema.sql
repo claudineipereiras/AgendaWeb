@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS `items` (
   `title` VARCHAR(255) NOT NULL,
   `link` VARCHAR(255) UNIQUE NOT NULL,
   `summary` TEXT,
+  `content` MEDIUMTEXT DEFAULT NULL,
   `image_url` VARCHAR(500) DEFAULT NULL,
   `published_at` DATETIME NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -49,6 +50,18 @@ CREATE TABLE IF NOT EXISTS `items` (
   INDEX `idx_published_at` (`published_at`),
   INDEX `idx_tab` (`category_tab`),
   INDEX `idx_item_category` (`category`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `suggestions` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(150) NULL,
+  `email` VARCHAR(150) NULL,
+  `category` VARCHAR(60) NOT NULL DEFAULT 'general',
+  `message` TEXT NOT NULL,
+  `status` ENUM('new', 'read', 'archived') NOT NULL DEFAULT 'new',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_status` (`status`),
+  INDEX `idx_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Initial Seed: Public Australian RSS & Event Targets

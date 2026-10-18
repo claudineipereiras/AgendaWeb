@@ -149,15 +149,50 @@ The PWA presents a curated Australian cultural magazine divided into primary cha
 - **Dynamic Subcategory Pills:** The client dynamically inspects the `<category>` tags embedded across active feed items and events, automatically rendering subcategory filter pills without manual database tag maintenance.
 - **Responsive Card Image Support:** Cards render high-resolution hero preview images if an image URL is detected in the RSS `<enclosure>`, `<media:content>`, or Schema.org event object.
 
+### Broadsheet Reader Modal & Full-Text RSS Ingestion
+- **Distraction-Free Reader View:** Reading news or long-form essays no longer forces readers away to ad-cluttered websites. When an item contains `<content:encoded>` or `<content>` from its RSS feed, a **"📖 Full Text"** button opens a clean, typographic broadsheet reading modal directly within the app.
+- **Content Storage:** Stored in Hostinger MySQL as `items.content MEDIUMTEXT` and passed via `GET /api/items.php`. The scraper sanitizes malicious script tags and frames while preserving clean prose formatting, blockquotes, and inline imagery.
+
+### Help, Feedback & Reader Suggestion System
+- **In-App Help Modal:** Positioned in the header next to Settings, providing readers with immediate information on the app version (`v0.5.0`), open cultural feed philosophy, and zero-tracking model.
+- **Suggestion Inbox Form:** Readers can submit feed nominations, venue tips, and feedback via a built-in form hitting `POST /api/suggestions.php`, which saves into Hostinger MySQL's `suggestions` table.
+
 ### Settings Drawer, Portability & Organizer Tools
-- **Channel Customization:** The default clean mode runs strictly with **Events**, **Following**, and **Reads**. Users can toggle on **News** and **Blogs** individually in Settings.
+- **Channel Customization:** The default clean mode runs strictly with **Events**, **Following**, and **Reads**. Users can toggle on **Blogs & Articles** and **News** individually in Settings.
 - **Personal RSS Feed Manager:** Users can click **"+ Add Feed"** in Settings to paste any external RSS URL and assign it to a category (defaults to `Personal`).
 - **Followed Lineup Manager:** Users can view, inspect, and unfollow venues and artists directly within the Settings drawer.
+- **Curator Admin Access:** Direct link to the curator portal (`/admin/`) with key-based authentication.
 - **Publisher & Organizer Guides:**
   - *Schema.org Ingestion:* Instructions on embedding `schema.org/Event` JSON-LD.
   - *Event RSS Syndication:* Guide for venues on publishing their own RSS 2.0 with `<ev:startdate>` and image enclosures for automatic ingestion.
   - *Embed Widget:* Copy-paste snippet and configuration for `widget.js`.
 - **Data Portability (Export & Import):** Users can export their entire configuration (bookmarks, reads, personal feeds, settings) as `agendaweb-backup.json` to store on phone or cloud, and restore it on any device with zero server login. OPML export is also supported for desktop feed readers.
+
+---
+
+## Curator Admin Manager (`/admin/`)
+
+To provide the curator with centralized control over the curated directory without compromising reader privacy, AgendaWeb includes an isolated Admin Manager:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                 CURATOR ADMIN MANAGER (/admin/)             │
+│        (Secured via Hostinger X-Admin-Key Passphrase)       │
+├──────────────────────────────┬──────────────────────────────┤
+│     CURATED SUBSCRIPTIONS    │       SUGGESTION INBOX       │
+│                              │                              │
+│ - Filter by Channel (Events, │ - Triage incoming reader tips│
+│   Blogs, News)               │ - Filter by status: new,     │
+│ - Add new RSS/JSON-LD feeds  │   read, archived             │
+│ - Pause/Activate sources     │ - Mark read, archive, delete │
+│ - Instant "Run Sync Now"     │ - Direct reader feed vetting │
+└──────────────────────────────┴──────────────────────────────┘
+```
+
+- **Authentication:** Validated on every API request via `X-Admin-Key` header matching `config['app']['admin_key']`.
+- **Subscription Management:** Full CRUD over the `sources` table. Adding feeds auto-groups subcategories.
+- **Suggestion Inbox Workflow:** Curator can quickly triage community suggestions, accept new feeds into `sources`, and manage inbox status.
+- **Manual Ingestion Trigger:** Allows on-demand triggering of `sync_sources.php` directly from the browser with live run logs.
 
 ---
 

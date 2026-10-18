@@ -538,7 +538,8 @@ async function renderItems(tab, refreshPills = true) {
         <p class="card-summary">${escapeHtml(item.summary || '')}</p>
         <div class="card-actions">
           <div class="card-actions-left">
-            <a href="${item.link}" class="btn btn-primary" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Read Full ↗</a>
+            <button class="btn btn-primary" onclick="openReaderModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">📖 Full Text</button>
+            <a href="${item.link}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Source ↗</a>
             <button class="btn btn-outline" onclick="saveToReads('${item.link}', '${escapeQuote(item.title)}', '${escapeQuote(item.summary || '')}', '${escapeQuote(item.source_name || '')}', '${escapeQuote(item.image_url || '')}')">
               🔖 Read Later
             </button>
@@ -632,7 +633,8 @@ async function renderPersonalFeeds(refreshPills = true) {
         <p class="card-summary">${escapeHtml(item.summary || '')}</p>
         <div class="card-actions">
           <div class="card-actions-left">
-            <a href="${item.link}" class="btn btn-primary" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Read Article ↗</a>
+            <button class="btn btn-primary" onclick="openReaderModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">📖 Full Text</button>
+            <a href="${item.link}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Source ↗</a>
             <button class="btn btn-outline" onclick="saveToReads('${item.link}', '${escapeQuote(item.title)}', '${escapeQuote(item.summary || '')}', '${escapeQuote(item.feed_name)}', '${escapeQuote(item.image_url || '')}')">
               🔖 Read Later
             </button>
@@ -798,13 +800,6 @@ function applyChannelVisibility() {
   if (checkNews) checkNews.checked = channelSettings.show_news;
   if (checkBlogs) checkBlogs.checked = channelSettings.show_blogs;
 
-  // Header clean mode badge
-  const badge = document.getElementById('clean-mode-indicator');
-  if (badge) {
-    const isClean = !channelSettings.show_news && !channelSettings.show_blogs;
-    badge.textContent = isClean ? '⚡ Clean Gig Guide' : '✦ Curated Broadsheet';
-  }
-
   // If current active tab was hidden, revert to events
   if ((currentTab === 'news' && !channelSettings.show_news) || (currentTab === 'blogs' && !channelSettings.show_blogs)) {
     setTab('events');
@@ -925,4 +920,130 @@ function escapeHtml(str) {
 
 function escapeQuote(str) {
   return String(str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+// Full-Text Broadsheet Reader Modal
+function openReaderModal(item) {
+  const modal = document.getElementById('reader-modal');
+  if (!modal) return;
+
+  const cardKey = item.link || String(item.id);
+  handleCardOpen(cardKey);
+
+  document.getElementById('reader-source-cat').textContent = `${item.source_name || item.feed_name || 'Dispatch'} · ${item.category || 'General'}`;
+  document.getElementById('reader-title').textContent = item.title;
+  document.getElementById('reader-date').textContent = formatDate(item.published_at || new Date().toISOString());
+
+  // Image
+  const imgContainer = document.getElementById('reader-image-container');
+  if (item.image_url) {
+    imgContainer.innerHTML = `<img src="${item.image_url}" class="reader-image" alt="${escapeHtml(item.title)}">`;
+  } else {
+    imgContainer.innerHTML = '';
+  }
+
+  // Full Text Body: uses content (from <content:encoded>) or summary fallback
+  const bodyEl = document.getElementById('reader-body');
+  if (item.content) {
+    bodyEl.innerHTML = item.content;
+  } else if (item.summary) {
+    bodyEl.innerHTML = `<p>${escapeHtml(item.summary)}</p>`;
+  } else {
+    bodyEl.innerHTML = `<p style="font-style:italic; color:var(--color-text-muted);">No text available. Click 'Open Source' to read on the publisher's site.</p>`;
+  }
+
+  // Action Buttons
+  const saveBtn = document.getElementById('reader-save-btn');
+  saveBtn.onclick = () => {
+    saveToReads(item.link, item.title, item.summary || '', item.source_name || item.feed_name || '', item.image_url || '');
+  };
+
+  const sourceLink = document.getElementById('reader-source-link');
+  sourceLink.href = item.link;
+
+  modal.style.display = 'flex';
+}
+
+function closeReaderModal() {
+  const modal = document.getElementById('reader-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+// Help & Suggestion Modal Handlers
+function toggleHelpModal() {
+  const modal = document.getElementById('help-modal');
+  if (!modal) return;
+  modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+  if (modal.style.display === 'flex') {
+    // Reset suggestion form state
+    const form = document.getElementById('suggestion-form');
+    const successMsg = document.getElementById('suggestion-success-msg');
+    const toggleBtn = document.getElementById('toggle-suggestion-form-btn');
+    if (form) form.style.display = 'none';
+    if (successMsg) successMsg.style.display = 'none';
+    if (toggleBtn) toggleBtn.textContent = '+ Write Suggestion';
+  }
+}
+
+function toggleSuggestionForm() {
+  const form = document.getElementById('suggestion-form');
+  const toggleBtn = document.getElementById('toggle-suggestion-form-btn');
+  const successMsg = document.getElementById('suggestion-success-msg');
+  if (!form) return;
+
+  const isHidden = (form.style.display === 'none' || form.style.display === '');
+  form.style.display = isHidden ? 'block' : 'none';
+  if (toggleBtn) {
+    toggleBtn.textContent = isHidden ? 'Hide Form' : '+ Write Suggestion';
+  }
+  if (successMsg) successMsg.style.display = 'none';
+}
+
+async function handleSuggestionSubmit(e) {
+  e.preventDefault();
+  const submitBtn = document.getElementById('suggestion-submit-btn');
+  const name = document.getElementById('suggestion-name').value.trim();
+  const email = document.getElementById('suggestion-email').value.trim();
+  const category = document.getElementById('suggestion-cat').value;
+  const message = document.getElementById('suggestion-msg').value.trim();
+
+  if (!message) {
+    alert('Please write your suggestion message.');
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+  }
+
+  try {
+    const res = await fetch('api/suggestions.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, category, message })
+    });
+    const data = await res.json();
+
+    if (res.ok && data.status === 'success') {
+      document.getElementById('suggestion-form').reset();
+      document.getElementById('suggestion-form').style.display = 'none';
+      const successMsg = document.getElementById('suggestion-success-msg');
+      if (successMsg) {
+        successMsg.style.display = 'block';
+        successMsg.textContent = '✓ ' + (data.message || 'Thank you! Your suggestion has been saved to the curator inbox.');
+      }
+      const toggleBtn = document.getElementById('toggle-suggestion-form-btn');
+      if (toggleBtn) toggleBtn.textContent = '+ Write Another';
+    } else {
+      alert('Error: ' + (data.message || 'Unable to submit suggestion.'));
+    }
+  } catch (err) {
+    alert('Failed to send suggestion: ' + err.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send Suggestion ↗';
+    }
+  }
 }
