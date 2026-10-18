@@ -26,6 +26,7 @@
       <img src="assets/logo.svg" alt="AgendaWeb">
     </a>
     <div class="header-actions">
+      <button class="icon-btn" onclick="forceAppRefresh()" title="Purge cache & reload latest changes">🔄 Refresh</button>
       <button class="icon-btn" onclick="toggleHelpModal()">ℹ Help</button>
       <button class="icon-btn" onclick="toggleSettingsModal()">⚙ Settings</button>
     </div>
@@ -165,7 +166,7 @@
       </div>
 
       <!-- Section 5: Data Portability & Device Sync -->
-      <div class="settings-section" style="border:none; margin-bottom:0; padding-bottom:0;">
+      <div class="settings-section">
         <div class="settings-section-title">5. Data Portability & Sync</div>
         <p style="font-size:0.78rem; color:var(--color-text-muted); margin-bottom:8px;">Zero server tracking. Save your settings, bookmarks, and personal feeds to your device or cloud to load on another computer or phone.</p>
         <div class="portability-actions">
@@ -176,6 +177,17 @@
           </label>
           <button class="btn btn-outline" onclick="handleExportOpml()">⬇ Export OPML</button>
         </div>
+      </div>
+
+      <!-- Section 6: Application Cache & Updates -->
+      <div class="settings-section" style="border:none; margin-bottom:0; padding-bottom:0;">
+        <div class="settings-section-title">6. Application Cache & Updates</div>
+        <p style="font-size:0.78rem; color:var(--color-text-muted); margin-bottom:8px;">
+          AgendaWeb caches files for offline reading. If you've updated code or want to force-load the freshest version immediately, purge the local cache.
+        </p>
+        <button class="btn btn-outline" style="width:100%; justify-content:center; gap:6px;" onclick="forceAppRefresh()">
+          🔄 Clear Cache & Reload App
+        </button>
       </div>
 
     </div>
@@ -245,7 +257,10 @@
       <div class="help-section">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
           <div class="help-title" style="margin-bottom:0;">What is AgendaWeb?</div>
-          <span class="version-pill">Version 0.5.0</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="version-pill">v0.5.0</span>
+            <button class="btn btn-outline" style="font-size:0.75rem; padding:2px 8px;" onclick="forceAppRefresh()" title="Purge cache & reload">🔄 Check Updates</button>
+          </div>
         </div>
         <p class="help-text">
           AgendaWeb is an open-web, decentralized cultural calendar and editorial magazine reader for Australia.

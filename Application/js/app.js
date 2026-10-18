@@ -1047,3 +1047,35 @@ async function handleSuggestionSubmit(e) {
     }
   }
 }
+
+/**
+ * Hard Purge & Force Refresh
+ * Clears Service Worker CacheStorage, unregisters active service workers,
+ * and reloads the current page with a timestamp cache-buster.
+ */
+async function forceAppRefresh() {
+  const triggerBtn = window.event && window.event.target ? window.event.target : null;
+  if (triggerBtn) {
+    triggerBtn.textContent = '⏳ Purging...';
+  }
+
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+      console.log('CacheStorage purged:', keys);
+    }
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const reg of registrations) {
+        await reg.unregister();
+      }
+      console.log('Service worker unregistered:', registrations.length);
+    }
+  } catch (err) {
+    console.warn('Cache purge notice:', err);
+  }
+
+  const cleanPath = window.location.pathname;
+  window.location.href = cleanPath + '?reload=' + Date.now();
+}

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agendaweb-v1';
+const CACHE_NAME = 'agendaweb-v0.5.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -29,17 +29,31 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Network-First with Cache Fallback: Always serves latest updates from network when online, falls back to cache offline
 self.addEventListener('fetch', (event) => {
-  // Network first for APIs, cache first for static app shell
-  if (event.request.url.includes('/api/') || event.request.url.includes('.php')) {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
-    );
-  } else {
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        return cachedResponse || fetch(event.request);
+  if (event.request.method !== 'GET') return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then((networkResponse) => {
+        // If successful network response, dynamically update cache
+        if (networkResponse && networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
       })
-    );
+      .catch(() => {
+        // Fallback to cache when offline
+        return caches.match(event.request);
+      })
+  );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'skipWaiting') {
+    self.skipWaiting();
   }
 });
