@@ -69,11 +69,16 @@ Maintains the registry of all external ingestion targets (RSS feeds and scrape t
 | `url` | `VARCHAR(255)` | `NOT NULL` | Ingestion target endpoint (feed URL or venue gigs page). |
 | `category_tab` | `ENUM` | `'events', 'news', 'politics', 'culture', 'blogs'` | Target magazine channel destination. |
 | `is_active` | `TINYINT(1)` | `DEFAULT 1` | Soft toggle to pause polling without deletion. |
-| `last_polled_at` | `DATETIME` | `NULL` | Timestamp of last successful ingestion check. |
+| `last_polled_at` | `DATETIME` | `NULL` | Timestamp of last ingestion check. |
+| `last_status` | `ENUM` | `'active', 'updated', 'failed', 'stale', 'pending'` | Real-time scraper health state. |
+| `http_code` | `SMALLINT` | `NULL` | Last HTTP response code from target site (e.g. 200, 404). |
+| `last_error` | `VARCHAR(255)` | `NULL` | Diagnostic error message if ingestion failed. |
+| `item_count` | `INT` | `DEFAULT 0` | Total events or articles extracted during last poll. |
 
 **Indexes:**
 - `INDEX (category_tab)`: Fast filtering by channel.
 - `INDEX (is_active)`: Quick lookup of enabled sources for cron runners.
+- `INDEX (last_status)`: Scraper health monitoring and failing feed alerts.
 
 ---
 

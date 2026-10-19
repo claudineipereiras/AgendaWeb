@@ -95,11 +95,12 @@ const MOCK_EVENTS = [
 ];
 
 let MOCK_SOURCES = [
-  { id: 1, slug: "abc-just-in", name: "ABC News", type: "rss", url: "https://www.abc.net.au/news/feed/51120/rss.xml", category_tab: "news", is_active: 1, last_polled_at: "2026-10-18 08:30:00" },
-  { id: 2, slug: "sbs-top-stories", name: "SBS News", type: "rss", url: "https://www.sbs.com.au/news/feed", category_tab: "news", is_active: 1, last_polled_at: "2026-10-18 07:15:00" },
-  { id: 3, slug: "trouble-mag", name: "Trouble Magazine", type: "rss", url: "https://www.troublemag.com/feed/", category_tab: "blogs", is_active: 1, last_polled_at: "2026-10-17 14:00:00" },
-  { id: 4, slug: "the-conversation-au", name: "The Conversation (AU)", type: "rss", url: "https://theconversation.com/au/politics/articles.atom", category_tab: "blogs", is_active: 1, last_polled_at: "2026-10-17 11:30:00" },
-  { id: 5, slug: "the-gasometer-hotel", name: "The Gasometer Hotel", type: "scrape_event", url: "https://www.thegasometerhotel.com.au/gigs", category_tab: "events", is_active: 1, last_polled_at: "2026-10-18 09:00:00" }
+  { id: 1, slug: "abc-just-in", name: "ABC News", type: "rss", url: "https://www.abc.net.au/news/feed/51120/rss.xml", category_tab: "news", is_active: 1, last_status: "updated", http_code: 200, item_count: 24, last_error: null, last_polled_at: "2026-10-19 09:15:00" },
+  { id: 2, slug: "sbs-top-stories", name: "SBS News", type: "rss", url: "https://www.sbs.com.au/news/feed", category_tab: "news", is_active: 1, last_status: "updated", http_code: 200, item_count: 18, last_error: null, last_polled_at: "2026-10-19 09:12:00" },
+  { id: 3, slug: "trouble-mag", name: "Trouble Magazine", type: "rss", url: "https://www.troublemag.com/feed/", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 8, last_error: null, last_polled_at: "2026-10-18 14:00:00" },
+  { id: 4, slug: "the-conversation-au", name: "The Conversation (AU)", type: "rss", url: "https://theconversation.com/au/politics/articles.atom", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 12, last_error: null, last_polled_at: "2026-10-18 11:30:00" },
+  { id: 5, slug: "the-gasometer-hotel", name: "The Gasometer Hotel", type: "scrape_event", url: "https://www.thegasometerhotel.com.au/gigs", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 5, last_error: null, last_polled_at: "2026-10-19 08:45:00" },
+  { id: 6, slug: "the-corner-hotel", name: "The Corner Hotel", type: "scrape_event", url: "https://thecornerhotel.com/gigs", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 7, last_error: null, last_polled_at: "2026-10-19 08:30:00" }
 ];
 
 let MOCK_SUGGESTIONS = [
@@ -410,12 +411,65 @@ const requestHandler = (req, res) => {
       return;
     }
 
+    if (action === 'scrape_preview') {
+      const targetUrl = parsedUrl.query.url || '';
+      if (!targetUrl) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'error', message: 'Valid website URL required' }));
+        return;
+      }
+
+      let host = 'example.com';
+      try { host = new URL(targetUrl).hostname; } catch(e) {}
+      const isEventVenue = targetUrl.includes('gasometer') || targetUrl.includes('corner') || targetUrl.includes('tote') || targetUrl.includes('forum') || targetUrl.includes('gig') || targetUrl.includes('event');
+      const venueName = host.replace(/^www\./, '').split('.')[0].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+      const detectedEvents = [
+        {
+          title: "The Sunset Sessions — Live Quintet",
+          start_time: "2026-10-25 20:00:00",
+          end_time: "2026-10-25 23:00:00",
+          category: "Live Music",
+          venue_name: venueName,
+          address: "Melbourne VIC",
+          ticket_url: targetUrl,
+          image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=700&q=80"
+        },
+        {
+          title: "Indie Album Launch & Special Guests",
+          start_time: "2026-10-28 19:30:00",
+          end_time: "2026-10-28 22:30:00",
+          category: "Live Music",
+          venue_name: venueName,
+          address: "Melbourne VIC",
+          ticket_url: targetUrl,
+          image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=700&q=80"
+        }
+      ];
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        status: 'success',
+        url: targetUrl,
+        http_code: 200,
+        page_title: `${venueName} | Gigs & Live Events Calendar`,
+        detected_type: isEventVenue ? 'scrape_event' : 'rss',
+        suggested_name: venueName,
+        suggested_tab: isEventVenue ? 'events' : 'blogs',
+        feed_url: isEventVenue ? null : `${targetUrl.replace(/\/$/, '')}/feed.xml`,
+        events_count: detectedEvents.length,
+        events: detectedEvents
+      }));
+      return;
+    }
+
     if (action === 'add_source' && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
       req.on('end', () => {
         let payload = {};
         try { payload = JSON.parse(body); } catch (e) {}
+        const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
         const newSource = {
           id: MOCK_SOURCES.length + 1,
           slug: (payload.name || 'source').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
@@ -424,7 +478,11 @@ const requestHandler = (req, res) => {
           url: payload.url || 'https://example.com/feed.xml',
           category_tab: payload.category_tab || 'blogs',
           is_active: 1,
-          last_polled_at: 'Pending'
+          last_status: 'updated',
+          http_code: 200,
+          item_count: payload.type === 'scrape_event' ? 2 : 5,
+          last_error: null,
+          last_polled_at: now
         };
         MOCK_SOURCES.push(newSource);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -502,12 +560,58 @@ const requestHandler = (req, res) => {
       return;
     }
 
+    if (action === 'sync_single' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const source = MOCK_SOURCES.find(s => s.id === payload.id);
+        if (!source) {
+          res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'Source not found' }));
+          return;
+        }
+
+        const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+        source.last_polled_at = now;
+        source.last_status = 'updated';
+        source.http_code = 200;
+        source.item_count = source.item_count || 5;
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          status: 'success',
+          source_id: source.id,
+          name: source.name,
+          last_status: 'updated',
+          item_count: source.item_count,
+          last_polled_at: now
+        }));
+      });
+      return;
+    }
+
     if (action === 'sync_now' && req.method === 'POST') {
+      const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+      MOCK_SOURCES.forEach(s => {
+        if (s.is_active) {
+          s.last_polled_at = now;
+          s.last_status = 'updated';
+          s.http_code = 200;
+        }
+      });
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({
         status: 'success',
         message: 'Sync worker executed successfully',
-        log: `[${new Date().toISOString()}] Scanning 5 sources...\nSynced ABC News (2 items)\nSynced SBS News (1 item)\nSynced Trouble Magazine (1 item)\nSynced The Gasometer Hotel (2 gigs)\nIngestion complete. 0 errors.`
+        report: {
+          total: MOCK_SOURCES.length,
+          success: MOCK_SOURCES.filter(s => s.is_active).length,
+          failed: 0,
+          timestamp: now
+        },
+        log: `[${now}] Ingestion scan complete across ${MOCK_SOURCES.length} sources.\nAll active feeds updated. 0 errors.`
       }));
       return;
     }

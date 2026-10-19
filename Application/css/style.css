@@ -35,7 +35,7 @@ header {
 }
 
 .brand img {
-  height: 48px;
+  height: 50px;
   width: auto;
 }
 
@@ -48,15 +48,15 @@ header {
 .icon-btn {
   background: transparent;
   border: 1px solid var(--color-oat);
-  padding: 7px 13px;
+  padding: 6px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--color-nightfall);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .icon-btn:hover {
@@ -78,9 +78,9 @@ header {
 .tab-btn {
   background: var(--color-white);
   border: 1px solid var(--color-oat);
-  padding: 9px 18px;
+  padding: 8px 16px;
   border-radius: var(--radius-pill);
-  font-size: 1.05rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-nightfall);
   white-space: nowrap;
@@ -102,9 +102,9 @@ header {
 .sub-filter {
   display: flex;
   overflow-x: auto;
-  gap: 8px;
-  padding: 12px 20px;
-  font-size: 1rem;
+  gap: 6px;
+  padding: 10px 20px;
+  font-size: 0.8rem;
   scrollbar-width: none;
 }
 .sub-filter::-webkit-scrollbar { display: none; }
@@ -112,13 +112,13 @@ header {
 .filter-pill {
   background: transparent;
   border: none;
-  padding: 5px 12px;
+  padding: 4px 10px;
   color: var(--color-nightfall);
   opacity: 0.7;
   cursor: pointer;
   font-weight: 500;
   border-radius: 4px;
-  font-size: 1rem;
+  font-size: 0.82rem;
   white-space: nowrap;
 }
 
@@ -141,8 +141,8 @@ header {
   background: var(--color-white);
   border: 1px solid var(--color-oat);
   border-radius: var(--radius-md);
-  padding: 22px;
-  margin-bottom: 16px;
+  padding: 18px;
+  margin-bottom: 14px;
   box-shadow: var(--shadow-card);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   overflow: hidden;
@@ -153,15 +153,15 @@ header {
 }
 
 .card-image-wrapper {
-  margin: -22px -22px 16px -22px;
+  margin: -18px -18px 14px -18px;
   background: var(--color-oat);
   overflow: hidden;
-  max-height: 250px;
+  max-height: 220px;
 }
 
 .card-image {
   width: 100%;
-  height: 230px;
+  height: 200px;
   object-fit: cover;
   display: block;
   transition: transform 0.25s ease;
@@ -172,7 +172,7 @@ header {
 }
 
 .card-meta {
-  font-size: 0.92rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--color-amber-rust);
   text-transform: uppercase;
@@ -186,7 +186,7 @@ header {
 .card-meta-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -198,7 +198,7 @@ header {
 .card-check-btn {
   background: transparent;
   border: none;
-  padding: 4px;
+  padding: 3px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -210,8 +210,8 @@ header {
 }
 
 .card-check-btn svg {
-  width: 25px;
-  height: 25px;
+  width: 20px;
+  height: 20px;
 }
 
 .card-check-btn:hover {
@@ -238,9 +238,9 @@ header {
 
 .card-title {
   font-family: var(--font-serif);
-  font-size: 1.45rem;
+  font-size: 1.15rem;
   font-weight: 700;
-  margin: 8px 0;
+  margin: 6px 0;
   color: var(--color-nightfall);
   line-height: 1.35;
 }
@@ -254,14 +254,14 @@ header {
 }
 
 .card-summary {
-  font-size: 1.1rem;
+  font-size: 0.88rem;
   color: var(--color-text-muted);
-  margin-bottom: 14px;
-  line-height: 1.55;
+  margin-bottom: 12px;
+  line-height: 1.45;
 }
 
 .card-location {
-  font-size: 1.02rem;
+  font-size: 0.82rem;
   color: var(--color-text-muted);
   margin-bottom: 12px;
   display: flex;
@@ -274,9 +274,9 @@ header {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 12px;
-  padding-top: 12px;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px dashed var(--color-oat);
 }
 
@@ -296,13 +296,13 @@ header {
   background: transparent;
   border: 1px solid var(--color-oat);
   color: var(--color-nightfall);
-  padding: 7px 13px;
-  font-size: 0.98rem;
+  padding: 6px 11px;
+  font-size: 0.78rem;
   font-weight: 600;
   border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -319,8 +319,8 @@ header {
 }
 
 .btn-follow .rss-icon {
-  width: 17px;
-  height: 17px;
+  width: 14px;
+  height: 14px;
 }
 
 .btn-follow.is-following .rss-icon {
@@ -332,13 +332,13 @@ header {
   background: var(--color-chalk);
   border: 1px solid var(--color-oat);
   border-radius: var(--radius-sm);
-  padding: 12px 16px;
-  margin-bottom: 16px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  font-size: 1rem;
+  gap: 8px;
+  font-size: 0.82rem;
 }
 
 .following-header-label {
@@ -350,14 +350,14 @@ header {
 .following-chip {
   background: var(--color-white);
   border: 1px solid var(--color-oat);
-  border-radius: 14px;
-  padding: 4px 12px;
+  border-radius: 12px;
+  padding: 3px 10px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-weight: 600;
   color: var(--color-nightfall);
-  font-size: 0.92rem;
+  font-size: 0.75rem;
 }
 
 .following-chip-remove {
@@ -365,7 +365,7 @@ header {
   border: none;
   cursor: pointer;
   color: var(--color-text-muted);
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   padding: 0;
   line-height: 1;
 }
@@ -376,15 +376,15 @@ header {
 
 /* Buttons */
 .btn {
-  padding: 9px 15px;
-  font-size: 0.98rem;
+  padding: 7px 12px;
+  font-size: 0.78rem;
   font-weight: 600;
   border-radius: var(--radius-sm);
   text-decoration: none;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   transition: opacity 0.15s ease;
 }
 

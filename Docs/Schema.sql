@@ -9,8 +9,13 @@ CREATE TABLE IF NOT EXISTS `sources` (
   `category_tab` ENUM('events', 'news', 'politics', 'culture', 'blogs') NOT NULL,
   `is_active` TINYINT(1) DEFAULT 1,
   `last_polled_at` DATETIME NULL,
+  `last_status` ENUM('active', 'updated', 'failed', 'stale', 'pending') NOT NULL DEFAULT 'pending',
+  `http_code` SMALLINT NULL,
+  `last_error` VARCHAR(255) NULL,
+  `item_count` INT NOT NULL DEFAULT 0,
   INDEX (`category_tab`),
-  INDEX (`is_active`)
+  INDEX (`is_active`),
+  INDEX (`last_status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `events` (

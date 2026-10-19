@@ -180,6 +180,54 @@
     .tag-events { background: #fef3c7; color: #92400e; }
     .tag-new { background: #fee2e2; color: #991b1b; }
     .tag-read { background: #f3f4f6; color: #4b5563; }
+    /* Scraper Health Badges */
+    .health-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .health-live { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    .health-stale { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .health-failed { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .health-paused { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
+    .type-pill {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 600;
+      font-family: monospace;
+    }
+    .preview-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px;
+      margin: 12px 0;
+      font-size: 0.85rem;
+    }
+    .preview-events-list {
+      max-height: 160px;
+      overflow-y: auto;
+      margin-top: 8px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 8px;
+    }
+    .preview-event-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 4px 0;
+      border-bottom: 1px dashed #e2e8f0;
+      font-size: 0.8rem;
+    }
     /* Modals */
     .modal-overlay {
       position: fixed;
@@ -257,7 +305,6 @@
       <span class="admin-badge">Admin Manager</span>
     </a>
     <div style="display:flex; align-items:center; gap:10px;">
-      <button class="btn btn-outline" onclick="forceAppRefresh()" title="Purge cache & reload">🔄 Clear Cache</button>
       <a href="../index.html" class="btn btn-outline">← Back to PWA</a>
       <button class="btn btn-outline" onclick="logout()">Log Out</button>
     </div>
@@ -322,15 +369,16 @@
         <thead>
           <tr>
             <th>Channel</th>
-            <th>Name</th>
-            <th>Feed URL</th>
-            <th>Status</th>
-            <th>Last Synced</th>
+            <th>Source / Venue</th>
+            <th>Target URL & Strategy</th>
+            <th>Health & Status</th>
+            <th>Items / Gigs</th>
+            <th>Last Scraped</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody id="sources-table-body">
-          <tr><td colspan="6" style="text-align:center; padding:24px;">Loading subscriptions...</td></tr>
+          <tr><td colspan="7" style="text-align:center; padding:24px;">Loading subscriptions...</td></tr>
         </tbody>
       </table>
     </section>
@@ -385,33 +433,60 @@
 
   </main>
 
-  <!-- Add Source Modal -->
+  <!-- Add Source / Event Scraper Modal -->
   <div class="modal-overlay" id="add-source-modal">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width:580px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <h3 style="font-size:1.15rem;">Add Curated RSS Source</h3>
+        <h3 style="font-size:1.15rem;">🌐 Add & Scrape Website Events / Feeds</h3>
         <button class="btn btn-outline" style="padding:4px 8px;" onclick="closeAddSourceModal()">✕</button>
       </div>
+
+      <div class="form-group">
+        <label>Website or Event URL to Ingest</label>
+        <div style="display:flex; gap:8px;">
+          <input type="url" id="source-url" class="form-control" placeholder="https://thegasometerhotel.com.au/gigs or RSS link" required>
+          <button type="button" class="btn btn-amber" id="btn-detect-events" onclick="detectEventsFromUrl()">
+            🔍 Auto-Detect
+          </button>
+        </div>
+        <p style="font-size:0.75rem; color:var(--color-text-muted); margin-top:4px;">
+          Paste any venue gigs page, blog, or broadcaster. The scraper automatically scans for Schema.org JSON-LD events and RSS links.
+        </p>
+      </div>
+
+      <!-- Live Detection Feedback Card -->
+      <div id="detection-preview-card" style="display:none;" class="preview-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <strong id="preview-venue-name" style="font-size:0.92rem; color:var(--color-nightfall);">-</strong>
+          <span class="type-pill" id="preview-detected-type">-</span>
+        </div>
+        <div id="preview-status-text" style="color:var(--color-sage-green); font-size:0.8rem; margin-bottom:6px;"></div>
+        <div class="preview-events-list" id="preview-events-list"></div>
+      </div>
+
       <form onsubmit="handleAddSourceSubmit(event)">
         <div class="form-group">
-          <label>Source Name</label>
-          <input type="text" id="source-name" class="form-control" placeholder="e.g. Trouble Magazine" required>
-        </div>
-        <div class="form-group">
-          <label>Feed URL (RSS 2.0 or Atom)</label>
-          <input type="url" id="source-url" class="form-control" placeholder="https://example.com/feed.xml" required>
+          <label>Source / Venue Display Name</label>
+          <input type="text" id="source-name" class="form-control" placeholder="e.g. The Gasometer Hotel" required>
         </div>
         <div class="form-group">
           <label>Channel Destination</label>
           <select id="source-channel" class="form-control">
-            <option value="blogs">✍️ Blogs & Articles (Curated cultural zines)</option>
-            <option value="news">📰 News (Public broadcasters & journalism)</option>
-            <option value="events">⚡ Events (Venue calendar / RSS with ev: module)</option>
+            <option value="events">⚡ Events (Live gigs & exhibitions)</option>
+            <option value="blogs">✍️ Blogs & Articles (Cultural reviews & essays)</option>
+            <option value="news">📰 News (Public broadcasters)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Ingestion Strategy</label>
+          <select id="source-type" class="form-control">
+            <option value="scrape_event">🌐 HTML Web Scraper (Schema.org / JSON-LD)</option>
+            <option value="rss">📡 RSS / Atom XML Feed</option>
           </select>
         </div>
         <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
           <button type="button" class="btn btn-outline" onclick="closeAddSourceModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save & Add Source</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-source">💾 Save & Ingest Source</button>
         </div>
       </form>
     </div>
@@ -522,26 +597,56 @@
       }
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--color-text-muted);">No curated sources in this category.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--color-text-muted);">No curated sources in this category.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = filtered.map(s => `
-        <tr>
-          <td><span class="tag-badge tag-${s.category_tab}">${escapeHtml(s.category_tab)}</span></td>
-          <td><strong>${escapeHtml(s.name)}</strong></td>
-          <td><a href="${s.url}" target="_blank" rel="noopener" style="color:var(--color-nightfall); text-decoration:none; font-family:monospace; font-size:0.8rem;">${escapeHtml(s.url.length > 45 ? s.url.slice(0,45) + '...' : s.url)} ↗</a></td>
-          <td>
-            <button class="btn btn-outline" style="padding:3px 8px; font-size:0.75rem; color:${s.is_active ? 'green' : '#999'};" onclick="toggleSource(${s.id})">
-              ${s.is_active ? '● Active' : '○ Paused'}
-            </button>
-          </td>
-          <td style="font-size:0.78rem; color:var(--color-text-muted);">${s.last_polled_at || 'Pending'}</td>
-          <td>
-            <button class="btn btn-danger" style="padding:3px 8px; font-size:0.75rem;" onclick="deleteSource(${s.id}, '${escapeQuote(s.name)}')">Delete</button>
-          </td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = filtered.map(s => {
+        let healthHtml = '';
+        if (!s.is_active) {
+          healthHtml = '<span class="health-pill health-paused">⏸ Paused</span>';
+        } else if (s.last_status === 'failed') {
+          healthHtml = `<span class="health-pill health-failed" title="${escapeHtml(s.last_error || 'Ingestion failed')}">🔴 Failed (${s.http_code || 500})</span>`;
+        } else if (s.last_status === 'stale' || s.last_status === 'pending') {
+          healthHtml = '<span class="health-pill health-stale">🟡 Pending/Stale</span>';
+        } else {
+          healthHtml = `<span class="health-pill health-live">🟢 Live (${s.http_code || 200})</span>`;
+        }
+
+        const typeLabel = s.type === 'scrape_event' ? 'Web Scraper' : 'RSS Feed';
+        const itemCountLabel = `${s.item_count || 0} ${s.category_tab === 'events' ? 'gigs' : 'items'}`;
+        const lastPolledLabel = s.last_polled_at ? escapeHtml(s.last_polled_at) : 'Never';
+
+        return `
+          <tr>
+            <td><span class="tag-badge tag-${s.category_tab}">${escapeHtml(s.category_tab)}</span></td>
+            <td>
+              <strong>${escapeHtml(s.name)}</strong>
+              <div style="font-size:0.75rem; color:var(--color-text-muted);">${escapeHtml(s.slug)}</div>
+            </td>
+            <td>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="type-pill">${typeLabel}</span>
+                <a href="${s.url}" target="_blank" rel="noopener" style="color:var(--color-nightfall); text-decoration:none; font-family:monospace; font-size:0.78rem;">
+                  ${escapeHtml(s.url.length > 38 ? s.url.slice(0,38) + '...' : s.url)} ↗
+                </a>
+              </div>
+            </td>
+            <td>${healthHtml}</td>
+            <td style="font-weight:600; font-size:0.85rem; color:var(--color-nightfall);">${itemCountLabel}</td>
+            <td style="font-size:0.78rem; color:var(--color-text-muted);">${lastPolledLabel}</td>
+            <td>
+              <div style="display:flex; gap:4px;">
+                <button class="btn btn-outline" style="padding:2px 7px; font-size:0.75rem;" onclick="syncSingleSource(${s.id}, '${escapeQuote(s.name)}')">🔄 Sync</button>
+                <button class="btn btn-outline" style="padding:2px 7px; font-size:0.75rem;" onclick="toggleSource(${s.id})">
+                  ${s.is_active ? '⏸' : '▶'}
+                </button>
+                <button class="btn btn-danger" style="padding:2px 7px; font-size:0.75rem;" onclick="deleteSource(${s.id}, '${escapeQuote(s.name)}')">✕</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     async function toggleSource(id) {
@@ -562,6 +667,83 @@
       document.getElementById('add-source-modal').style.display = 'none';
       document.getElementById('source-name').value = '';
       document.getElementById('source-url').value = '';
+      document.getElementById('detection-preview-card').style.display = 'none';
+    }
+
+    async function detectEventsFromUrl() {
+      const urlInput = document.getElementById('source-url');
+      const url = urlInput.value.trim();
+      const detectBtn = document.getElementById('btn-detect-events');
+      const previewCard = document.getElementById('detection-preview-card');
+      const previewTitle = document.getElementById('preview-venue-name');
+      const previewType = document.getElementById('preview-detected-type');
+      const previewStatus = document.getElementById('preview-status-text');
+      const previewList = document.getElementById('preview-events-list');
+
+      if (!url) {
+        alert('Please paste a website URL first.');
+        return;
+      }
+
+      detectBtn.disabled = true;
+      detectBtn.textContent = '⏳ Scanning...';
+      previewCard.style.display = 'block';
+      previewStatus.textContent = 'Scanning webpage for Schema.org/Event JSON-LD and RSS feeds...';
+      previewList.innerHTML = '';
+
+      try {
+        const res = await apiRequest(`../api/admin.php?action=scrape_preview&url=${encodeURIComponent(url)}`);
+        if (res && res.status === 'success') {
+          previewTitle.textContent = res.page_title || res.suggested_name;
+          previewType.textContent = res.detected_type === 'scrape_event' ? 'Web Event Scraper' : 'RSS Feed';
+          
+          if (res.events_count > 0) {
+            previewStatus.innerHTML = `✓ Found <strong>${res.events_count} upcoming events</strong> on page!`;
+            previewList.innerHTML = res.events.map(e => `
+              <div class="preview-event-row">
+                <strong>${escapeHtml(e.title)}</strong>
+                <span>${e.start_time.slice(0, 10)} · ${escapeHtml(e.category)}</span>
+              </div>
+            `).join('');
+          } else if (res.feed_url) {
+            previewStatus.innerHTML = `✓ Found linked RSS feed: <code>${escapeHtml(res.feed_url)}</code>`;
+          } else {
+            previewStatus.textContent = 'Webpage fetched (HTTP 200). Ready for periodic ingestion.';
+          }
+
+          if (!document.getElementById('source-name').value) {
+            document.getElementById('source-name').value = res.suggested_name;
+          }
+          document.getElementById('source-channel').value = res.suggested_tab || 'events';
+          document.getElementById('source-type').value = res.detected_type || 'scrape_event';
+        } else {
+          previewStatus.textContent = 'Scan note: ' + (res ? res.message : 'Unable to auto-detect.');
+        }
+      } catch (err) {
+        previewStatus.textContent = 'Error scanning page: ' + err.message;
+      } finally {
+        detectBtn.disabled = false;
+        detectBtn.textContent = '🔍 Auto-Detect';
+      }
+    }
+
+    async function syncSingleSource(id, name) {
+      const btn = window.event ? window.event.target : null;
+      if (btn) btn.textContent = '⏳';
+      try {
+        const res = await apiRequest('../api/admin.php?action=sync_single', {
+          method: 'POST',
+          body: { id }
+        });
+        if (res && res.status === 'success') {
+          await loadDashboard();
+          alert(`✓ "${name}" synced successfully!\nExtracted ${res.item_count} items. Status: ${res.last_status}`);
+        } else {
+          alert(`Failed to sync "${name}": ` + (res ? res.message : 'Network error'));
+        }
+      } finally {
+        if (btn) btn.textContent = '🔄 Sync';
+      }
     }
 
     async function handleAddSourceSubmit(e) {
@@ -569,18 +751,19 @@
       const name = document.getElementById('source-name').value.trim();
       const url = document.getElementById('source-url').value.trim();
       const tab = document.getElementById('source-channel').value;
+      const type = document.getElementById('source-type').value;
 
       const res = await apiRequest('../api/admin.php?action=add_source', {
         method: 'POST',
-        body: { name, url, category_tab: tab, type: tab === 'events' ? 'scrape_event' : 'rss' }
+        body: { name, url, category_tab: tab, type }
       });
 
       if (res && res.status === 'success') {
         closeAddSourceModal();
         await loadDashboard();
-        alert('Curated feed source added successfully!');
+        alert('Curated source added successfully!');
       } else {
-        alert('Failed to add feed: ' + (res ? res.message : 'Network error'));
+        alert('Failed to add source: ' + (res ? res.message : 'Network error'));
       }
     }
 

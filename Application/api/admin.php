@@ -51,15 +51,125 @@ try {
         exit;
     }
 
-    // 2. Curated Sources List
+    // 2. Curated Sources List (with Health & Status)
     if ($action === 'sources') {
-        $stmt = $pdo->query("SELECT id, slug, name, type, url, category_tab, is_active, last_polled_at FROM sources ORDER BY category_tab ASC, name ASC");
+        $stmt = $pdo->query("SELECT id, slug, name, type, url, category_tab, is_active, last_polled_at, last_status, http_code, last_error, item_count FROM sources ORDER BY category_tab ASC, name ASC");
         $sources = $stmt->fetchAll();
 
         echo json_encode([
             'status' => 'success',
             'count'  => count($sources),
             'data'   => $sources
+        ]);
+        exit;
+    }
+
+    // 2.1 Automated URL Scrape & Event Discovery Preview
+    if ($action === 'scrape_preview') {
+        $targetUrl = trim((string)($_GET['url'] ?? ($_POST['url'] ?? '')));
+        if (!$targetUrl || !filter_var($targetUrl, FILTER_VALIDATE_URL)) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Valid website URL required']);
+            exit;
+        }
+
+        $botUserAgent = $config['app']['bot_user_agent'] ?? 'AgendaWeb-Bot/1.0 (+https://agendaweb.app)';
+        $ctx = stream_context_create([
+            'http' => [
+                'timeout' => 12,
+                'user_agent' => $botUserAgent,
+                'follow_location' => 1,
+                'max_redirects' => 4,
+                'ignore_errors' => true
+            ]
+        ]);
+
+        $html = @file_get_contents($targetUrl, false, $ctx);
+        $httpCode = 200;
+        if (isset($http_response_header[0]) && preg_match('{HTTP\/\S*\s(\d{3})}', $http_response_header[0], $m)) {
+            $httpCode = (int)$m[1];
+        }
+
+        if (!$html || $httpCode >= 400) {
+            http_response_code(422);
+            echo json_encode([
+                'status' => 'error',
+                'message' => "Unable to fetch webpage (HTTP $httpCode)",
+                'http_code' => $httpCode
+            ]);
+            exit;
+        }
+
+        libxml_use_internal_errors(true);
+        $dom = new DOMDocument();
+        @$dom->loadHTML($html);
+        libxml_clear_errors();
+
+        $xpath = new DOMXPath($dom);
+
+        // Extract Title
+        $titleNode = $xpath->query('//title')->item(0);
+        $pageTitle = $titleNode ? trim($titleNode->textContent) : '';
+
+        // Extract RSS / Atom alternate links
+        $feedLinks = $xpath->query('//link[@rel="alternate" and (@type="application/rss+xml" or @type="application/atom+xml")]');
+        $discoveredFeed = null;
+        if ($feedLinks->length > 0) {
+            $discoveredFeed = $feedLinks->item(0)->getAttribute('href');
+            if ($discoveredFeed && !filter_var($discoveredFeed, FILTER_VALIDATE_URL)) {
+                $base = rtrim($targetUrl, '/');
+                $discoveredFeed = $base . '/' . ltrim($discoveredFeed, '/');
+            }
+        }
+
+        // Extract Schema.org/Event JSON-LD
+        $scripts = $xpath->query('//script[@type="application/ld+json"]');
+        $events = [];
+        $detectedVenue = '';
+
+        foreach ($scripts as $s) {
+            $data = json_decode(trim($s->nodeValue), true);
+            if (!is_array($data)) continue;
+
+            $nodes = isset($data['@graph']) ? $data['@graph'] : ($data[0] ? $data : [$data]);
+            foreach ($nodes as $node) {
+                $type = $node['@type'] ?? '';
+                if (is_string($type) && (str_ends_with($type, 'Event') || $type === 'Event')) {
+                    if (empty($node['name']) || empty($node['startDate'])) continue;
+
+                    $venueName = $node['location']['name'] ?? '';
+                    if ($venueName && !$detectedVenue) $detectedVenue = $venueName;
+
+                    $events[] = [
+                        'title'       => trim($node['name']),
+                        'description' => strip_tags($node['description'] ?? ''),
+                        'start_time'  => date('Y-m-d H:i:s', strtotime($node['startDate'])),
+                        'end_time'    => !empty($node['endDate']) ? date('Y-m-d H:i:s', strtotime($node['endDate'])) : null,
+                        'category'    => str_replace('Event', '', (string)$type) ?: 'Live Music',
+                        'venue_name'  => $venueName,
+                        'address'     => is_array($node['location']['address'] ?? null) ? ($node['location']['address']['streetAddress'] ?? '') : ($node['location']['address'] ?? ''),
+                        'ticket_url'  => $node['offers']['url'] ?? $node['url'] ?? $targetUrl,
+                        'image_url'   => is_array($node['image'] ?? null) ? ($node['image'][0] ?? null) : ($node['image'] ?? null)
+                    ];
+                }
+            }
+        }
+
+        $detectedType = count($events) > 0 ? 'scrape_event' : ($discoveredFeed ? 'rss' : 'scrape_event');
+        $suggestedName = $detectedVenue ?: preg_replace('/(\s*[-|–]\s*.*)$/i', '', $pageTitle);
+        $suggestedName = trim($suggestedName) ?: parse_url($targetUrl, PHP_URL_HOST);
+
+        echo json_encode([
+            'status'         => 'success',
+            'url'            => $targetUrl,
+            'http_code'      => $httpCode,
+            'page_title'     => $pageTitle,
+            'detected_type'  => $detectedType,
+            'suggested_name' => $suggestedName,
+            'suggested_tab'  => count($events) > 0 ? 'events' : ($discoveredFeed ? 'blogs' : 'events'),
+            'feed_url'       => $discoveredFeed,
+            'events_count'   => count($events),
+            'events'         => array_slice($events, 0, 8)
         ]);
         exit;
     }
@@ -196,16 +306,78 @@ try {
         exit;
     }
 
-    // 9. Trigger Ingestion Sync Now
+    // 8.1 Trigger Single Source Sync
+    if ($action === 'sync_single' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true) ?: $_POST;
+        $id = (int)($data['id'] ?? 0);
+
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Source ID required']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("SELECT * FROM sources WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+        $source = $stmt->fetch();
+
+        if (!$source) {
+            http_response_code(404);
+            echo json_encode(['status' => 'error', 'message' => 'Source not found']);
+            exit;
+        }
+
+        require_once __DIR__ . '/../sync_sources.php';
+        $botUserAgent = $config['app']['bot_user_agent'] ?? 'AgendaWeb-Bot/1.0';
+
+        $syncCount = 0;
+        $lastStatus = 'updated';
+        $lastError = null;
+
+        try {
+            if ($source['type'] === 'rss') {
+                $syncCount = syncRss($pdo, $source, $botUserAgent);
+            } else {
+                $syncCount = syncSchemaOrgEvents($pdo, $source, $botUserAgent);
+            }
+            $pdo->prepare("
+                UPDATE sources 
+                SET last_polled_at = NOW(), last_status = 'updated', http_code = 200, item_count = :cnt, last_error = NULL 
+                WHERE id = :id
+            ")->execute(['cnt' => $syncCount, 'id' => $id]);
+        } catch (\Throwable $err) {
+            $lastStatus = 'failed';
+            $lastError = mb_substr($err->getMessage(), 0, 250);
+            $pdo->prepare("
+                UPDATE sources 
+                SET last_polled_at = NOW(), last_status = 'failed', last_error = :err 
+                WHERE id = :id
+            ")->execute(['err' => $lastError, 'id' => $id]);
+        }
+
+        echo json_encode([
+            'status'        => 'success',
+            'source_id'     => $id,
+            'name'          => $source['name'],
+            'last_status'   => $lastStatus,
+            'item_count'    => $syncCount,
+            'last_error'    => $lastError,
+            'last_polled_at'=> date('Y-m-d H:i:s')
+        ]);
+        exit;
+    }
+
+    // 9. Trigger Ingestion Sync Now (All Active Sources)
     if ($action === 'sync_now' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-        ob_start();
-        include __DIR__ . '/../sync_sources.php';
-        $logOutput = ob_get_clean();
+        require_once __DIR__ . '/../sync_sources.php';
+        $botUserAgent = $config['app']['bot_user_agent'] ?? 'AgendaWeb-Bot/1.0';
+        $report = runAllSync($pdo, $botUserAgent);
 
         echo json_encode([
             'status'  => 'success',
-            'message' => 'Sync worker executed',
-            'log'     => $logOutput
+            'message' => 'Full sync executed',
+            'report'  => $report
         ]);
         exit;
     }
