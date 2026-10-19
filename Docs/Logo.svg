@@ -1,20 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 400" width="100%" height="100%" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 5 960 380" width="100%" height="100%" fill="none">
   <defs>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&amp;family=Inter:wght@700;800&amp;display=swap');
       .brand-title {
         font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        font-size: 85px;
+        font-size: 102px;
         font-weight: 800;
         fill: #1B3B2B;
-        letter-spacing: 0.03em;
+        letter-spacing: 0.025em;
       }
       .brand-slogan {
         font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        font-size: 28px;
-        font-weight: 700;
+        font-size: 42px;
+        font-weight: 800;
         fill: #1B3B2B;
-        letter-spacing: 0.16em;
+        letter-spacing: 0.08em;
       }
     </style>
   </defs>
@@ -65,8 +65,8 @@
   <!-- Centered horizontally under the text lockup, vertically centered relative to emblem -->
   <g id="typography" text-anchor="middle">
     <!-- Brand Title -->
-    <text x="560" y="222" class="brand-title">AGENDAWEB</text>
+    <text x="625" y="208" class="brand-title">AGENDAWEB</text>
     <!-- Brand Slogan -->
-    <text x="560" y="262" class="brand-slogan">YOUR CULTURAL WEB FEED</text>
+    <text x="625" y="264" class="brand-slogan">YOUR CULTURAL WEB FEED</text>
   </g>
 </svg>

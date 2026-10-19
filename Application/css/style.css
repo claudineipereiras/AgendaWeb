@@ -35,8 +35,32 @@ header {
 }
 
 .brand img {
-  height: 50px;
+  height: 56px;
   width: auto;
+  display: block;
+  transition: height 0.2s ease;
+}
+
+@media (min-width: 768px) {
+  header {
+    padding: 14px 28px;
+  }
+  .brand img {
+    height: 76px;
+  }
+  .icon-btn {
+    padding: 8px 14px;
+    font-size: 0.88rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  header {
+    padding: 16px 36px;
+  }
+  .brand img {
+    height: 84px;
+  }
 }
 
 .header-actions {
