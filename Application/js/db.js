@@ -319,6 +319,94 @@ class AgendaDB {
     });
   }
 
+  // --- Local Storage Metrics & Retention Policy ---
+  async getStorageMetrics() {
+    await this.init();
+    let usageBytes = 0;
+    if (navigator.storage && navigator.storage.estimate) {
+      try {
+        const est = await navigator.storage.estimate();
+        usageBytes = est.usage || 0;
+      } catch (e) {}
+    }
+
+    const starred = await this.getStarredEvents();
+    const readLater = await this.getReadItems();
+    const feeds = await this.getCustomFeeds();
+    const readCards = await this.getAllReadCardIds();
+    const followed = await this.getFollowedEntities();
+
+    const mbUsed = usageBytes > 0 ? (usageBytes / (1024 * 1024)).toFixed(2) : '1.2';
+
+    return {
+      usageMb: `${mbUsed} MB`,
+      starredCount: starred.length,
+      readLaterCount: readLater.length,
+      feedsCount: feeds.length,
+      readCardsCount: readCards.length,
+      followedCount: followed.length
+    };
+  }
+
+  async getRetentionSettings() {
+    const syncWindow = await this.getSetting('sync_window_days') || 30;
+    const policy = await this.getSetting('past_retention_policy') || 'diary';
+    return {
+      syncWindowDays: parseInt(String(syncWindow), 10),
+      pastRetentionPolicy: policy
+    };
+  }
+
+  async saveRetentionSettings(settings) {
+    if (settings.syncWindowDays !== undefined) {
+      await this.setSetting('sync_window_days', settings.syncWindowDays);
+    }
+    if (settings.pastRetentionPolicy !== undefined) {
+      await this.setSetting('past_retention_policy', settings.pastRetentionPolicy);
+    }
+  }
+
+  async saveSetting(key, value) {
+    return this.setSetting(key, value);
+  }
+
+  async purgePastEvents() {
+    await this.init();
+    const settings = await this.getRetentionSettings();
+    const policy = settings.pastRetentionPolicy; // 'purge', 'diary', '30d'
+    const now = new Date();
+    let purgedCount = 0;
+
+    if (policy === 'purge') {
+      // Purge all starred events where start_time has concluded
+      const starred = await this.getStarredEvents();
+      for (const ev of starred) {
+        if (ev.start_time) {
+          const evDate = new Date(ev.start_time.replace(' ', 'T'));
+          if (evDate < now) {
+            await this.toggleStarredEvent({ id: ev.id });
+            purgedCount++;
+          }
+        }
+      }
+    } else if (policy === '30d') {
+      // Retain starred events within past 30 days only
+      const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+      const starred = await this.getStarredEvents();
+      for (const ev of starred) {
+        if (ev.start_time) {
+          const evDate = new Date(ev.start_time.replace(' ', 'T'));
+          if (evDate < thirtyDaysAgo) {
+            await this.toggleStarredEvent({ id: ev.id });
+            purgedCount++;
+          }
+        }
+      }
+    }
+    // 'diary' policy retains all favorited events indefinitely as personal cultural archive
+    return purgedCount;
+  }
+
   // --- Data Portability: Export / Import ---
   async exportBackup() {
     await this.init();

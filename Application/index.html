@@ -41,6 +41,13 @@
     <button class="tab-btn" id="tab-btn-personal" data-tab="personal" style="display:none;" onclick="setTab('personal')">📁 Personal</button>
   </nav>
 
+  <!-- Dynamic Feed Search Bar -->
+  <div class="search-filter-bar">
+    <div class="search-input-wrap">
+      <input type="search" id="feed-search" class="feed-search-input" placeholder="🔍 Search gigs, artists, venues, suburbs..." oninput="handleFeedSearch(this.value)">
+    </div>
+  </div>
+
   <!-- Dynamic Auto-Grouped Subcategory Filters -->
   <div class="sub-filter" id="sub-filter" style="display:none;"></div>
 
@@ -162,19 +169,94 @@
             <button class="btn btn-outline" style="margin-top:6px;" onclick="copyEmbedSnippet()">📋 Copy Code Snippet</button>
           </div>
         </details>
+
+        <div style="margin-top:14px; padding-top:10px; border-top:1px dashed var(--color-oat); display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:0.8rem; color:var(--color-text-muted);">Are you a venue or promoter?</span>
+          <a href="venues/index.html" target="_blank" class="btn btn-outline" style="font-size:0.75rem;">🌐 Broadcast Your Venue Feed ↗</a>
+        </div>
       </div>
 
-      <!-- Section 5: Data Portability & Device Sync -->
+      <!-- Section 5: Local Database & Storage Management (Cultural Diary Mode) -->
       <div class="settings-section" style="border:none; margin-bottom:0; padding-bottom:0;">
-        <div class="settings-section-title">5. Data Portability & Sync</div>
-        <p style="font-size:0.78rem; color:var(--color-text-muted); margin-bottom:8px;">Zero server tracking. Save your settings, bookmarks, and personal feeds to your device or cloud to load on another computer or phone.</p>
-        <div class="portability-actions">
-          <button class="btn btn-primary" onclick="handleExportBackup()">⬇ Export Backup (JSON)</button>
+        <div class="settings-section-title">5. ⚙ Local Database & Storage Settings</div>
+        <p style="font-size:0.78rem; color:var(--color-text-muted); margin-bottom:12px;">Zero server tracking. You have complete sovereignty over your local data footprint, search indexing, and retention horizon.</p>
+
+        <!-- Future Sync Window -->
+        <div style="margin-bottom:14px;">
+          <label style="font-size:0.82rem; font-weight:700; color:var(--color-nightfall); display:block; margin-bottom:4px;">Future Event Sync Window:</label>
+          <div class="retention-pill-group" id="sync-window-pills">
+            <button type="button" class="retention-pill-btn" data-days="7" onclick="setSyncWindow(7, this)">7 Days</button>
+            <button type="button" class="retention-pill-btn" data-days="14" onclick="setSyncWindow(14, this)">14 Days</button>
+            <button type="button" class="retention-pill-btn active" data-days="30" onclick="setSyncWindow(30, this)">30 Days (Standard)</button>
+            <button type="button" class="retention-pill-btn" data-days="60" onclick="setSyncWindow(60, this)">60 Days</button>
+            <button type="button" class="retention-pill-btn" data-days="999" onclick="setSyncWindow(999, this)">All Future</button>
+          </div>
+        </div>
+
+        <!-- Past Event Retention Policy -->
+        <div style="margin-bottom:14px;">
+          <label style="font-size:0.82rem; font-weight:700; color:var(--color-nightfall); display:block; margin-bottom:4px;">Past Event Retention Policy:</label>
+          <div class="retention-radio-group">
+            <label class="retention-radio-item">
+              <input type="radio" name="past_retention" value="purge" onchange="setPastRetention(this.value)">
+              <div>
+                <strong>Purge immediately</strong>
+                <div style="font-size:0.75rem; color:var(--color-text-muted);">Remove past gigs as soon as the event concludes.</div>
+              </div>
+            </label>
+            <label class="retention-radio-item">
+              <input type="radio" name="past_retention" value="diary" checked onchange="setPastRetention(this.value)">
+              <div>
+                <strong>Retain starred / favorited events only (Personal Diary Mode)</strong>
+                <div style="font-size:0.75rem; color:var(--color-text-muted);">Preserve gigs you attended or starred indefinitely as your personal cultural archive.</div>
+              </div>
+            </label>
+            <label class="retention-radio-item">
+              <input type="radio" name="past_retention" value="30d" onchange="setPastRetention(this.value)">
+              <div>
+                <strong>Keep past 30 days of all events</strong>
+                <div style="font-size:0.75rem; color:var(--color-text-muted);">Maintain a rolling 30-day recent history.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Search Status Badge -->
+        <div style="margin-bottom:12px; font-size:0.8rem; color:var(--color-nightfall); display:flex; align-items:center; gap:8px;">
+          <span>Full-Text Search:</span>
+          <span style="font-size:0.75rem; background:#e8f5e9; color:#2e7d32; padding:3px 8px; border-radius:12px; font-weight:700;">
+            ✓ Active (Indexed Title, Description, Venue, Suburb)
+          </span>
+        </div>
+
+        <!-- Local Database Metrics Card -->
+        <div class="storage-metrics-box">
+          <div class="storage-metrics-row">
+            <span>Local Storage Used:</span>
+            <span class="storage-metrics-val" id="metric-storage-used">~0.4 MB</span>
+          </div>
+          <div class="storage-metrics-row">
+            <span>Personal Diary Archive:</span>
+            <span style="font-weight:600;" id="metric-diary-count">0 starred gigs</span>
+          </div>
+          <div class="storage-metrics-row">
+            <span>Offline Saved Reads:</span>
+            <span style="font-weight:600;" id="metric-reads-count">0 articles</span>
+          </div>
+          <div class="storage-metrics-row">
+            <span>Storage Engine:</span>
+            <span style="font-size:0.75rem; color:var(--color-text-muted);">IndexedDB (Client Virtual Storage)</span>
+          </div>
+        </div>
+
+        <!-- Portability Buttons -->
+        <div class="portability-actions" style="margin-top:14px;">
+          <button class="btn btn-primary" onclick="handleExportBackup()">💾 Backup Database to File</button>
           <label class="btn btn-outline" style="cursor:pointer;">
-            ⬆ Import Backup (JSON)
+            📂 Restore from Backup
             <input type="file" accept=".json" style="display:none;" onchange="handleImportBackupFile(this)">
           </label>
-          <button class="btn btn-outline" onclick="handleExportOpml()">⬇ Export OPML</button>
+          <button class="btn btn-outline" onclick="handlePurgePastEvents()">🧹 Clean Expired Now</button>
         </div>
       </div>
 

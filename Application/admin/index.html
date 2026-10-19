@@ -358,8 +358,22 @@
         </div>
       </div>
 
-      <div style="margin-bottom:14px; display:flex; gap:8px;">
+      <!-- Pending Moderation Queue Alert Banner -->
+      <div id="pending-moderation-alert" style="display:none; background:#fff3e0; border:1px solid #ffe0b2; border-left:4px solid #e65100; padding:12px 16px; border-radius:var(--radius-sm); margin-bottom:14px; justify-content:space-between; align-items:center;">
+        <div>
+          <strong style="color:#e65100;">🔔 Venue Submissions Awaiting Approval:</strong>
+          <span style="font-size:0.85rem; color:#6d4c41; margin-left:6px;" id="pending-banner-text">There are venue onboarding requests waiting for curator review.</span>
+        </div>
+        <button type="button" class="btn btn-outline" style="border-color:#e65100; color:#e65100; font-size:0.75rem;" onclick="filterSources('pending', document.getElementById('filter-pending-btn'))">
+          View Pending Submissions →
+        </button>
+      </div>
+
+      <div style="margin-bottom:14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
         <button class="btn btn-outline filter-source-btn active" onclick="filterSources('all', this)">All</button>
+        <button class="btn btn-outline filter-source-btn" id="filter-pending-btn" onclick="filterSources('pending', this)" style="display:none; color:#e65100; border-color:#ffb74d;">
+          ⏳ Pending Approval (<span id="pending-count-badge">0</span>)
+        </button>
         <button class="btn btn-outline filter-source-btn" onclick="filterSources('blogs', this)">Blogs & Articles</button>
         <button class="btn btn-outline filter-source-btn" onclick="filterSources('news', this)">News</button>
         <button class="btn btn-outline filter-source-btn" onclick="filterSources('events', this)">Events</button>
@@ -591,8 +605,28 @@
 
     function renderSourcesTable() {
       const tbody = document.getElementById('sources-table-body');
+      
+      // Update pending badge and alert
+      const pendingSources = (currentSources || []).filter(s => !s.is_active && s.last_status === 'pending');
+      const pendingAlert = document.getElementById('pending-moderation-alert');
+      const pendingFilterBtn = document.getElementById('filter-pending-btn');
+      const pendingCountBadge = document.getElementById('pending-count-badge');
+      if (pendingAlert && pendingFilterBtn) {
+        if (pendingSources.length > 0) {
+          pendingAlert.style.display = 'flex';
+          pendingFilterBtn.style.display = 'inline-flex';
+          pendingCountBadge.textContent = pendingSources.length;
+          document.getElementById('pending-banner-text').textContent = `${pendingSources.length} venue onboarding request${pendingSources.length > 1 ? 's' : ''} submitted by organizers awaiting review.`;
+        } else {
+          pendingAlert.style.display = 'none';
+          pendingFilterBtn.style.display = 'none';
+        }
+      }
+
       let filtered = currentSources;
-      if (currentSourceFilter !== 'all') {
+      if (currentSourceFilter === 'pending') {
+        filtered = currentSources.filter(s => !s.is_active && s.last_status === 'pending');
+      } else if (currentSourceFilter !== 'all') {
         filtered = currentSources.filter(s => s.category_tab === currentSourceFilter);
       }
 
@@ -602,13 +636,16 @@
       }
 
       tbody.innerHTML = filtered.map(s => {
+        const isPendingModeration = !s.is_active && s.last_status === 'pending';
         let healthHtml = '';
-        if (!s.is_active) {
+        if (isPendingModeration) {
+          healthHtml = '<span class="health-pill" style="background:#fff3e0; color:#e65100; border:1px solid #ffe0b2;">⏳ Awaiting Approval</span>';
+        } else if (!s.is_active) {
           healthHtml = '<span class="health-pill health-paused">⏸ Paused</span>';
         } else if (s.last_status === 'failed') {
           healthHtml = `<span class="health-pill health-failed" title="${escapeHtml(s.last_error || 'Ingestion failed')}">🔴 Failed (${s.http_code || 500})</span>`;
-        } else if (s.last_status === 'stale' || s.last_status === 'pending') {
-          healthHtml = '<span class="health-pill health-stale">🟡 Pending/Stale</span>';
+        } else if (s.last_status === 'stale') {
+          healthHtml = '<span class="health-pill health-stale">🟡 Stale</span>';
         } else {
           healthHtml = `<span class="health-pill health-live">🟢 Live (${s.http_code || 200})</span>`;
         }
@@ -618,10 +655,11 @@
         const lastPolledLabel = s.last_polled_at ? escapeHtml(s.last_polled_at) : 'Never';
 
         return `
-          <tr>
+          <tr style="${isPendingModeration ? 'background:#fffbf5;' : ''}">
             <td><span class="tag-badge tag-${s.category_tab}">${escapeHtml(s.category_tab)}</span></td>
             <td>
               <strong>${escapeHtml(s.name)}</strong>
+              ${s.contact_email ? `<div style="font-size:0.75rem; color:#e65100; font-weight:600;">✉ ${escapeHtml(s.contact_email)}</div>` : ''}
               <div style="font-size:0.75rem; color:var(--color-text-muted);">${escapeHtml(s.slug)}</div>
             </td>
             <td>
@@ -636,17 +674,38 @@
             <td style="font-weight:600; font-size:0.85rem; color:var(--color-nightfall);">${itemCountLabel}</td>
             <td style="font-size:0.78rem; color:var(--color-text-muted);">${lastPolledLabel}</td>
             <td>
-              <div style="display:flex; gap:4px;">
-                <button class="btn btn-outline" style="padding:2px 7px; font-size:0.75rem;" onclick="syncSingleSource(${s.id}, '${escapeQuote(s.name)}')">🔄 Sync</button>
-                <button class="btn btn-outline" style="padding:2px 7px; font-size:0.75rem;" onclick="toggleSource(${s.id})">
-                  ${s.is_active ? '⏸' : '▶'}
-                </button>
-                <button class="btn btn-danger" style="padding:2px 7px; font-size:0.75rem;" onclick="deleteSource(${s.id}, '${escapeQuote(s.name)}')">✕</button>
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                ${isPendingModeration ? `
+                  <button class="btn btn-primary" style="padding:2px 8px; font-size:0.75rem; background:#2e7d32;" onclick="approveSource(${s.id}, '${escapeQuote(s.name)}')">
+                    ✓ Approve
+                  </button>
+                  <button class="btn btn-danger" style="padding:2px 7px; font-size:0.75rem;" onclick="deleteSource(${s.id}, '${escapeQuote(s.name)}')">✕ Reject</button>
+                ` : `
+                  <button class="btn btn-outline" style="padding:2px 7px; font-size:0.75rem;" onclick="syncSingleSource(${s.id}, '${escapeQuote(s.name)}')">🔄 Sync</button>
+                  <button class="btn btn-outline" style="padding:2px 7px; font-size:0.75rem;" onclick="toggleSource(${s.id})">
+                    ${s.is_active ? '⏸' : '▶'}
+                  </button>
+                  <button class="btn btn-danger" style="padding:2px 7px; font-size:0.75rem;" onclick="deleteSource(${s.id}, '${escapeQuote(s.name)}')">✕</button>
+                `}
               </div>
             </td>
           </tr>
         `;
       }).join('');
+    }
+
+    async function approveSource(id, name) {
+      if (!confirm(`Approve venue "${name}" and start broadcasting upcoming gigs?`)) return;
+      const res = await apiRequest('../api/admin.php?action=approve_source', {
+        method: 'POST',
+        body: { id }
+      });
+      if (res && res.status === 'success') {
+        alert(`✓ "${name}" approved and broadcasted!\nIngested ${res.item_count || 0} upcoming gigs into AgendaWeb.`);
+        await loadDashboard();
+      } else {
+        alert('Failed to approve: ' + (res ? res.message : 'Error'));
+      }
     }
 
     async function toggleSource(id) {

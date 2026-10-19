@@ -109,6 +109,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   await refreshPersonalFeedsUI();
   await refreshFollowedUI();
 
+  // Initialize Storage Retention & Metrics
+  await initRetentionSettings();
+
   // Render initial tab
   await setTab('events');
 
@@ -242,6 +245,11 @@ async function renderCurrentTab() {
     await renderPersonalFeeds();
   } else {
     await renderItems(currentTab);
+  }
+
+  const searchInput = document.getElementById('feed-search');
+  if (searchInput && searchInput.value) {
+    handleFeedSearch(searchInput.value);
   }
 }
 
@@ -804,6 +812,7 @@ function toggleSettingsModal() {
   modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
   if (modal.style.display === 'flex') {
     refreshPersonalFeedsUI();
+    refreshStorageMetricsUI();
   }
 }
 
@@ -920,6 +929,124 @@ async function handleImportBackupFile(inputEl) {
 
 async function handleExportOpml() {
   await window.agendaDB.exportOpml();
+}
+
+// Local Storage & Retention Settings Handlers
+async function initRetentionSettings() {
+  try {
+    const settings = await window.agendaDB.getRetentionSettings();
+
+    // 1. Highlight active sync window pill
+    const pills = document.querySelectorAll('#sync-window-pills .retention-pill-btn');
+    pills.forEach(btn => {
+      const days = parseInt(btn.dataset.days, 10);
+      btn.classList.toggle('active', days === settings.syncWindowDays);
+    });
+
+    // 2. Select active past retention radio button
+    const radio = document.querySelector(`input[name="past_retention"][value="${settings.pastRetentionPolicy}"]`);
+    if (radio) {
+      radio.checked = true;
+    }
+
+    // 3. Purge past events according to retention policy
+    await window.agendaDB.purgePastEvents();
+
+    // 4. Update storage metrics
+    await refreshStorageMetricsUI();
+  } catch (err) {
+    console.warn('Failed to initialize retention settings:', err);
+  }
+}
+
+async function setSyncWindow(days, btn) {
+  try {
+    await window.agendaDB.saveRetentionSettings({ syncWindowDays: days });
+    document.querySelectorAll('#sync-window-pills .retention-pill-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+  } catch (err) {
+    console.warn('Error setting sync window:', err);
+  }
+}
+
+async function setPastRetention(policy) {
+  try {
+    await window.agendaDB.saveRetentionSettings({ pastRetentionPolicy: policy });
+    const purged = await window.agendaDB.purgePastEvents();
+    await refreshStorageMetricsUI();
+  } catch (err) {
+    console.warn('Error setting past retention:', err);
+  }
+}
+
+async function refreshStorageMetricsUI() {
+  try {
+    const metrics = await window.agendaDB.getStorageMetrics();
+    const usedEl = document.getElementById('metric-storage-used');
+    const diaryEl = document.getElementById('metric-diary-count');
+    const readsEl = document.getElementById('metric-reads-count');
+
+    if (usedEl) usedEl.textContent = metrics.storageUsedText;
+    if (diaryEl) diaryEl.textContent = `${metrics.starredCount} starred gigs`;
+    if (readsEl) readsEl.textContent = `${metrics.readsCount} articles`;
+  } catch (err) {
+    console.warn('Error refreshing storage metrics:', err);
+  }
+}
+
+async function handlePurgePastEvents() {
+  try {
+    const purged = await window.agendaDB.purgePastEvents();
+    await refreshStorageMetricsUI();
+    alert(`Clean complete: ${purged} expired entries pruned according to retention policy.`);
+  } catch (err) {
+    alert('Error cleaning past events: ' + err.message);
+  }
+}
+
+// Instant Dynamic Feed Search (Title, Description, Venue, Suburb)
+function handleFeedSearch(query) {
+  const q = (query || '').toLowerCase().trim();
+  const cards = document.querySelectorAll('#feed .card');
+  const sections = document.querySelectorAll('#feed .grouped-section');
+  let matchedCount = 0;
+
+  cards.forEach(card => {
+    if (!q) {
+      card.style.display = '';
+      matchedCount++;
+      return;
+    }
+    const text = card.textContent.toLowerCase();
+    const matches = text.includes(q);
+    card.style.display = matches ? '' : 'none';
+    if (matches) matchedCount++;
+  });
+
+  // For grouped views (e.g. Following lineup by venue)
+  sections.forEach(sec => {
+    if (!q) {
+      sec.style.display = '';
+      return;
+    }
+    const visibleCards = sec.querySelectorAll('.card:not([style*="display: none"])');
+    sec.style.display = visibleCards.length > 0 ? '' : 'none';
+  });
+
+  // Display no match feedback if appropriate
+  let noMatchEl = document.getElementById('search-no-match-msg');
+  if (q && matchedCount === 0 && cards.length > 0) {
+    if (!noMatchEl) {
+      noMatchEl = document.createElement('div');
+      noMatchEl.id = 'search-no-match-msg';
+      noMatchEl.className = 'state-message';
+      document.getElementById('feed').appendChild(noMatchEl);
+    }
+    noMatchEl.textContent = `No items found matching "${query}".`;
+    noMatchEl.style.display = 'block';
+  } else if (noMatchEl) {
+    noMatchEl.style.display = 'none';
+  }
 }
 
 function copyEmbedSnippet() {

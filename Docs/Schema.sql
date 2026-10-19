@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS `sources` (
   `http_code` SMALLINT NULL,
   `last_error` VARCHAR(255) NULL,
   `item_count` INT NOT NULL DEFAULT 0,
+  `contact_email` VARCHAR(150) NULL,
+  `submission_notes` VARCHAR(255) NULL,
   INDEX (`category_tab`),
   INDEX (`is_active`),
   INDEX (`last_status`)

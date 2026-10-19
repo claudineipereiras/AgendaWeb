@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Broadcast Your Venue Feed — AgendaWeb</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .onboard-container {
+      max-width: 680px;
+      margin: 40px auto 60px auto;
+      padding: 0 16px;
+    }
+    .onboard-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .onboard-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--color-amber-rust);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .onboard-title {
+      font-family: var(--font-serif);
+      font-size: 2.2rem;
+      color: var(--color-nightfall);
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .onboard-subtitle {
+      font-size: 1rem;
+      color: var(--color-text-muted);
+      line-height: 1.55;
+      max-width: 580px;
+      margin: 0 auto;
+    }
+    .onboard-card {
+      background: var(--color-white);
+      border: 1px solid var(--color-oat);
+      border-radius: var(--radius-md);
+      padding: 32px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    }
+    .form-hint {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin-top: 4px;
+    }
+    .preview-box {
+      margin-top: 24px;
+      padding: 18px;
+      background: #fbfaf6;
+      border: 1px solid var(--color-oat);
+      border-left: 4px solid var(--color-racing-green);
+      border-radius: var(--radius-sm);
+      display: none;
+    }
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .preview-badge-status {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    .preview-events-list {
+      max-height: 220px;
+      overflow-y: auto;
+      margin-top: 10px;
+      font-size: 0.85rem;
+    }
+    .preview-event-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px dashed var(--color-oat);
+    }
+    .faq-section {
+      margin-top: 40px;
+    }
+    .success-panel {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .success-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header class="app-header">
+    <div class="header-inner">
+      <a href="../index.html" class="brand" style="text-decoration:none;">
+        <img src="../assets/logo.svg" alt="AgendaWeb Emblem">
+      </a>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <a href="../index.html" class="btn btn-outline" style="font-size:0.8rem;">← Back to Broadsheet</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="onboard-container">
+    <div class="onboard-header">
+      <span class="onboard-badge">Open Culture Broadcast Directory</span>
+      <h1 class="onboard-title">Broadcast Your Venue Feed</h1>
+      <p class="onboard-subtitle">
+        Connect your venue's existing gig guide or exhibition page to the open web.
+        Our automated crawler reads your standard Schema.org JSON-LD tags—no logins, no maintenance, and zero platform fees.
+      </p>
+    </div>
+
+    <div class="onboard-card" id="onboard-card">
+      <form id="venue-onboard-form" onsubmit="handleVenueSubmit(event)">
+        <!-- Honeypot anti-spam field -->
+        <input type="text" id="website-hp" name="website_hp" style="display:none;" tabindex="-1" autocomplete="off">
+
+        <div class="form-group">
+          <label for="venue-name">Venue or Promoter Name *</label>
+          <input type="text" id="venue-name" class="form-control" placeholder="e.g. The Gasometer Hotel" required>
+          <div class="form-hint">The public display name of your venue or collective.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="venue-url">Public Events / Gig Guide URL *</label>
+          <div style="display:flex; gap:8px;">
+            <input type="url" id="venue-url" class="form-control" placeholder="https://www.thegasometerhotel.com.au/gigs" required>
+            <button type="button" id="btn-test-preview" class="btn btn-outline" style="white-space:nowrap;" onclick="testAndPreviewFeed()">
+              🔍 Test URL
+            </button>
+          </div>
+          <div class="form-hint">The webpage listing your upcoming dates, lineup, and ticket links.</div>
+        </div>
+
+        <!-- Live Detected Feed Preview Box -->
+        <div class="preview-box" id="preview-box">
+          <div class="preview-header">
+            <div>
+              <strong id="preview-title" style="font-size:0.95rem; color:var(--color-nightfall);">Detected Gig Guide</strong>
+              <div id="preview-address" style="font-size:0.8rem; color:var(--color-text-muted);"></div>
+            </div>
+            <span class="preview-badge-status" id="preview-status-pill">✓ Ready</span>
+          </div>
+          <div id="preview-message" style="font-size:0.85rem; color:var(--color-nightfall);"></div>
+          <div class="preview-events-list" id="preview-events-list"></div>
+        </div>
+
+        <div class="form-group" style="margin-top:16px;">
+          <label for="venue-polling">Update Polling Frequency</label>
+          <select id="venue-polling" class="form-control" style="background:var(--color-white);">
+            <option value="24h" selected>Standard: Check every 24 hours (Recommended)</option>
+            <option value="12h">Frequent: Check every 12 hours</option>
+          </select>
+          <div class="form-hint">Automated crawl cycle. Keeps your listings up to date with zero server load.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="venue-email">Contact Email (Optional)</label>
+          <input type="email" id="venue-email" class="form-control" placeholder="bookings@thegasometerhotel.com.au">
+          <div class="form-hint">Optional: We'll notify you when your broadcast feed is approved and active.</div>
+        </div>
+
+        <div style="margin-top:24px;">
+          <button type="submit" id="btn-submit-venue" class="btn btn-primary" style="width:100%; padding:12px; font-size:0.95rem; justify-content:center;">
+            ⚡ Connect Venue & Submit for Broadcaster Directory
+          </button>
+        </div>
+      </form>
+
+      <!-- Post-Submission Success State -->
+      <div class="success-panel" id="success-panel">
+        <div class="success-icon">🎉</div>
+        <h2 style="font-family:var(--font-serif); font-size:1.8rem; color:var(--color-nightfall); margin-bottom:8px;">
+          Venue Submitted for Broadcast!
+        </h2>
+        <p style="font-size:0.9rem; color:var(--color-text-muted); line-height:1.6; margin-bottom:24px; max-width:480px; margin-left:auto; margin-right:auto;" id="success-text">
+          Thank you! We've registered your venue's event guide. Our cultural curator reviews submissions within 24 hours to ensure high broadsheet quality.
+        </p>
+        <div style="display:flex; justify-content:center; gap:12px;">
+          <a href="../index.html" class="btn btn-primary">Return to Broadsheet</a>
+          <button type="button" class="btn btn-outline" onclick="resetForm()">Submit Another Venue</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ & Guidelines for Organizers -->
+    <div class="faq-section">
+      <h3 style="font-family:var(--font-serif); font-size:1.3rem; margin-bottom:14px; color:var(--color-nightfall);">How AgendaWeb Syndication Works</h3>
+      
+      <details class="guide-accordion" open>
+        <summary class="guide-summary">How does AgendaWeb scrape our gig dates?</summary>
+        <div class="guide-body">
+          AgendaWeb reads standard <a href="https://schema.org/Event" target="_blank" rel="noopener">Schema.org/Event</a> JSON-LD tags embedded directly in your webpage HTML. Most ticketing platforms (Humanitix, Oztix, Eventbrite) and CMS plugins automatically render these tags for Google Event Search.
+        </div>
+      </details>
+
+      <details class="guide-accordion">
+        <summary class="guide-summary">Do we need to create an account or log in to update dates?</summary>
+        <div class="guide-body">
+          No. AgendaWeb is built on open-web principles. Your website is the single source of truth. Whenever you announce a new gig or change set times on your own website, our crawler detects and updates it on AgendaWeb automatically.
+        </div>
+      </details>
+
+      <details class="guide-accordion">
+        <summary class="guide-summary">Example Schema.org Event JSON-LD Snippet</summary>
+        <div class="guide-body">
+          If you hand-code your website or manage custom themes, add this snippet to your gig page:
+          <pre class="guide-code">&lt;script type="application/ld+json"&gt;
+{
+  "@context": "https://schema.org",
+  "@type": "MusicEvent",
+  "name": "The Echoes — Album Launch",
+  "startDate": "2026-10-24T20:00:00+11:00",
+  "endDate": "2026-10-24T23:30:00+11:00",
+  "location": {
+    "@type": "Place",
+    "name": "The Gasometer Hotel",
+    "address": "484 Smith St, Collingwood VIC 3066"
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": "https://oztix.com.au/event/12345"
+  }
+}
+&lt;/script&gt;</pre>
+        </div>
+      </details>
+
+      <details class="guide-accordion">
+        <summary class="guide-summary">Are there any platform fees or commissions?</summary>
+        <div class="guide-body">
+          Zero. AgendaWeb is a community-first, non-commercial cultural feed designed to support Melbourne's grassroots live music, zines, and independent arts.
+        </div>
+      </details>
+    </div>
+  </main>
+
+  <script>
+    let detectedData = null;
+
+    async function testAndPreviewFeed() {
+      const urlInput = document.getElementById('venue-url');
+      const url = urlInput.value.trim();
+      const testBtn = document.getElementById('btn-test-preview');
+      const previewBox = document.getElementById('preview-box');
+      const previewTitle = document.getElementById('preview-title');
+      const previewAddress = document.getElementById('preview-address');
+      const previewStatusPill = document.getElementById('preview-status-pill');
+      const previewMessage = document.getElementById('preview-message');
+      const previewList = document.getElementById('preview-events-list');
+
+      if (!url) {
+        alert('Please enter your public gig guide or events URL first.');
+        urlInput.focus();
+        return;
+      }
+
+      testBtn.disabled = true;
+      testBtn.textContent = '⏳ Testing...';
+      previewBox.style.display = 'block';
+      previewMessage.textContent = 'Scanning webpage for Schema.org/Event JSON-LD and RSS feeds...';
+      previewList.innerHTML = '';
+
+      try {
+        const res = await fetch(`../api/onboard_venue.php?action=preview&url=${encodeURIComponent(url)}`);
+        const json = await res.json();
+
+        if (json && json.status === 'success') {
+          detectedData = json;
+          previewTitle.textContent = json.suggested_name || json.page_title || 'Detected Venue Feed';
+          if (json.venue && json.venue.address) {
+            previewAddress.textContent = '📍 ' + json.venue.address;
+          } else {
+            previewAddress.textContent = '';
+          }
+
+          if (json.events_count > 0) {
+            previewStatusPill.textContent = `✓ ${json.events_count} Gigs Detected`;
+            previewStatusPill.style.background = '#e8f5e9';
+            previewStatusPill.style.color = '#2e7d32';
+            previewMessage.innerHTML = `Great! Found <strong>${json.events_count} upcoming events</strong> formatted with Schema.org JSON-LD.`;
+            previewList.innerHTML = json.events.map(e => `
+              <div class="preview-event-row">
+                <span><strong>${escapeHtml(e.title)}</strong></span>
+                <span style="color:var(--color-text-muted);">${e.start_time.slice(0, 10)} · ${escapeHtml(e.category || 'Culture')}</span>
+              </div>
+            `).join('');
+          } else if (json.feed_url) {
+            previewStatusPill.textContent = '✓ RSS Feed Detected';
+            previewStatusPill.style.background = '#e8f5e9';
+            previewStatusPill.style.color = '#2e7d32';
+            previewMessage.innerHTML = `Found linked event feed: <code>${escapeHtml(json.feed_url)}</code>`;
+          } else {
+            previewStatusPill.textContent = 'Webpage Live (HTTP 200)';
+            previewStatusPill.style.background = '#fff3e0';
+            previewStatusPill.style.color = '#e65100';
+            previewMessage.textContent = 'Webpage reachable. Initial scrape will catalog dates as they are announced.';
+          }
+
+          // Auto-fill venue name if empty
+          const nameInput = document.getElementById('venue-name');
+          if (!nameInput.value.trim() && json.suggested_name) {
+            nameInput.value = json.suggested_name;
+          }
+        } else {
+          previewStatusPill.textContent = 'Notice';
+          previewStatusPill.style.background = '#ffebee';
+          previewStatusPill.style.color = '#c62828';
+          previewMessage.textContent = json?.message || 'Unable to scan page. Please check the URL.';
+        }
+      } catch (err) {
+        previewStatusPill.textContent = 'Error';
+        previewStatusPill.style.background = '#ffebee';
+        previewStatusPill.style.color = '#c62828';
+        previewMessage.textContent = 'Network error verifying URL: ' + err.message;
+      } finally {
+        testBtn.disabled = false;
+        testBtn.textContent = '🔍 Test URL';
+      }
+    }
+
+    async function handleVenueSubmit(e) {
+      e.preventDefault();
+      const honeypot = document.getElementById('website-hp').value;
+      if (honeypot) return; // Silent discard for spam bots
+
+      const name = document.getElementById('venue-name').value.trim();
+      const url = document.getElementById('venue-url').value.trim();
+      const polling = document.getElementById('venue-polling').value;
+      const email = document.getElementById('venue-email').value.trim();
+      const submitBtn = document.getElementById('btn-submit-venue');
+
+      if (!name || !url) {
+        alert('Venue Name and Events URL are required.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Registering Venue...';
+
+      try {
+        const payload = {
+          name,
+          url,
+          polling_frequency: polling,
+          contact_email: email,
+          address: detectedData?.venue?.address || '',
+          feed_url: detectedData?.feed_url || null
+        };
+
+        const res = await fetch('../api/onboard_venue.php?action=submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+
+        if (json && json.status === 'success') {
+          document.getElementById('venue-onboard-form').style.display = 'none';
+          document.getElementById('success-panel').style.display = 'block';
+          if (email) {
+            document.getElementById('success-text').innerHTML = `
+              Thank you! We've registered <strong>${escapeHtml(name)}</strong> for broadcasting. 
+              Our cultural curator will review the feed, and we'll send a confirmation to <code>${escapeHtml(email)}</code> once your gigs go live!
+            `;
+          }
+        } else {
+          alert('Submission error: ' + (json?.message || 'Please try again.'));
+        }
+      } catch (err) {
+        alert('Network error submitting venue: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '⚡ Connect Venue & Submit for Broadcaster Directory';
+      }
+    }
+
+    function resetForm() {
+      document.getElementById('venue-onboard-form').reset();
+      document.getElementById('preview-box').style.display = 'none';
+      document.getElementById('venue-onboard-form').style.display = 'block';
+      document.getElementById('success-panel').style.display = 'none';
+      detectedData = null;
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[m]);
+    }
+  </script>
+</body>
+</html>

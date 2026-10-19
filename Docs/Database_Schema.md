@@ -88,6 +88,8 @@ Maintains the registry of all external ingestion targets (RSS feeds and scrape t
 | `http_code` | `SMALLINT` | `NULL` | Last HTTP response code from target site (e.g. 200, 404). |
 | `last_error` | `VARCHAR(255)` | `NULL` | Diagnostic error message if ingestion failed. |
 | `item_count` | `INT` | `DEFAULT 0` | Total events or articles extracted during last poll. |
+| `contact_email` | `VARCHAR(150)` | `NULL` | Organizer contact email submitted via onboarding portal. |
+| `submission_notes` | `VARCHAR(255)` | `NULL` | Internal curator or moderation notes. |
 
 **Indexes:**
 - `INDEX (category_tab)`: Fast filtering by channel.

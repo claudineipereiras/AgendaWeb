@@ -797,3 +797,105 @@ header {
   flex-wrap: wrap;
   margin-top: 8px;
 }
+
+/* Feed Search Bar */
+.search-filter-bar {
+  max-width: 600px;
+  margin: 12px auto 6px auto;
+  padding: 0 16px;
+}
+
+.search-input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.feed-search-input {
+  width: 100%;
+  padding: 9px 14px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  background: var(--color-white);
+  border: 1px solid var(--color-oat);
+  border-radius: 20px;
+  color: var(--color-nightfall);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.feed-search-input:focus {
+  outline: none;
+  border-color: var(--color-racing-green);
+  box-shadow: 0 0 0 3px rgba(27, 59, 43, 0.1);
+}
+
+/* Local Storage Metrics & Retention Styles */
+.storage-metrics-box {
+  background: #fbfaf6;
+  border: 1px solid var(--color-oat);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 0.82rem;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.storage-metrics-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--color-nightfall);
+}
+
+.storage-metrics-val {
+  font-weight: 700;
+  color: var(--color-racing-green);
+}
+
+.retention-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 14px 0;
+}
+
+.retention-radio-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: var(--color-nightfall);
+  cursor: pointer;
+}
+
+.retention-radio-item input[type="radio"] {
+  margin-top: 3px;
+  accent-color: var(--color-racing-green);
+}
+
+.retention-pill-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 8px 0 14px 0;
+}
+
+.retention-pill-btn {
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--color-oat);
+  background: var(--color-white);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--color-nightfall);
+  transition: all 0.15s ease;
+}
+
+.retention-pill-btn.active {
+  background: var(--color-nightfall);
+  color: var(--color-white);
+  border-color: var(--color-nightfall);
+}

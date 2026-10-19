@@ -408,6 +408,112 @@ const requestHandler = (req, res) => {
     }
   }
 
+  // 7.1 API: Public Venue Onboarding
+  if (pathname === '/api/onboard_venue.php') {
+    const action = parsedUrl.query.action || 'preview';
+    if (action === 'preview') {
+      const targetUrl = parsedUrl.query.url;
+      if (!targetUrl) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'error', message: 'Valid website URL required' }));
+        return;
+      }
+      let host = 'example.com';
+      try { host = new URL(targetUrl).hostname; } catch(e) {}
+      const venueName = host.replace(/^www\./, '').split('.')[0].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      const venueSlug = venueName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        status: 'success',
+        url: targetUrl,
+        page_title: `${venueName} | Gigs & Live Events`,
+        suggested_name: venueName,
+        feed_url: null,
+        events_count: 2,
+        venue: {
+          slug: venueSlug,
+          name: venueName,
+          address: "Melbourne VIC"
+        },
+        events: [
+          {
+            title: "Live Showcase & Emerging Artists",
+            start_time: "2026-10-25 20:00:00",
+            category: "Live Music",
+            venue_name: venueName,
+            address: "Melbourne VIC",
+            ticket_url: targetUrl
+          },
+          {
+            title: "Weekend Sound System Residency",
+            start_time: "2026-10-27 21:00:00",
+            category: "Live Music",
+            venue_name: venueName,
+            address: "Melbourne VIC",
+            ticket_url: targetUrl
+          }
+        ]
+      }));
+      return;
+    }
+
+    if (action === 'submit' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+
+        if (payload.website_hp) {
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'success', message: 'Submission received' }));
+          return;
+        }
+
+        const venueName = payload.name || payload.venue_name || 'New Venue';
+        const venueUrl = payload.url || payload.feed_url || '';
+        const sourceSlug = venueName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const newSource = {
+          id: MOCK_SOURCES.length + 1,
+          slug: sourceSlug,
+          name: venueName,
+          type: 'scrape_event',
+          url: venueUrl,
+          category_tab: 'events',
+          is_active: 0, // Awaiting curator approval
+          last_status: 'pending',
+          http_code: 200,
+          item_count: 2,
+          contact_email: payload.contact_email || null,
+          submission_notes: `Self-service onboarding request. Polling: ${payload.polling_frequency || payload.polling_freq || '24h'}`,
+          last_error: null,
+          last_polled_at: null
+        };
+        MOCK_SOURCES.push(newSource);
+
+        MOCK_VENUES.push({
+          id: MOCK_VENUES.length + 1,
+          slug: sourceSlug,
+          name: venueName,
+          address: payload.address || 'Melbourne VIC',
+          website_url: venueUrl,
+          feed_url: payload.feed_url || null,
+          source_id: newSource.id,
+          is_active: 0
+        });
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          status: 'success',
+          message: `Venue '${venueName}' submitted successfully for review and broadcasting.`,
+          id: newSource.id
+        }));
+      });
+      return;
+    }
+  }
+
   // 8. API: Admin Operations
   if (pathname === '/api/admin.php') {
     const action = parsedUrl.query.action || 'stats';
@@ -579,6 +685,31 @@ const requestHandler = (req, res) => {
       return;
     }
 
+    if (action === 'approve_source' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const source = MOCK_SOURCES.find(s => s.id === payload.id);
+        if (source) {
+          source.is_active = 1;
+          source.last_status = 'updated';
+          source.item_count = source.item_count || 2;
+          source.last_polled_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
+          const v = MOCK_VENUES.find(v => v.source_id === source.id || v.slug === source.slug);
+          if (v) v.is_active = 1;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ 
+          status: 'success', 
+          message: `Source approved and activated!`,
+          item_count: source ? source.item_count : 2
+        }));
+      });
+      return;
+    }
+
     if (action === 'delete_source' && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
@@ -691,12 +822,14 @@ const requestHandler = (req, res) => {
     }
   }
 
-  // 9. Static File Serving (with /admin routing support)
+  // 9. Static File Serving (with /admin and /venues routing support)
   let cleanPath = pathname;
   if (cleanPath === '/' || cleanPath === '') {
     cleanPath = '/index.html';
   } else if (cleanPath === '/admin' || cleanPath === '/admin/') {
     cleanPath = '/admin/index.html';
+  } else if (cleanPath === '/venues' || cleanPath === '/venues/') {
+    cleanPath = '/venues/index.html';
   }
 
   let filePath = path.join(BASE_DIR, cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath);

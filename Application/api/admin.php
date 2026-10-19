@@ -53,7 +53,7 @@ try {
 
     // 2. Curated Sources List (with Health & Status)
     if ($action === 'sources') {
-        $stmt = $pdo->query("SELECT id, slug, name, type, url, category_tab, is_active, last_polled_at, last_status, http_code, last_error, item_count FROM sources ORDER BY category_tab ASC, name ASC");
+        $stmt = $pdo->query("SELECT id, slug, name, type, url, category_tab, is_active, last_polled_at, last_status, http_code, last_error, item_count, contact_email, submission_notes FROM sources ORDER BY (is_active = 0 AND last_status = 'pending') DESC, category_tab ASC, name ASC");
         $sources = $stmt->fetchAll();
 
         echo json_encode([
@@ -268,6 +268,53 @@ try {
 
         $pdo->prepare("UPDATE sources SET is_active = IF(is_active = 1, 0, 1) WHERE id = :id")->execute(['id' => $id]);
         echo json_encode(['status' => 'success', 'message' => 'Source status toggled']);
+        exit;
+    }
+
+    // 4.1 Approve & Activate Venue Source (Moderation Queue)
+    if ($action === 'approve_source' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true) ?: $_POST;
+        $id = (int)($data['id'] ?? 0);
+
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Source ID required']);
+            exit;
+        }
+
+        // Activate source in sources table
+        $pdo->prepare("UPDATE sources SET is_active = 1, last_status = 'active' WHERE id = :id")->execute(['id' => $id]);
+        // Activate linked venue in venues table
+        try {
+            $pdo->prepare("UPDATE venues SET is_active = 1 WHERE source_id = :id")->execute(['id' => $id]);
+        } catch (\Throwable $ve) {}
+
+        // Fetch source info
+        $stmt = $pdo->prepare("SELECT * FROM sources WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+        $src = $stmt->fetch();
+
+        $count = 0;
+        if ($src) {
+            require_once __DIR__ . '/../sync_sources.php';
+            $botAgent = $config['app']['bot_user_agent'] ?? 'AgendaWeb-Bot/1.0 (+https://agendaweb.app)';
+            try {
+                if ($src['type'] === 'scrape_event') {
+                    $count = syncSchemaOrgEvents($pdo, $src, $botAgent);
+                } else {
+                    $count = syncRss($pdo, $src, $botAgent);
+                }
+                $pdo->prepare("UPDATE sources SET item_count = :count, last_polled_at = NOW(), last_status = 'updated' WHERE id = :id")
+                    ->execute(['count' => $count, 'id' => $id]);
+            } catch (\Throwable $se) {}
+        }
+
+        echo json_encode([
+            'status'     => 'success',
+            'message'    => "Venue '{$src['name']}' approved, activated, and initial scrape complete!",
+            'item_count' => $count
+        ]);
         exit;
     }
 
