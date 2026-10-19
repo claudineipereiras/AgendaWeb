@@ -10,6 +10,8 @@ This document specifies the Hostinger MySQL (8.x) relational database design for
 erDiagram
     SOURCES ||--o{ ITEMS : "syndicates"
     SOURCES ||--o{ EVENTS : "originates"
+    SOURCES ||--o| VENUES : "links"
+    VENUES ||--o{ EVENTS : "hosts"
 
     SOURCES {
         int id PK
@@ -20,6 +22,18 @@ erDiagram
         enum category_tab
         boolean is_active
         datetime last_polled_at
+    }
+
+    VENUES {
+        int id PK
+        string slug UK
+        string name
+        string address
+        string website_url
+        string feed_url
+        int source_id FK
+        boolean is_active
+        timestamp created_at
     }
 
     EVENTS {
@@ -82,7 +96,28 @@ Maintains the registry of all external ingestion targets (RSS feeds and scrape t
 
 ---
 
-### 2.2 `events`
+### 2.2 `venues`
+Stores physical and cultural venues with their addresses, official websites, and syndication/feed links. Automatically populated/updated when event websites are auto-detected and scraped.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INT` | `AUTO_INCREMENT`, `PRIMARY KEY` | Unique venue identifier. |
+| `slug` | `VARCHAR(60)` | `UNIQUE`, `NOT NULL` | URL-safe slug identifying the venue (e.g. `the-gasometer-hotel`). |
+| `name` | `VARCHAR(150)` | `NOT NULL` | Full display name of the venue or organizer. |
+| `address` | `VARCHAR(255)` | `NULL` | Street address and postcode (e.g. `484 Smith St, Collingwood VIC 3066`). |
+| `website_url` | `VARCHAR(255)` | `NULL` | Official website or gig guide page URL. |
+| `feed_url` | `VARCHAR(255)` | `NULL` | RSS/Atom or iCal feed URL if provided by the venue. |
+| `source_id` | `INT` | `NULL`, `FK` | Linked source ID in `sources` table. |
+| `is_active` | `TINYINT(1)` | `DEFAULT 1` | Active venue status. |
+| `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` | Venue registration timestamp. |
+
+**Indexes:**
+- `INDEX (name)`: Venue search and alphabetical ordering.
+- `INDEX (slug)`: Fast foreign key and slug lookup.
+
+---
+
+### 2.3 `events`
 Stores parsed and verified cultural listings (music gigs, art exhibitions, screenings).
 
 | Column | Type | Constraints | Description |

@@ -187,6 +187,31 @@ function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): int {
                     $imageUrl = is_array($node['image']) ? ($node['image'][0] ?? ($node['image']['url'] ?? null)) : (string)$node['image'];
                 }
 
+                $vname = $node['location']['name'] ?? $source['name'];
+                $vaddr = is_array($node['location']['address'] ?? null) ? ($node['location']['address']['streetAddress'] ?? '') : ($node['location']['address'] ?? '');
+
+                // Ensure venues table is updated with auto-detected venue details
+                try {
+                    $vstmt = $pdo->prepare("
+                        INSERT INTO venues (slug, name, address, website_url, source_id)
+                        VALUES (:slug, :name, :address, :web, :sid)
+                        ON DUPLICATE KEY UPDATE 
+                            name = VALUES(name),
+                            address = IF(VALUES(address) != '', VALUES(address), address),
+                            website_url = VALUES(website_url),
+                            source_id = VALUES(source_id)
+                    ");
+                    $vstmt->execute([
+                        'slug'    => $source['slug'],
+                        'name'    => $vname,
+                        'address' => $vaddr,
+                        'web'     => $source['url'],
+                        'sid'     => $source['id']
+                    ]);
+                } catch (\Throwable $ve) {
+                    // Continue even if venues table not migrated yet
+                }
+
                 $stmt->execute([
                     'slug'        => $source['slug'],
                     'title'       => trim($node['name']),
@@ -194,8 +219,8 @@ function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): int {
                     'cat'         => str_replace('Event', '', (string)$type) ?: 'Culture',
                     'start'       => $start,
                     'end'         => !empty($node['endDate']) ? date('Y-m-d H:i:s', strtotime($node['endDate'])) : null,
-                    'vname'       => $node['location']['name'] ?? $source['name'],
-                    'addr'        => is_array($node['location']['address'] ?? null) ? ($node['location']['address']['streetAddress'] ?? '') : ($node['location']['address'] ?? ''),
+                    'vname'       => $vname,
+                    'addr'        => $vaddr,
                     'turl'        => $node['offers']['url'] ?? $node['url'] ?? $source['url'],
                     'image'       => $imageUrl
                 ]);

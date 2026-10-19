@@ -18,6 +18,21 @@ CREATE TABLE IF NOT EXISTS `sources` (
   INDEX (`last_status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `venues` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `slug` VARCHAR(60) UNIQUE NOT NULL,
+  `name` VARCHAR(150) NOT NULL,
+  `address` VARCHAR(255) DEFAULT NULL,
+  `website_url` VARCHAR(255) DEFAULT NULL,
+  `feed_url` VARCHAR(255) DEFAULT NULL,
+  `source_id` INT NULL,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_venue_name` (`name`),
+  INDEX `idx_venue_slug` (`slug`),
+  FOREIGN KEY (`source_id`) REFERENCES `sources`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `events` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `venue_slug` VARCHAR(60) NOT NULL,
@@ -79,3 +94,10 @@ INSERT INTO `sources` (`slug`, `name`, `type`, `url`, `category_tab`) VALUES
 ('trouble-mag', 'Trouble Magazine', 'rss', 'https://www.troublemag.com/feed/', 'blogs'),
 ('the-gasometer-hotel', 'The Gasometer Hotel', 'scrape_event', 'https://www.thegasometerhotel.com.au/gigs', 'events')
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
+
+-- Initial Seed: Curated Venues
+INSERT INTO `venues` (`slug`, `name`, `address`, `website_url`, `feed_url`, `source_id`) VALUES
+('the-gasometer-hotel', 'The Gasometer Hotel', '484 Smith St, Collingwood VIC 3066', 'https://www.thegasometerhotel.com.au', 'https://www.thegasometerhotel.com.au/gigs', 7),
+('the-corner-hotel', 'The Corner Hotel', '57 Swan St, Richmond VIC 3121', 'https://thecornerhotel.com', 'https://thecornerhotel.com/gigs', NULL),
+('fitzroy-community-arts', 'Fitzroy Community Arts', '128 Gertrude St, Fitzroy VIC 3065', 'https://fitzroyarts.org.au', NULL, NULL)
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `address`=VALUES(`address`), `website_url`=VALUES(`website_url`);

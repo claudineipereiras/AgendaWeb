@@ -158,6 +158,13 @@ try {
         $detectedType = count($events) > 0 ? 'scrape_event' : ($discoveredFeed ? 'rss' : 'scrape_event');
         $suggestedName = $detectedVenue ?: preg_replace('/(\s*[-|–]\s*.*)$/i', '', $pageTitle);
         $suggestedName = trim($suggestedName) ?: parse_url($targetUrl, PHP_URL_HOST);
+        $venueSlug = preg_replace('/[^a-z0-9]+/i', '-', strtolower($suggestedName));
+        $venueSlug = trim($venueSlug, '-') ?: 'venue-' . time();
+
+        $venueAddress = '';
+        if (count($events) > 0 && !empty($events[0]['address'])) {
+            $venueAddress = $events[0]['address'];
+        }
 
         echo json_encode([
             'status'         => 'success',
@@ -169,6 +176,13 @@ try {
             'suggested_tab'  => count($events) > 0 ? 'events' : ($discoveredFeed ? 'blogs' : 'events'),
             'feed_url'       => $discoveredFeed,
             'events_count'   => count($events),
+            'venue'          => [
+                'slug'        => $venueSlug,
+                'name'        => $suggestedName,
+                'address'     => $venueAddress,
+                'website_url' => $targetUrl,
+                'feed_url'    => $discoveredFeed
+            ],
             'events'         => array_slice($events, 0, 8)
         ]);
         exit;
@@ -204,11 +218,38 @@ try {
             'url'  => $url,
             'tab'  => $tab
         ]);
+        $newSourceId = (int)$pdo->lastInsertId();
+
+        // If this is an event venue source, automatically register or update the venues database table
+        if ($tab === 'events' || $type === 'scrape_event' || !empty($data['is_venue'])) {
+            try {
+                $vstmt = $pdo->prepare("
+                    INSERT INTO venues (slug, name, address, website_url, feed_url, source_id)
+                    VALUES (:slug, :name, :address, :web, :feed, :sid)
+                    ON DUPLICATE KEY UPDATE
+                        name = VALUES(name),
+                        address = IF(VALUES(address) != '', VALUES(address), address),
+                        website_url = VALUES(website_url),
+                        feed_url = IF(VALUES(feed_url) IS NOT NULL, VALUES(feed_url), feed_url),
+                        source_id = VALUES(source_id)
+                ");
+                $vstmt->execute([
+                    'slug'    => $slug,
+                    'name'    => $name,
+                    'address' => trim((string)($data['address'] ?? '')),
+                    'web'     => $url,
+                    'feed'    => !empty($data['feed_url']) ? $data['feed_url'] : null,
+                    'sid'     => $newSourceId
+                ]);
+            } catch (\Throwable $ve) {
+                // Non-fatal if venues table not migrated
+            }
+        }
 
         echo json_encode([
             'status'  => 'success',
-            'message' => "Source '$name' added successfully",
-            'id'      => (int)$pdo->lastInsertId()
+            'message' => "Source '$name' added successfully" . (($tab === 'events' || $type === 'scrape_event') ? " and venue database updated" : ""),
+            'id'      => $newSourceId
         ]);
         exit;
     }

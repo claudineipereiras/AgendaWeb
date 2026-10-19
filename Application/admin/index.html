@@ -670,6 +670,8 @@
       document.getElementById('detection-preview-card').style.display = 'none';
     }
 
+    let currentDetectedVenue = null;
+
     async function detectEventsFromUrl() {
       const urlInput = document.getElementById('source-url');
       const url = urlInput.value.trim();
@@ -690,15 +692,20 @@
       previewCard.style.display = 'block';
       previewStatus.textContent = 'Scanning webpage for Schema.org/Event JSON-LD and RSS feeds...';
       previewList.innerHTML = '';
+      currentDetectedVenue = null;
 
       try {
         const res = await apiRequest(`../api/admin.php?action=scrape_preview&url=${encodeURIComponent(url)}`);
         if (res && res.status === 'success') {
           previewTitle.textContent = res.page_title || res.suggested_name;
           previewType.textContent = res.detected_type === 'scrape_event' ? 'Web Event Scraper' : 'RSS Feed';
+          currentDetectedVenue = res.venue || null;
           
           if (res.events_count > 0) {
-            previewStatus.innerHTML = `✓ Found <strong>${res.events_count} upcoming events</strong> on page!`;
+            previewStatus.innerHTML = `✓ Found <strong>${res.events_count} upcoming events</strong> on page!
+              <div style="font-size:0.8rem; color:#2e7d32; margin-top:5px; font-weight:600;">
+                📍 Venue Database: Will register <strong>"${escapeHtml(res.venue?.name || res.suggested_name)}"</strong>${res.venue?.address ? ' at ' + escapeHtml(res.venue.address) : ''}
+              </div>`;
             previewList.innerHTML = res.events.map(e => `
               <div class="preview-event-row">
                 <strong>${escapeHtml(e.title)}</strong>
@@ -753,15 +760,25 @@
       const tab = document.getElementById('source-channel').value;
       const type = document.getElementById('source-type').value;
 
+      const payload = {
+        name,
+        url,
+        category_tab: tab,
+        type,
+        address: currentDetectedVenue?.address || '',
+        venue_name: currentDetectedVenue?.name || name,
+        feed_url: currentDetectedVenue?.feed_url || null
+      };
+
       const res = await apiRequest('../api/admin.php?action=add_source', {
         method: 'POST',
-        body: { name, url, category_tab: tab, type }
+        body: payload
       });
 
       if (res && res.status === 'success') {
         closeAddSourceModal();
         await loadDashboard();
-        alert('Curated source added successfully!');
+        alert('Curated source and venue database updated successfully!');
       } else {
         alert('Failed to add source: ' + (res ? res.message : 'Network error'));
       }

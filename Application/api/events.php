@@ -74,6 +74,26 @@ try {
         $ev['calendar_url'] = "{$appUrl}/calendar.php?id={$ev['id']}";
     }
 
+    // Query active venues for grouping and metadata
+    $venues = [];
+    try {
+        $venuesStmt = $pdo->query("
+            SELECT v.slug, v.name, v.address, v.website_url, v.feed_url,
+                   COUNT(e.id) AS event_count
+            FROM venues v
+            LEFT JOIN events e ON e.venue_slug = v.slug AND e.start_time >= NOW()
+            WHERE v.is_active = 1
+            GROUP BY v.id
+            ORDER BY v.name ASC
+        ");
+        if ($venuesStmt) {
+            $venues = $venuesStmt->fetchAll();
+        }
+    } catch (\Throwable $ve) {
+        // Fallback gracefully if venues table is not yet migrated
+        $venues = [];
+    }
+
     echo json_encode([
         'status'     => 'success',
         'count'      => count($events),
@@ -81,6 +101,7 @@ try {
         'offset'     => $offset,
         'limit'      => $limit,
         'categories' => $categories,
+        'venues'     => $venues,
         'data'       => $events
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 

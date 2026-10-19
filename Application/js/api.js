@@ -15,11 +15,12 @@ const AgendaAPI = {
       const json = await res.json();
       return {
         data: json.data || [],
-        categories: json.categories || ['All']
+        categories: json.categories || ['All'],
+        venues: json.venues || []
       };
     } catch (err) {
       console.warn('Events API unavailable, using fallback:', err);
-      return { data: [], categories: ['All', 'Live Music', 'Art', 'Community'] };
+      return { data: [], categories: ['All', 'Live Music', 'Art', 'Community'], venues: [] };
     }
   },
 

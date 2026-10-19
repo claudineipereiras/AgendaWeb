@@ -289,6 +289,9 @@ async function setFilter(category, btnElement) {
 async function renderEvents(refreshPills = true) {
   const container = document.getElementById('feed');
   const res = await window.agendaAPI.getEvents(currentCategory);
+  if (res.venues && res.venues.length > 0) {
+    window.agendaVenues = res.venues;
+  }
   let events = res.data;
 
   if (!events || events.length === 0) {
@@ -335,13 +338,14 @@ async function renderEvents(refreshPills = true) {
           </button>
         </div>
         <h2 class="card-title">
-          <a href="#" onclick="handleCardOpen('${ev.id}'); return false;">${escapeHtml(ev.title)}</a>
+          <a href="#" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')}); return false;">${escapeHtml(ev.title)}</a>
         </h2>
         <div class="card-location">📍 ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || '')}</div>
         ${ev.description ? `<p class="card-summary">${escapeHtml(ev.description)}</p>` : ''}
         <div class="card-actions">
           <div class="card-actions-left">
-            <a href="calendar.php?id=${ev.id}" class="btn btn-primary" target="_blank" onclick="handleCardOpen('${ev.id}')">📅 Add to Calendar</a>
+            <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">📖 Read in Full</button>
+            <a href="calendar.php?id=${ev.id}" class="btn btn-outline" target="_blank" onclick="handleCardOpen('${ev.id}')">📅 Add to Calendar</a>
             <button class="btn ${starBtnClass}" onclick="toggleStar(${JSON.stringify(ev).replace(/"/g, '&quot;')}, this)">
               ${starBtnText}
             </button>
@@ -366,11 +370,10 @@ async function renderEvents(refreshPills = true) {
   container.innerHTML = html.join('');
 }
 
-// Render Following Tab (Events from Followed Venues / Artists)
+// Render Following Tab (Grouped by Followed Venue / Organizer)
 async function renderFollowing(refreshPills = true) {
   const container = document.getElementById('feed');
   const followedList = await window.agendaDB.getFollowedEntities();
-  const followedNames = followedList.map(f => f.name.toLowerCase());
 
   if (followedList.length === 0) {
     hideSubFilter();
@@ -388,28 +391,24 @@ async function renderFollowing(refreshPills = true) {
 
   // Fetch all events
   const res = await window.agendaAPI.getEvents('All');
+  if (res.venues && res.venues.length > 0) {
+    window.agendaVenues = res.venues;
+  }
   let events = res.data;
   if (!events || events.length === 0) {
     events = FALLBACK_EVENTS;
   }
 
-  // Filter events from followed venues
-  let followedEvents = events.filter(e => followedNames.includes((e.venue_name || '').toLowerCase()));
-
-  // Extract dynamic categories for followed events
-  const autoCategories = ['All', ...new Set(followedEvents.map(e => e.category).filter(Boolean))];
+  // Sub-filter pills: 'All Followed' + distinct followed venue names
+  const venueOptions = ['All Followed', ...followedList.map(f => f.name)];
   if (refreshPills) {
-    renderSubFilterPills(autoCategories);
+    renderSubFilterPills(venueOptions);
   }
 
-  if (currentCategory !== 'All') {
-    followedEvents = followedEvents.filter(e => e.category === currentCategory);
-  }
-
-  // Header showing followed chips
+  // Header showing followed chips count
   let headerHtml = `
     <div class="following-header">
-      <span class="following-header-label">Following (${followedList.length}):</span>
+      <span class="following-header-label">Following (${followedList.length} Venues):</span>
       ${followedList.map(f => `
         <span class="following-chip">
           📍 ${escapeHtml(f.name)}
@@ -419,70 +418,92 @@ async function renderFollowing(refreshPills = true) {
     </div>
   `;
 
-  if (followedEvents.length === 0) {
-    container.innerHTML = headerHtml + `
-      <div class="state-message">
-        No upcoming events found from your followed lineup${currentCategory !== 'All' ? ' in category "' + escapeHtml(currentCategory) + '"' : ''}.
-      </div>
-    `;
-    return;
+  // Determine which venues to show based on subfilter pill
+  let activeVenues = followedList;
+  if (currentCategory !== 'All' && currentCategory !== 'All Followed') {
+    activeVenues = followedList.filter(f => f.name.toLowerCase() === currentCategory.toLowerCase());
   }
 
-  const html = await Promise.all(followedEvents.map(async (ev) => {
-    const isStarred = await window.agendaDB.isEventStarred(ev.id);
-    const isRead = await window.agendaDB.isCardRead(ev.id);
-    const isFollowed = await window.agendaDB.isEntityFollowed(ev.venue_name);
-    const dateStr = formatDate(ev.start_time);
-    const starBtnClass = isStarred ? 'btn-secondary starred' : 'btn-secondary';
-    const starBtnText = isStarred ? '★ Saved' : '★ Save';
+  // Group events by venue
+  const groupsHtml = await Promise.all(activeVenues.map(async (f) => {
+    const venueName = f.name;
+    const venueEvents = events.filter(e => (e.venue_name || '').toLowerCase() === venueName.toLowerCase());
+
+    // Lookup venue metadata
+    const venueMeta = (window.agendaVenues || []).find(v => v.name.toLowerCase() === venueName.toLowerCase());
+    const address = (venueMeta && venueMeta.address) ? venueMeta.address : (venueEvents[0]?.address || '');
+    const hasFeed = (venueMeta && venueMeta.feed_url) || venueEvents.some(e => e.origin === 'scraped');
+
+    let cardsHtml = '';
+    if (venueEvents.length === 0) {
+      cardsHtml = `<div class="venue-empty-notice">No upcoming gigs currently announced for this venue. Monitoring website feed for new dates.</div>`;
+    } else {
+      const renderedCards = await Promise.all(venueEvents.map(async (ev) => {
+        const isStarred = await window.agendaDB.isEventStarred(ev.id);
+        const isRead = await window.agendaDB.isCardRead(ev.id);
+        const dateStr = formatDate(ev.start_time);
+        const starBtnClass = isStarred ? 'btn-secondary starred' : 'btn-secondary';
+        const starBtnText = isStarred ? '★ Saved' : '★ Save';
+
+        return `
+          <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${ev.id}">
+            ${ev.image_url ? `
+              <div class="card-image-wrapper">
+                <img src="${ev.image_url}" class="card-image" alt="${escapeHtml(ev.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
+              </div>` : ''}
+            <div class="card-meta">
+              <div class="card-meta-left">
+                <span>${dateStr}</span>
+                <span class="card-meta-source">${escapeHtml(ev.category || 'Culture')}</span>
+              </div>
+              <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
+                      onclick="toggleCardCheck('${ev.id}', event, this)" 
+                      title="${isRead ? 'Mark as unread' : 'Mark as read'}">
+                ${renderCheckCircleSvg(isRead)}
+              </button>
+            </div>
+            <h2 class="card-title">
+              <a href="#" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')}); return false;">${escapeHtml(ev.title)}</a>
+            </h2>
+            <div class="card-location">📍 ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || '')}</div>
+            ${ev.description ? `<p class="card-summary">${escapeHtml(ev.description)}</p>` : ''}
+            <div class="card-actions">
+              <div class="card-actions-left">
+                <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">📖 Read in Full</button>
+                <a href="calendar.php?id=${ev.id}" class="btn btn-outline" target="_blank" onclick="handleCardOpen('${ev.id}')">📅 Add to Calendar</a>
+                <button class="btn ${starBtnClass}" onclick="toggleStar(${JSON.stringify(ev).replace(/"/g, '&quot;')}, this)">
+                  ${starBtnText}
+                </button>
+                ${ev.ticket_url ? `<a href="${ev.ticket_url}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${ev.id}')">Tickets</a>` : ''}
+              </div>
+            </div>
+          </article>
+        `;
+      }));
+      cardsHtml = renderedCards.join('');
+    }
 
     return `
-      <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${ev.id}">
-        ${ev.image_url ? `
-          <div class="card-image-wrapper">
-            <img src="${ev.image_url}" class="card-image" alt="${escapeHtml(ev.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
-          </div>` : ''}
-        <div class="card-meta">
-          <div class="card-meta-left">
-            <span>${dateStr}</span>
-            <span class="card-meta-source">${escapeHtml(ev.category || 'Culture')}</span>
+      <section class="venue-group">
+        <div class="venue-group-header">
+          <div class="venue-group-title-wrap">
+            <h3 class="venue-group-title">📍 ${escapeHtml(venueName)}</h3>
+            ${address ? `<span class="venue-group-address">${escapeHtml(address)}</span>` : ''}
           </div>
-          <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
-                  onclick="toggleCardCheck('${ev.id}', event, this)" 
-                  title="${isRead ? 'Mark as unread' : 'Mark as read'}">
-            ${renderCheckCircleSvg(isRead)}
-          </button>
-        </div>
-        <h2 class="card-title">
-          <a href="#" onclick="handleCardOpen('${ev.id}'); return false;">${escapeHtml(ev.title)}</a>
-        </h2>
-        <div class="card-location">📍 ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || '')}</div>
-        ${ev.description ? `<p class="card-summary">${escapeHtml(ev.description)}</p>` : ''}
-        <div class="card-actions">
-          <div class="card-actions-left">
-            <a href="calendar.php?id=${ev.id}" class="btn btn-primary" target="_blank" onclick="handleCardOpen('${ev.id}')">📅 Add to Calendar</a>
-            <button class="btn ${starBtnClass}" onclick="toggleStar(${JSON.stringify(ev).replace(/"/g, '&quot;')}, this)">
-              ${starBtnText}
-            </button>
-            ${ev.ticket_url ? `<a href="${ev.ticket_url}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${ev.id}')">Tickets</a>` : ''}
-          </div>
-          <div class="card-actions-right">
-            <button class="btn btn-follow ${isFollowed ? 'is-following' : ''}" 
-                    onclick="toggleFollow('${escapeQuote(ev.venue_name)}', 'venue', this)" 
-                    title="${isFollowed ? 'Unfollow ' + escapeHtml(ev.venue_name) : 'Follow ' + escapeHtml(ev.venue_name)}">
-              <svg class="rss-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
-                <circle cx="6.18" cy="17.82" r="2.18"/>
-                <path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"/>
-              </svg>
-              <span>${isFollowed ? 'Following' : 'Follow'}</span>
-            </button>
+          <div class="venue-group-meta">
+            <span class="venue-group-count">${venueEvents.length} upcoming gig${venueEvents.length === 1 ? '' : 's'}</span>
+            ${hasFeed ? `<span class="badge-rss-pill" title="Live syndication active">📡 Live RSS</span>` : ''}
+            <button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="unfollowFromSettings('${escapeQuote(venueName)}')">Unfollow</button>
           </div>
         </div>
-      </article>
+        <div class="venue-group-cards">
+          ${cardsHtml}
+        </div>
+      </section>
     `;
   }));
 
-  container.innerHTML = headerHtml + html.join('');
+  container.innerHTML = headerHtml + groupsHtml.join('');
 }
 
 // Render Curated News / Blogs Tab
@@ -687,11 +708,14 @@ async function renderReads() {
               ${renderCheckCircleSvg(isRead)}
             </button>
           </div>
-          <h2 class="card-title">${escapeHtml(ev.title)}</h2>
+          <h2 class="card-title">
+            <a href="#" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')}); return false;">${escapeHtml(ev.title)}</a>
+          </h2>
           <div class="card-location">📍 ${escapeHtml(ev.venue_name)}</div>
           <div class="card-actions">
             <div class="card-actions-left">
-              <a href="calendar.php?id=${ev.id}" class="btn btn-primary" onclick="handleCardOpen('${ev.id}')">📅 Add to Calendar</a>
+              <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">📖 Read in Full</button>
+              <a href="calendar.php?id=${ev.id}" class="btn btn-outline" onclick="handleCardOpen('${ev.id}')">📅 Add to Calendar</a>
               <button class="btn btn-outline" onclick="removeStarred(${ev.id})">✕ Remove</button>
             </div>
             <div class="card-actions-right">
@@ -922,7 +946,24 @@ function escapeQuote(str) {
   return String(str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
 
-// Full-Text Broadsheet Reader Modal
+function formatFullDateTime(startStr, endStr) {
+  if (!startStr) return '';
+  const d = new Date(startStr.replace(' ', 'T'));
+  if (isNaN(d.getTime())) return startStr;
+  const datePart = d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+  const timePart = d.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+  if (endStr) {
+    const endD = new Date(endStr.replace(' ', 'T'));
+    if (!isNaN(endD.getTime())) {
+      const endTimePart = endD.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true });
+      return `${datePart} · ${timePart} – ${endTimePart}`;
+    }
+  }
+  return `${datePart} · ${timePart}`;
+}
+
+// Full-Text Broadsheet Reader Modal (Articles & Dispatches)
 function openReaderModal(item) {
   const modal = document.getElementById('reader-modal');
   if (!modal) return;
@@ -954,12 +995,97 @@ function openReaderModal(item) {
 
   // Action Buttons
   const saveBtn = document.getElementById('reader-save-btn');
+  saveBtn.textContent = '🔖 Save to Reads';
   saveBtn.onclick = () => {
     saveToReads(item.link, item.title, item.summary || '', item.source_name || item.feed_name || '', item.image_url || '');
   };
 
   const sourceLink = document.getElementById('reader-source-link');
+  sourceLink.style.display = 'inline-flex';
+  sourceLink.textContent = 'Open Source ↗';
   sourceLink.href = item.link;
+
+  const calBtn = document.getElementById('reader-cal-btn');
+  if (calBtn) calBtn.style.display = 'none';
+
+  modal.style.display = 'flex';
+}
+
+// Full Event Broadsheet Reader Modal (Venues & Gigs)
+function openEventReaderModal(ev) {
+  const modal = document.getElementById('reader-modal');
+  if (!modal) return;
+
+  const cardKey = String(ev.id);
+  handleCardOpen(cardKey);
+
+  // Set meta header
+  document.getElementById('reader-source-cat').textContent = `📍 ${ev.venue_name || 'Venue'} · ${ev.category || 'Culture'}`;
+  document.getElementById('reader-title').textContent = ev.title;
+
+  const fullDateStr = formatFullDateTime(ev.start_time, ev.end_time);
+  document.getElementById('reader-date').innerHTML = `
+    <div style="font-weight:600; color:var(--color-nightfall);">📅 ${fullDateStr}</div>
+    ${ev.address ? `<div style="font-size:0.84rem; color:var(--color-text-muted); margin-top:3px;">📍 ${escapeHtml(ev.address)}</div>` : ''}
+  `;
+
+  // Image
+  const imgContainer = document.getElementById('reader-image-container');
+  if (ev.image_url) {
+    imgContainer.innerHTML = `<img src="${ev.image_url}" class="reader-image" alt="${escapeHtml(ev.title)}" loading="lazy">`;
+  } else {
+    imgContainer.innerHTML = '';
+  }
+
+  // Body content: details highlight box + formatted paragraphs
+  const bodyEl = document.getElementById('reader-body');
+  const rawDesc = ev.description || 'Full event details will be announced closer to the performance date.';
+  const paragraphs = rawDesc.split(/\n\n+/).filter(p => p.trim().length > 0);
+  const formattedHtml = paragraphs.length > 0
+    ? paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('')
+    : `<p>${escapeHtml(rawDesc)}</p>`;
+
+  bodyEl.innerHTML = `
+    <div class="event-reader-highlight">
+      <div class="event-reader-item"><strong>Venue:</strong> ${escapeHtml(ev.venue_name)}</div>
+      ${ev.address ? `<div class="event-reader-item"><strong>Location:</strong> ${escapeHtml(ev.address)}</div>` : ''}
+      <div class="event-reader-item"><strong>Schedule:</strong> ${fullDateStr}</div>
+      <div class="event-reader-item"><strong>Category:</strong> ${escapeHtml(ev.category || 'Culture')}</div>
+      ${ev.origin ? `<div class="event-reader-item"><strong>Source:</strong> Verified ${escapeHtml(ev.origin)} feed</div>` : ''}
+    </div>
+    <div class="event-reader-content">
+      ${formattedHtml}
+    </div>
+  `;
+
+  // Action Buttons
+  const saveBtn = document.getElementById('reader-save-btn');
+  saveBtn.textContent = '★ Save to Reads';
+  saveBtn.onclick = () => {
+    saveToReads(ev.ticket_url || `#event-${ev.id}`, ev.title, ev.description || '', ev.venue_name, ev.image_url || '');
+  };
+
+  const sourceLink = document.getElementById('reader-source-link');
+  if (ev.ticket_url) {
+    sourceLink.style.display = 'inline-flex';
+    sourceLink.href = ev.ticket_url;
+    sourceLink.textContent = '🎟 Get Tickets ↗';
+  } else {
+    sourceLink.style.display = 'none';
+  }
+
+  // Ensure calendar button exists
+  let calBtn = document.getElementById('reader-cal-btn');
+  if (!calBtn) {
+    calBtn = document.createElement('a');
+    calBtn.id = 'reader-cal-btn';
+    calBtn.className = 'btn btn-primary';
+    calBtn.target = '_blank';
+    saveBtn.parentElement.insertBefore(calBtn, saveBtn);
+  }
+  calBtn.href = `calendar.php?id=${ev.id}`;
+  calBtn.innerHTML = '📅 Add to Calendar';
+  calBtn.style.display = 'inline-flex';
 
   modal.style.display = 'flex';
 }

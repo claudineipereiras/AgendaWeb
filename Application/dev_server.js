@@ -103,6 +103,39 @@ let MOCK_SOURCES = [
   { id: 6, slug: "the-corner-hotel", name: "The Corner Hotel", type: "scrape_event", url: "https://thecornerhotel.com/gigs", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 7, last_error: null, last_polled_at: "2026-10-19 08:30:00" }
 ];
 
+let MOCK_VENUES = [
+  {
+    id: 1,
+    slug: "the-gasometer-hotel",
+    name: "The Gasometer Hotel",
+    address: "484 Smith St, Collingwood VIC 3066",
+    website_url: "https://www.thegasometerhotel.com.au",
+    feed_url: "https://www.thegasometerhotel.com.au/gigs",
+    source_id: 5,
+    is_active: 1
+  },
+  {
+    id: 2,
+    slug: "the-corner-hotel",
+    name: "The Corner Hotel",
+    address: "57 Swan St, Richmond VIC 3121",
+    website_url: "https://thecornerhotel.com",
+    feed_url: "https://thecornerhotel.com/gigs",
+    source_id: 6,
+    is_active: 1
+  },
+  {
+    id: 3,
+    slug: "fitzroy-community-arts",
+    name: "Fitzroy Community Arts",
+    address: "128 Gertrude St, Fitzroy VIC 3065",
+    website_url: "https://fitzroyarts.org.au",
+    feed_url: null,
+    source_id: null,
+    is_active: 1
+  }
+];
+
 let MOCK_SUGGESTIONS = [
   { id: 1, name: "Liam K.", email: "liam@musicvic.com.au", category: "venue_feed", message: "Would love to see The Tote and Northcote Social Club gig feeds added to the live events calendar!", status: "new", created_at: "2026-10-18 14:22:10" },
   { id: 2, name: "Chloe S.", email: "chloe@example.com", category: "feature", message: "The offline reading queue in IndexedDB is brilliant. Could we have an option to export selected reading lists?", status: "read", created_at: "2026-10-17 19:40:05" }
@@ -199,6 +232,7 @@ const requestHandler = (req, res) => {
       count: filtered.length,
       total: MOCK_EVENTS.length,
       categories: categories,
+      venues: MOCK_VENUES,
       data: filtered
     }));
     return;
@@ -423,6 +457,7 @@ const requestHandler = (req, res) => {
       try { host = new URL(targetUrl).hostname; } catch(e) {}
       const isEventVenue = targetUrl.includes('gasometer') || targetUrl.includes('corner') || targetUrl.includes('tote') || targetUrl.includes('forum') || targetUrl.includes('gig') || targetUrl.includes('event');
       const venueName = host.replace(/^www\./, '').split('.')[0].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      const venueSlug = venueName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
       const detectedEvents = [
         {
@@ -447,6 +482,14 @@ const requestHandler = (req, res) => {
         }
       ];
 
+      const detectedVenue = {
+        slug: venueSlug,
+        name: venueName,
+        address: isEventVenue ? "484 Smith St, Collingwood VIC 3066" : "",
+        website_url: targetUrl,
+        feed_url: isEventVenue ? null : `${targetUrl.replace(/\/$/, '')}/feed.xml`
+      };
+
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({
         status: 'success',
@@ -458,6 +501,7 @@ const requestHandler = (req, res) => {
         suggested_tab: isEventVenue ? 'events' : 'blogs',
         feed_url: isEventVenue ? null : `${targetUrl.replace(/\/$/, '')}/feed.xml`,
         events_count: detectedEvents.length,
+        venue: detectedVenue,
         events: detectedEvents
       }));
       return;
@@ -470,9 +514,10 @@ const requestHandler = (req, res) => {
         let payload = {};
         try { payload = JSON.parse(body); } catch (e) {}
         const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+        const sourceSlug = (payload.name || 'source').toLowerCase().replace(/[^a-z0-9]+/g, '-');
         const newSource = {
           id: MOCK_SOURCES.length + 1,
-          slug: (payload.name || 'source').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          slug: sourceSlug,
           name: payload.name || 'New Source',
           type: payload.type || 'rss',
           url: payload.url || 'https://example.com/feed.xml',
@@ -485,8 +530,37 @@ const requestHandler = (req, res) => {
           last_polled_at: now
         };
         MOCK_SOURCES.push(newSource);
+
+        // Update / Insert into MOCK_VENUES if it is an event source
+        if (payload.category_tab === 'events' || payload.type === 'scrape_event' || payload.venue_name) {
+          const vSlug = sourceSlug;
+          const vName = payload.venue_name || payload.name;
+          const existing = MOCK_VENUES.find(v => v.slug === vSlug || v.name.toLowerCase() === vName.toLowerCase());
+          if (existing) {
+            existing.name = vName;
+            existing.address = payload.address || existing.address;
+            existing.website_url = payload.url || existing.website_url;
+            existing.source_id = newSource.id;
+          } else {
+            MOCK_VENUES.push({
+              id: MOCK_VENUES.length + 1,
+              slug: vSlug,
+              name: vName,
+              address: payload.address || 'Melbourne VIC',
+              website_url: payload.url,
+              feed_url: payload.feed_url || null,
+              source_id: newSource.id,
+              is_active: 1
+            });
+          }
+        }
+
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ status: 'success', message: 'Source added successfully', id: newSource.id }));
+        res.end(JSON.stringify({ 
+          status: 'success', 
+          message: 'Source and venue database updated successfully', 
+          id: newSource.id 
+        }));
       });
       return;
     }
