@@ -64,122 +64,76 @@
         <button class="icon-btn" onclick="toggleSettingsModal()">✕</button>
       </div>
 
-      <!-- Section 1: Broadsheet Channels -->
+      <!-- Broadsheet Channels -->
       <div class="settings-section">
-        <div class="settings-section-title">1. Curated Channels</div>
+        <div class="settings-section-header">
+          <div class="settings-section-title">Curated Channels</div>
+          <div class="settings-section-desc">Choose which optional reading channels appear in your top navigation bar.</div>
+        </div>
         <div class="setting-row">
           <div class="setting-label">
             <h4>⚡ Events & 🔖 Reads</h4>
-            <p>Standard core channels (always active by default).</p>
+            <p>Core cultural broadsheet and private reading queue (always active).</p>
           </div>
-          <span style="font-size:0.8rem; color:var(--color-sage-green); font-weight:700;">ACTIVE</span>
+          <span style="font-size:0.75rem; background:#e8f5e9; color:#2e7d32; font-weight:700; padding:3px 8px; border-radius:12px;">ACTIVE</span>
         </div>
         <div class="setting-row">
           <div class="setting-label">
             <h4>✍️ Blogs & Articles</h4>
-            <p>Curated blogs and cultural reviews.</p>
+            <p>Curated independent cultural reviews, zines, and essays.</p>
           </div>
           <input type="checkbox" id="channel-blogs-check" onchange="toggleChannel('show_blogs', this.checked)">
         </div>
         <div class="setting-row">
           <div class="setting-label">
             <h4>📰 News</h4>
-            <p>Public broadcasters.</p>
+            <p>Public broadcasters and independent investigative journalism.</p>
           </div>
           <input type="checkbox" id="channel-news-check" onchange="toggleChannel('show_news', this.checked)">
         </div>
-        <div style="margin-top:14px; padding-top:10px; border-top:1px dashed var(--color-oat); text-align:right;">
-          <a href="admin/index.html" target="_blank" style="font-size:0.85rem; color:var(--color-sage-green); font-weight:600; text-decoration:none;">🔑 Curator Admin Manager ↗</a>
-        </div>
       </div>
 
-      <!-- Section 2: Personal RSS Feeds Manager -->
+      <!-- Personal RSS Feeds Manager -->
       <div class="settings-section">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <div class="settings-section-title" style="margin-bottom:0;">2. Personal Feeds</div>
-          <button class="btn btn-primary" onclick="openAddFeedModal()">+ Add Feed</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <div class="settings-section-title" style="margin-bottom:0;">Personal Feeds</div>
+          <button class="btn btn-primary" style="font-size:0.78rem; padding:4px 10px;" onclick="openAddFeedModal()">+ Add Feed</button>
         </div>
-        <p style="font-size:0.78rem; color:var(--color-text-muted); margin-bottom:12px;">Add custom RSS/Atom feeds stored exclusively in your browser's IndexedDB.</p>
+        <div class="settings-section-desc">Subscribe directly to your own RSS or Atom feeds. Saved privately on your device.</div>
         <div id="personal-feeds-list"></div>
       </div>
 
-      <!-- Section 3: Followed Venues & Artists -->
+      <!-- Followed Venues & Artists -->
       <div class="settings-section">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <div class="settings-section-title" style="margin-bottom:0;">3. Followed Lineup</div>
-          <span id="followed-count-badge" style="font-size:0.75rem; color:var(--color-sage-green); font-weight:700;">0 Followed</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <div class="settings-section-title" style="margin-bottom:0;">Followed Lineup</div>
+          <span id="followed-count-badge" style="font-size:0.75rem; background:rgba(67, 107, 85, 0.12); color:var(--color-sage-green); font-weight:700; padding:2px 8px; border-radius:12px;">0 Followed</span>
         </div>
-        <p style="font-size:0.78rem; color:var(--color-text-muted); margin-bottom:10px;">Venues and organizers you follow appear in the <strong>📡 Following</strong> tab.</p>
+        <div class="settings-section-desc">Venues, artists, and promoters you follow will be highlighted in your <strong>📡 Following</strong> tab.</div>
         <div id="followed-entities-list"></div>
       </div>
 
-      <!-- Section 4: Publisher & Venue Integration Guide -->
+      <!-- Venue & Organizer Broadcast -->
       <div class="settings-section">
-        <div class="settings-section-title">4. Publisher & Venue Guides</div>
-
-        <!-- Guide 1: Schema.org Event -->
-        <details class="guide-accordion">
-          <summary class="guide-summary">► Add Your Events (Schema.org JSON-LD)</summary>
-          <div class="guide-body">
-            <p>AgendaWeb automatically scans venue sites for standard Google SEO structured data. Paste this in your gig page <code>&lt;head&gt;</code>:</p>
-            <div class="guide-code">&lt;script type="application/ld+json"&gt;
-{
-  "@context": "https://schema.org",
-  "@type": "MusicEvent",
-  "name": "The Echoes — Album Launch",
-  "startDate": "2026-10-24T20:00:00+11:00",
-  "location": {
-    "@type": "Place",
-    "name": "The Gasometer Hotel",
-    "address": "484 Smith St, Collingwood VIC"
-  },
-  "offers": { "url": "https://oztix.com.au" },
-  "image": "https://example.com/poster.jpg"
-}
-&lt;/script&gt;</div>
+        <div class="settings-section-header">
+          <div class="settings-section-title">Broadcast & Venues</div>
+          <div class="settings-section-desc">Connect your venue, gallery, or independent gig guide to AgendaWeb's open network.</div>
+        </div>
+        <div style="background:var(--color-chalk); border:1px solid var(--color-oat); border-radius:8px; padding:16px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:700; color:var(--color-nightfall); font-size:0.92rem; margin-bottom:3px;">Are you a venue or promoter?</div>
+            <div style="font-size:0.78rem; color:var(--color-text-muted); line-height:1.4;">Submit your events page for automated Schema.org scraping or explore integration guides.</div>
           </div>
-        </details>
-
-        <!-- Guide 2: Event RSS 2.0 Syndication -->
-        <details class="guide-accordion">
-          <summary class="guide-summary">► Create an Event RSS Feed (Future Standard)</summary>
-          <div class="guide-body">
-            <p>Publish an open RSS 2.0 feed with the Event module (<code>xmlns:ev</code>) and image enclosure:</p>
-            <div class="guide-code">&lt;rss version="2.0" xmlns:ev="http://purl.org/rss/1.0/modules/event/"&gt;
-  &lt;channel&gt;
-    &lt;title&gt;Your Venue Gigs&lt;/title&gt;
-    &lt;item&gt;
-      &lt;title&gt;Gig Title&lt;/title&gt;
-      &lt;ev:startdate&gt;2026-10-24T20:00:00+11:00&lt;/ev:startdate&gt;
-      &lt;ev:location&gt;Venue Name, Address&lt;/ev:location&gt;
-      &lt;enclosure url="https://example.com/poster.jpg" type="image/jpeg" /&gt;
-    &lt;/item&gt;
-  &lt;/channel&gt;
-&lt;/rss&gt;</div>
-          </div>
-        </details>
-
-        <!-- Guide 3: Embed Widget -->
-        <details class="guide-accordion">
-          <summary class="guide-summary">► Embed AgendaWeb Widget (widget.js)</summary>
-          <div class="guide-body">
-            <p>Display your upcoming live gigs on your own website automatically:</p>
-            <div class="guide-code">&lt;div class="agendaweb-widget" data-venue="your-venue-slug" data-limit="5"&gt;&lt;/div&gt;
-&lt;script src="https://agendaweb.app/widget.js" async&gt;&lt;/script&gt;</div>
-            <button class="btn btn-outline" style="margin-top:6px;" onclick="copyEmbedSnippet()">📋 Copy Code Snippet</button>
-          </div>
-        </details>
-
-        <div style="margin-top:14px; padding-top:10px; border-top:1px dashed var(--color-oat); display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:0.8rem; color:var(--color-text-muted);">Are you a venue or promoter?</span>
-          <a href="venues/index.html" target="_blank" class="btn btn-outline" style="font-size:0.75rem;">🌐 Broadcast Your Venue Feed ↗</a>
+          <a href="venues/index.html" target="_blank" class="btn btn-primary" style="font-size:0.82rem; white-space:nowrap;">🌐 Broadcast Your Venue Feed ↗</a>
         </div>
       </div>
 
-      <!-- Section 5: Local Database & Storage Management (Cultural Diary Mode) -->
+      <!-- Local Database & Storage Management (Cultural Diary Mode) -->
       <div class="settings-section" style="border:none; margin-bottom:0; padding-bottom:0;">
-        <div class="settings-section-title">5. ⚙ Local Database & Storage Settings</div>
-        <p style="font-size:0.78rem; color:var(--color-text-muted); margin-bottom:12px;">Zero server tracking. You have complete sovereignty over your local data footprint, search indexing, and retention horizon.</p>
+        <div class="settings-section-header">
+          <div class="settings-section-title">⚙ Local Database & Storage Settings</div>
+          <div class="settings-section-desc">Zero tracking. You have complete sovereignty over your local data footprint, search indexing, and retention horizon.</div>
+        </div>
 
         <!-- Future Sync Window -->
         <div style="margin-bottom:14px;">
@@ -329,14 +283,29 @@
           <div class="help-title" style="margin-bottom:0;">What is AgendaWeb?</div>
           <span class="version-pill">Version 0.5.0</span>
         </div>
-        <p class="help-text">
-          AgendaWeb is an open-web, decentralized cultural calendar and editorial magazine reader for Australia.
+        <p class="help-text" style="font-size:0.95rem; line-height:1.6; color:var(--color-nightfall); margin-bottom:12px;">
+          <strong>AgendaWeb</strong> is an independent, community-first cultural guide celebrating Melbourne’s live music, neighborhood arts, zine culture, and grassroots events.
         </p>
-        <p class="help-text" style="font-size:0.88rem;">
-          • <strong>Zero Consumer Auth:</strong> No accounts, passwords, or tracking cookies. All your reading lists, custom feeds, and followed venues live privately in your browser's IndexedDB.<br>
-          • <strong>Open Syndication:</strong> Ingests live cultural gigs and dispatches directly from venues and public broadcasters via open RSS 2.0 (with <code>ev:</code> event tags), Schema.org JSON-LD, and RFC 5545 iCal.<br>
-          • <strong>Curated & Personal:</strong> Explore verified city events and Australian journalism, or curate your own personal feeds and followed venues.
-        </p>
+        <div style="display:flex; flex-direction:column; gap:10px; font-size:0.88rem; color:var(--color-nightfall); line-height:1.55; margin-bottom:14px;">
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <span style="font-size:1.1rem; line-height:1;">🌱</span>
+            <div>
+              <strong>Free & Clean Broadsheet:</strong> No algorithms, corporate paywalls, or ticket markups. We believe finding a great gig or art show should be as simple and enjoyable as picking up a neighborhood printed broadsheet.
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <span style="font-size:1.1rem; line-height:1;">🔒</span>
+            <div>
+              <strong>Your Privacy Comes First:</strong> No accounts, passwords, or tracking cookies. Your saved reads, personal diary archive, and followed venues are kept 100% private in your own device.
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <span style="font-size:1.1rem; line-height:1;">📻</span>
+            <div>
+              <strong>Direct from Local Venues:</strong> Gigs and reviews are gathered straight from venue websites and public broadcasters, keeping artists and independent stages in control of their own information.
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Suggestion Box -->

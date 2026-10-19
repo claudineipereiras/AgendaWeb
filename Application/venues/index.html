@@ -4,17 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Broadcast Your Venue Feed — AgendaWeb</title>
+  <meta name="description" content="Connect your music venue or gallery to AgendaWeb's open cultural broadsheet. Free Schema.org and RSS event syndication.">
   <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
   <link rel="stylesheet" href="../css/style.css">
   <style>
     .onboard-container {
-      max-width: 680px;
-      margin: 40px auto 60px auto;
+      max-width: 780px;
+      margin: 36px auto 60px auto;
       padding: 0 16px;
     }
     .onboard-header {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
     }
     .onboard-badge {
       display: inline-block;
@@ -27,7 +28,7 @@
     }
     .onboard-title {
       font-family: var(--font-serif);
-      font-size: 2.2rem;
+      font-size: 2.3rem;
       color: var(--color-nightfall);
       line-height: 1.2;
       margin-bottom: 12px;
@@ -36,8 +37,37 @@
       font-size: 1rem;
       color: var(--color-text-muted);
       line-height: 1.55;
-      max-width: 580px;
+      max-width: 620px;
       margin: 0 auto;
+    }
+    /* Tab Bar Navigation */
+    .venue-nav-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--color-oat);
+      padding-bottom: 14px;
+    }
+    .venue-nav-tab {
+      background: transparent;
+      border: 1px solid var(--color-oat);
+      padding: 9px 18px;
+      border-radius: 20px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .venue-nav-tab:hover {
+      color: var(--color-nightfall);
+      border-color: var(--color-nightfall);
+    }
+    .venue-nav-tab.active {
+      background: var(--color-nightfall);
+      color: var(--color-white);
+      border-color: var(--color-nightfall);
     }
     .onboard-card {
       background: var(--color-white);
@@ -47,9 +77,10 @@
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
     }
     .form-hint {
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       color: var(--color-text-muted);
-      margin-top: 4px;
+      margin-top: 5px;
+      line-height: 1.4;
     }
     .preview-box {
       margin-top: 24px;
@@ -87,7 +118,7 @@
       border-bottom: 1px dashed var(--color-oat);
     }
     .faq-section {
-      margin-top: 40px;
+      margin-top: 36px;
     }
     .success-panel {
       display: none;
@@ -98,11 +129,144 @@
       font-size: 3rem;
       margin-bottom: 16px;
     }
+
+    /* Guide Section Cards */
+    .guide-card {
+      background: var(--color-white);
+      border: 1px solid var(--color-oat);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+    .guide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .guide-title {
+      font-family: var(--font-serif);
+      font-size: 1.45rem;
+      color: var(--color-nightfall);
+      margin: 0;
+    }
+    .guide-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 12px;
+      background: #eef2f6;
+      color: #1e3a5f;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .guide-desc {
+      font-size: 0.92rem;
+      color: var(--color-text-muted);
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+    .cms-tab-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .cms-card {
+      background: #fbfaf6;
+      border: 1px solid var(--color-oat);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: 0.85rem;
+    }
+    .cms-card strong {
+      display: block;
+      color: var(--color-nightfall);
+      margin-bottom: 4px;
+    }
+    .diagram-box {
+      background: #f4f6f8;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .diagram-steps {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .diagram-step {
+      flex: 1;
+      min-width: 140px;
+      background: var(--color-white);
+      border: 1px solid var(--color-oat);
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 0.8rem;
+      color: var(--color-nightfall);
+    }
+    .diagram-arrow {
+      font-size: 1.2rem;
+      color: var(--color-amber-rust);
+      font-weight: bold;
+    }
+    .code-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #212529;
+      color: #f8f9fa;
+      padding: 8px 14px;
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+      font-size: 0.75rem;
+      font-family: monospace;
+    }
+    .code-block-content {
+      background: #1a1e22;
+      color: #e2e8f0;
+      padding: 16px;
+      margin: 0;
+      border-bottom-left-radius: 6px;
+      border-bottom-right-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      font-family: Consolas, Monaco, "Andale Mono", monospace;
+    }
+    .copy-code-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: #ffffff;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .copy-code-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .widget-preview-card {
+      background: #ffffff;
+      border: 1px solid var(--color-oat);
+      border-radius: 8px;
+      padding: 18px;
+      margin-top: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
   </style>
 </head>
 <body>
 
-  <!-- Top Navigation -->
+  <!-- Top Navigation Header -->
   <header class="app-header">
     <div class="header-inner">
       <a href="../index.html" class="brand" style="text-decoration:none;">
@@ -120,138 +284,325 @@
       <h1 class="onboard-title">Broadcast Your Venue Feed</h1>
       <p class="onboard-subtitle">
         Connect your venue's existing gig guide or exhibition page to the open web.
-        Our automated crawler reads your standard Schema.org JSON-LD tags—no logins, no maintenance, and zero platform fees.
+        Our automated crawler reads standard Schema.org JSON-LD tags—no logins, no maintenance, and zero platform fees.
       </p>
     </div>
 
-    <div class="onboard-card" id="onboard-card">
-      <form id="venue-onboard-form" onsubmit="handleVenueSubmit(event)">
-        <!-- Honeypot anti-spam field -->
-        <input type="text" id="website-hp" name="website_hp" style="display:none;" tabindex="-1" autocomplete="off">
+    <!-- Tab View Navigation -->
+    <nav class="venue-nav-tabs">
+      <button type="button" class="venue-nav-tab active" id="tab-btn-register" onclick="switchVenueView('register')">
+        ⚡ Register Venue Feed
+      </button>
+      <button type="button" class="venue-nav-tab" id="tab-btn-guides" onclick="switchVenueView('guides')">
+        📖 Integration & Developer Guides
+      </button>
+    </nav>
 
-        <div class="form-group">
-          <label for="venue-name">Venue or Promoter Name *</label>
-          <input type="text" id="venue-name" class="form-control" placeholder="e.g. The Gasometer Hotel" required>
-          <div class="form-hint">The public display name of your venue or collective.</div>
-        </div>
+    <!-- VIEW 1: REGISTRATION INTAKE -->
+    <div id="view-register" class="venue-view">
+      <div class="onboard-card" id="onboard-card">
+        <form id="venue-onboard-form" onsubmit="handleVenueSubmit(event)">
+          <!-- Honeypot anti-spam field -->
+          <input type="text" id="website-hp" name="website_hp" style="display:none;" tabindex="-1" autocomplete="off">
 
-        <div class="form-group">
-          <label for="venue-url">Public Events / Gig Guide URL *</label>
-          <div style="display:flex; gap:8px;">
-            <input type="url" id="venue-url" class="form-control" placeholder="https://www.thegasometerhotel.com.au/gigs" required>
-            <button type="button" id="btn-test-preview" class="btn btn-outline" style="white-space:nowrap;" onclick="testAndPreviewFeed()">
-              🔍 Test URL
+          <div class="form-group">
+            <label for="venue-name">Venue or Promoter Name *</label>
+            <input type="text" id="venue-name" class="form-control" placeholder="e.g. The Gasometer Hotel" required>
+            <div class="form-hint">The public display name of your venue, gallery, or independent collective.</div>
+          </div>
+
+          <div class="form-group">
+            <label for="venue-url">Public Events / Gig Guide URL *</label>
+            <div style="display:flex; gap:8px;">
+              <input type="url" id="venue-url" class="form-control" placeholder="https://www.thegasometerhotel.com.au/gigs" required>
+              <button type="button" id="btn-test-preview" class="btn btn-outline" style="white-space:nowrap;" onclick="testAndPreviewFeed()">
+                🔍 Test URL
+              </button>
+            </div>
+            <div class="form-hint">The webpage listing your upcoming dates, set times, and ticket links.</div>
+          </div>
+
+          <!-- Live Detected Feed Preview Box -->
+          <div class="preview-box" id="preview-box">
+            <div class="preview-header">
+              <div>
+                <strong id="preview-title" style="font-size:0.95rem; color:var(--color-nightfall);">Detected Gig Guide</strong>
+                <div id="preview-address" style="font-size:0.8rem; color:var(--color-text-muted);"></div>
+              </div>
+              <span class="preview-badge-status" id="preview-status-pill">✓ Ready</span>
+            </div>
+            <div id="preview-message" style="font-size:0.85rem; color:var(--color-nightfall);"></div>
+            <div class="preview-events-list" id="preview-events-list"></div>
+          </div>
+
+          <div class="form-group" style="margin-top:16px;">
+            <label for="venue-email">Contact Email (Optional)</label>
+            <input type="email" id="venue-email" class="form-control" placeholder="bookings@thegasometerhotel.com.au">
+            <div class="form-hint">Optional: We'll send a confirmation once your broadcast feed is approved by the curator.</div>
+          </div>
+
+          <div style="margin-top:24px;">
+            <button type="submit" id="btn-submit-venue" class="btn btn-primary" style="width:100%; padding:12px; font-size:0.95rem; justify-content:center;">
+              ⚡ Connect Venue & Submit for Broadcaster Directory
             </button>
           </div>
-          <div class="form-hint">The webpage listing your upcoming dates, lineup, and ticket links.</div>
-        </div>
+        </form>
 
-        <!-- Live Detected Feed Preview Box -->
-        <div class="preview-box" id="preview-box">
-          <div class="preview-header">
-            <div>
-              <strong id="preview-title" style="font-size:0.95rem; color:var(--color-nightfall);">Detected Gig Guide</strong>
-              <div id="preview-address" style="font-size:0.8rem; color:var(--color-text-muted);"></div>
-            </div>
-            <span class="preview-badge-status" id="preview-status-pill">✓ Ready</span>
+        <!-- Post-Submission Success State -->
+        <div class="success-panel" id="success-panel">
+          <div class="success-icon">🎉</div>
+          <h2 style="font-family:var(--font-serif); font-size:1.8rem; color:var(--color-nightfall); margin-bottom:8px;">
+            Venue Submitted for Broadcast!
+          </h2>
+          <p style="font-size:0.9rem; color:var(--color-text-muted); line-height:1.6; margin-bottom:24px; max-width:480px; margin-left:auto; margin-right:auto;" id="success-text">
+            Thank you! We've registered your venue's event guide. Our cultural curator reviews submissions within 24 hours to ensure broadsheet quality.
+          </p>
+          <div style="display:flex; justify-content:center; gap:12px;">
+            <a href="../index.html" class="btn btn-primary">Return to Broadsheet</a>
+            <button type="button" class="btn btn-outline" onclick="resetForm()">Submit Another Venue</button>
           </div>
-          <div id="preview-message" style="font-size:0.85rem; color:var(--color-nightfall);"></div>
-          <div class="preview-events-list" id="preview-events-list"></div>
         </div>
+      </div>
 
-        <div class="form-group" style="margin-top:16px;">
-          <label for="venue-polling">Update Polling Frequency</label>
-          <select id="venue-polling" class="form-control" style="background:var(--color-white);">
-            <option value="24h" selected>Standard: Check every 24 hours (Recommended)</option>
-            <option value="12h">Frequent: Check every 12 hours</option>
-          </select>
-          <div class="form-hint">Automated crawl cycle. Keeps your listings up to date with zero server load.</div>
-        </div>
+      <!-- FAQ & Guidelines for Organizers -->
+      <div class="faq-section">
+        <h3 style="font-family:var(--font-serif); font-size:1.3rem; margin-bottom:14px; color:var(--color-nightfall);">How AgendaWeb Syndication Works</h3>
+        
+        <details class="guide-accordion" open>
+          <summary class="guide-summary">How does AgendaWeb scrape our gig dates?</summary>
+          <div class="guide-body">
+            AgendaWeb reads standard <a href="https://schema.org/Event" target="_blank" rel="noopener">Schema.org/Event</a> JSON-LD tags embedded directly in your webpage HTML. Most ticketing platforms (Humanitix, Oztix, Eventbrite) and WordPress event plugins automatically render these tags for Google Event Search.
+          </div>
+        </details>
 
-        <div class="form-group">
-          <label for="venue-email">Contact Email (Optional)</label>
-          <input type="email" id="venue-email" class="form-control" placeholder="bookings@thegasometerhotel.com.au">
-          <div class="form-hint">Optional: We'll notify you when your broadcast feed is approved and active.</div>
-        </div>
+        <details class="guide-accordion">
+          <summary class="guide-summary">Do we need to log in to keep our dates updated?</summary>
+          <div class="guide-body">
+            No. AgendaWeb is built on open-web principles. Your website is the single source of truth. Whenever you announce a new gig or change set times on your own website, our crawler detects and updates it on AgendaWeb automatically.
+          </div>
+        </details>
 
-        <div style="margin-top:24px;">
-          <button type="submit" id="btn-submit-venue" class="btn btn-primary" style="width:100%; padding:12px; font-size:0.95rem; justify-content:center;">
-            ⚡ Connect Venue & Submit for Broadcaster Directory
-          </button>
-        </div>
-      </form>
-
-      <!-- Post-Submission Success State -->
-      <div class="success-panel" id="success-panel">
-        <div class="success-icon">🎉</div>
-        <h2 style="font-family:var(--font-serif); font-size:1.8rem; color:var(--color-nightfall); margin-bottom:8px;">
-          Venue Submitted for Broadcast!
-        </h2>
-        <p style="font-size:0.9rem; color:var(--color-text-muted); line-height:1.6; margin-bottom:24px; max-width:480px; margin-left:auto; margin-right:auto;" id="success-text">
-          Thank you! We've registered your venue's event guide. Our cultural curator reviews submissions within 24 hours to ensure high broadsheet quality.
-        </p>
-        <div style="display:flex; justify-content:center; gap:12px;">
-          <a href="../index.html" class="btn btn-primary">Return to Broadsheet</a>
-          <button type="button" class="btn btn-outline" onclick="resetForm()">Submit Another Venue</button>
-        </div>
+        <details class="guide-accordion">
+          <summary class="guide-summary">Are there any platform fees or commissions?</summary>
+          <div class="guide-body">
+            Zero. AgendaWeb is a community-first, non-commercial cultural feed designed to support Melbourne's grassroots live music, zines, and independent arts.
+          </div>
+        </details>
       </div>
     </div>
 
-    <!-- FAQ & Guidelines for Organizers -->
-    <div class="faq-section">
-      <h3 style="font-family:var(--font-serif); font-size:1.3rem; margin-bottom:14px; color:var(--color-nightfall);">How AgendaWeb Syndication Works</h3>
-      
-      <details class="guide-accordion" open>
-        <summary class="guide-summary">How does AgendaWeb scrape our gig dates?</summary>
-        <div class="guide-body">
-          AgendaWeb reads standard <a href="https://schema.org/Event" target="_blank" rel="noopener">Schema.org/Event</a> JSON-LD tags embedded directly in your webpage HTML. Most ticketing platforms (Humanitix, Oztix, Eventbrite) and CMS plugins automatically render these tags for Google Event Search.
-        </div>
-      </details>
+    <!-- VIEW 2: INTEGRATION & DEVELOPER GUIDES -->
+    <div id="view-guides" class="venue-view" style="display:none;">
 
-      <details class="guide-accordion">
-        <summary class="guide-summary">Do we need to create an account or log in to update dates?</summary>
-        <div class="guide-body">
-          No. AgendaWeb is built on open-web principles. Your website is the single source of truth. Whenever you announce a new gig or change set times on your own website, our crawler detects and updates it on AgendaWeb automatically.
+      <!-- Guide 1: Schema.org Event JSON-LD -->
+      <div class="guide-card">
+        <div class="guide-header">
+          <h2 class="guide-title">1. Add Your Events (Schema.org JSON-LD)</h2>
+          <span class="guide-badge" style="background:#e8f5e9; color:#2e7d32;">Recommended Standard</span>
         </div>
-      </details>
+        <p class="guide-desc">
+          Schema.org JSON-LD is the official structured data standard recognized by Google Search, Apple, and open web crawlers. Adding this snippet to your gig page ensures AgendaWeb and search engines automatically understand your artist lineups, dates, venue location, and ticket links.
+        </p>
 
-      <details class="guide-accordion">
-        <summary class="guide-summary">Example Schema.org Event JSON-LD Snippet</summary>
-        <div class="guide-body">
-          If you hand-code your website or manage custom themes, add this snippet to your gig page:
-          <pre class="guide-code">&lt;script type="application/ld+json"&gt;
+        <!-- Visual Flow Diagram -->
+        <div class="diagram-box">
+          <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--color-text-muted); margin-bottom:10px; font-weight:700;">
+            How Automatic Discovery Works
+          </div>
+          <div class="diagram-steps">
+            <div class="diagram-step">
+              <strong>1. Your Website</strong><br>
+              <span style="font-size:0.75rem; color:var(--color-text-muted);">You publish a gig date on your website.</span>
+            </div>
+            <div class="diagram-arrow">→</div>
+            <div class="diagram-step">
+              <strong>2. Schema.org Tag</strong><br>
+              <span style="font-size:0.75rem; color:var(--color-text-muted);">JSON-LD tag renders in your page &lt;head&gt;.</span>
+            </div>
+            <div class="diagram-arrow">→</div>
+            <div class="diagram-step">
+              <strong>3. AgendaWeb Sync</strong><br>
+              <span style="font-size:0.75rem; color:var(--color-text-muted);">Our bot indexes dates & notifies followers.</span>
+            </div>
+          </div>
+        </div>
+
+        <h4 style="font-size:0.92rem; color:var(--color-nightfall); margin-bottom:8px;">Where to Place This in Common Website Builders</h4>
+        <div class="cms-tab-grid">
+          <div class="cms-card">
+            <strong>WordPress / WooCommerce</strong>
+            If using <em>The Events Calendar</em> or <em>EventON</em>, this is already active! For custom themes, paste into your <code>header.php</code> or event template.
+          </div>
+          <div class="cms-card">
+            <strong>Squarespace</strong>
+            Open your event page → <em>Settings</em> → <em>Advanced</em> → paste in <em>Page Header Code Injection</em>.
+          </div>
+          <div class="cms-card">
+            <strong>Wix</strong>
+            Go to <em>Settings</em> → <em>Custom Code</em> → add snippet to <em>Head</em> on your Events page.
+          </div>
+          <div class="cms-card">
+            <strong>Custom HTML / Jamstack</strong>
+            Paste inside the <code>&lt;head&gt;</code> or right before <code>&lt;/body&gt;</code> of your event HTML page.
+          </div>
+        </div>
+
+        <h4 style="font-size:0.92rem; color:var(--color-nightfall); margin-bottom:8px;">Copy-and-Paste Schema.org JSON-LD Template</h4>
+        <div class="code-toolbar">
+          <span>HTML &lt;script type="application/ld+json"&gt;</span>
+          <button type="button" class="copy-code-btn" onclick="copySnippet('code-schema')">📋 Copy Snippet</button>
+        </div>
+        <pre class="code-block-content" id="code-schema">&lt;script type="application/ld+json"&gt;
 {
   "@context": "https://schema.org",
   "@type": "MusicEvent",
-  "name": "The Echoes — Album Launch",
+  "name": "The Echoes — Album Launch & Special Guests",
   "startDate": "2026-10-24T20:00:00+11:00",
   "endDate": "2026-10-24T23:30:00+11:00",
+  "eventStatus": "https://schema.org/EventScheduled",
+  "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
   "location": {
     "@type": "Place",
     "name": "The Gasometer Hotel",
-    "address": "484 Smith St, Collingwood VIC 3066"
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "484 Smith St",
+      "addressLocality": "Collingwood",
+      "addressRegion": "VIC",
+      "postalCode": "3066",
+      "addressCountry": "AU"
+    }
   },
+  "image": [
+    "https://example.com/posters/the-echoes.jpg"
+  ],
+  "description": "Melbourne indie rock outfit celebrating their debut LP release with special guests.",
   "offers": {
     "@type": "Offer",
-    "url": "https://oztix.com.au/event/12345"
+    "url": "https://oztix.com.au/event/12345",
+    "price": "18.00",
+    "priceCurrency": "AUD",
+    "availability": "https://schema.org/InStock"
+  },
+  "performer": {
+    "@type": "MusicGroup",
+    "name": "The Echoes"
   }
 }
 &lt;/script&gt;</pre>
-        </div>
-      </details>
+        <p class="form-hint" style="margin-top:8px;">
+          💡 <strong>Tip:</strong> Test your webpage using the official <a href="https://search.google.com/test/rich-results" target="_blank" rel="noopener">Google Rich Results Test</a> to verify structured data instantly.
+        </p>
+      </div>
 
-      <details class="guide-accordion">
-        <summary class="guide-summary">Are there any platform fees or commissions?</summary>
-        <div class="guide-body">
-          Zero. AgendaWeb is a community-first, non-commercial cultural feed designed to support Melbourne's grassroots live music, zines, and independent arts.
+      <!-- Guide 2: Event RSS 2.0 Syndication -->
+      <div class="guide-card">
+        <div class="guide-header">
+          <h2 class="guide-title">2. Create an Event RSS Feed (Future Standard)</h2>
+          <span class="guide-badge">Open Syndication</span>
         </div>
-      </details>
+        <p class="guide-desc">
+          RSS feeds aren't just for news! With the standard Event extension (<code>xmlns:ev="http://purl.org/rss/1.0/modules/event/"</code>) and poster enclosures, your venue can broadcast an open syndication stream that any reader or festival guide can subscribe to without platform lock-in.
+        </p>
+
+        <div class="code-toolbar">
+          <span>XML feed.xml (RSS 2.0 with ev: module)</span>
+          <button type="button" class="copy-code-btn" onclick="copySnippet('code-rss')">📋 Copy RSS Template</button>
+        </div>
+        <pre class="code-block-content" id="code-rss">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;rss version="2.0" xmlns:ev="http://purl.org/rss/1.0/modules/event/"&gt;
+  &lt;channel&gt;
+    &lt;title&gt;The Gasometer Hotel — Live Gigs&lt;/title&gt;
+    &lt;link&gt;https://www.thegasometerhotel.com.au/gigs&lt;/link&gt;
+    &lt;description&gt;Official live music listings, album launches, and residencies.&lt;/description&gt;
+    &lt;language&gt;en-au&lt;/language&gt;
+    
+    &lt;item&gt;
+      &lt;title&gt;The Echoes — Album Launch&lt;/title&gt;
+      &lt;link&gt;https://www.thegasometerhotel.com.au/gigs/the-echoes&lt;/link&gt;
+      &lt;ev:startdate&gt;2026-10-24T20:00:00+11:00&lt;/ev:startdate&gt;
+      &lt;ev:enddate&gt;2026-10-24T23:30:00+11:00&lt;/ev:enddate&gt;
+      &lt;ev:location&gt;484 Smith St, Collingwood VIC 3066&lt;/ev:location&gt;
+      &lt;category&gt;Live Music&lt;/category&gt;
+      &lt;description&gt;Indie rock outfit celebrating their debut LP release with special guests.&lt;/description&gt;
+      &lt;enclosure url="https://example.com/posters/the-echoes.jpg" type="image/jpeg" length="124500" /&gt;
+    &lt;/item&gt;
+  &lt;/channel&gt;
+&lt;/rss&gt;</pre>
+      </div>
+
+      <!-- Guide 3: Embed AgendaWeb Widget -->
+      <div class="guide-card">
+        <div class="guide-header">
+          <h2 class="guide-title">3. Embed AgendaWeb Widget (widget.js)</h2>
+          <span class="guide-badge" style="background:#fff3e0; color:#e65100;">Zero-Maintenance Embed</span>
+        </div>
+        <p class="guide-desc">
+          Want to display your upcoming verified gigs on your own venue website without building a custom backend? Add two lines of HTML to embed a clean, mobile-responsive broadsheet gig guide that updates automatically.
+        </p>
+
+        <div class="code-toolbar">
+          <span>HTML Embed Snippet</span>
+          <button type="button" class="copy-code-btn" onclick="copySnippet('code-widget')">📋 Copy Embed Code</button>
+        </div>
+        <pre class="code-block-content" id="code-widget">&lt;!-- 1. Target Container (Replace data-venue with your venue slug) --&gt;
+&lt;div class="agendaweb-widget" data-venue="the-gasometer-hotel" data-limit="5"&gt;&lt;/div&gt;
+
+&lt;!-- 2. Lightweight Embed Script (Loads asynchronously) --&gt;
+&lt;script src="https://agendaweb.app/widget.js" async&gt;&lt;/script&gt;</pre>
+
+        <!-- Live Visual Preview of Widget -->
+        <h4 style="font-size:0.92rem; color:var(--color-nightfall); margin-top:20px; margin-bottom:8px;">Live Widget Preview</h4>
+        <div class="widget-preview-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--color-oat); padding-bottom:10px; margin-bottom:12px;">
+            <div style="font-family:var(--font-serif); font-size:1.15rem; font-weight:700; color:var(--color-nightfall);">The Gasometer Hotel · Upcoming Gigs</div>
+            <span style="font-size:0.75rem; color:var(--color-text-muted);">AgendaWeb Live Widget</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dashed var(--color-oat); font-size:0.88rem;">
+            <div>
+              <strong>The Echoes — Album Launch</strong>
+              <div style="font-size:0.78rem; color:var(--color-text-muted);">Sat 24 Oct · 8:00 PM · Live Music</div>
+            </div>
+            <span class="btn btn-primary" style="font-size:0.75rem; padding:4px 8px; pointer-events:none;">🎟 Tickets</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:0.88rem;">
+            <div>
+              <strong>Sunset Soundscapes: Ambient Showcase</strong>
+              <div style="font-size:0.78rem; color:var(--color-text-muted);">Mon 26 Oct · 7:30 PM · Live Music</div>
+            </div>
+            <span class="btn btn-outline" style="font-size:0.75rem; padding:4px 8px; pointer-events:none;">Details ↗</span>
+          </div>
+          <div style="margin-top:10px; text-align:right; font-size:0.72rem; color:var(--color-text-muted);">
+            Powered by <strong>AgendaWeb</strong> · Open Cultural Syndication
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 
   <script>
     let detectedData = null;
 
+    // Tab Switching Logic
+    function switchVenueView(view) {
+      document.querySelectorAll('.venue-nav-tab').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById(`tab-btn-${view}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      document.getElementById('view-register').style.display = (view === 'register') ? 'block' : 'none';
+      document.getElementById('view-guides').style.display = (view === 'guides') ? 'block' : 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Support URL Hash #guides
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.location.hash === '#guides') {
+        switchVenueView('guides');
+      }
+    });
+
+    // Test & Preview Schema.org
     async function testAndPreviewFeed() {
       const urlInput = document.getElementById('venue-url');
       const url = urlInput.value.trim();
@@ -333,6 +684,7 @@
       }
     }
 
+    // Submit Venue (Update Polling Frequency removed: defined by Curator in admin)
     async function handleVenueSubmit(e) {
       e.preventDefault();
       const honeypot = document.getElementById('website-hp').value;
@@ -340,7 +692,6 @@
 
       const name = document.getElementById('venue-name').value.trim();
       const url = document.getElementById('venue-url').value.trim();
-      const polling = document.getElementById('venue-polling').value;
       const email = document.getElementById('venue-email').value.trim();
       const submitBtn = document.getElementById('btn-submit-venue');
 
@@ -356,7 +707,7 @@
         const payload = {
           name,
           url,
-          polling_frequency: polling,
+          polling_frequency: '24h', // Standard default; curator customizes in admin
           contact_email: email,
           address: detectedData?.venue?.address || '',
           feed_url: detectedData?.feed_url || null
@@ -395,6 +746,17 @@
       document.getElementById('venue-onboard-form').style.display = 'block';
       document.getElementById('success-panel').style.display = 'none';
       detectedData = null;
+    }
+
+    // Snippet Copy Helper
+    function copySnippet(elementId) {
+      const codeEl = document.getElementById(elementId);
+      if (!codeEl) return;
+      navigator.clipboard.writeText(codeEl.textContent).then(() => {
+        alert('✓ Code snippet copied to clipboard!');
+      }).catch(() => {
+        alert('Please manually copy the snippet.');
+      });
     }
 
     function escapeHtml(str) {
