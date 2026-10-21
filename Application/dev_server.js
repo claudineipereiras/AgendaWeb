@@ -271,12 +271,13 @@ const MOCK_EVENTS = [
 ];
 
 let MOCK_SOURCES = [
-  { id: 1, slug: "abc-just-in", name: "ABC News", type: "rss", url: "https://www.abc.net.au/news/feed/51120/rss.xml", category_tab: "news", is_active: 1, last_status: "updated", http_code: 200, item_count: 24, last_error: null, last_polled_at: "2026-10-19 09:15:00" },
-  { id: 2, slug: "sbs-top-stories", name: "SBS News", type: "rss", url: "https://www.sbs.com.au/news/feed", category_tab: "news", is_active: 1, last_status: "updated", http_code: 200, item_count: 18, last_error: null, last_polled_at: "2026-10-19 09:12:00" },
-  { id: 3, slug: "trouble-mag", name: "Trouble Magazine", type: "rss", url: "https://www.troublemag.com/feed/", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 8, last_error: null, last_polled_at: "2026-10-18 14:00:00" },
-  { id: 4, slug: "the-conversation-au", name: "The Conversation (AU)", type: "rss", url: "https://theconversation.com/au/politics/articles.atom", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 12, last_error: null, last_polled_at: "2026-10-18 11:30:00" },
-  { id: 5, slug: "the-gasometer-hotel", name: "The Gasometer Hotel", type: "scrape_event", url: "https://www.thegasometerhotel.com.au/gigs", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 5, last_error: null, last_polled_at: "2026-10-19 08:45:00" },
-  { id: 6, slug: "the-corner-hotel", name: "The Corner Hotel", type: "scrape_event", url: "https://thecornerhotel.com/gigs", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 7, last_error: null, last_polled_at: "2026-10-19 08:30:00" }
+  { id: 1, slug: "abc-just-in", name: "ABC News", type: "rss", url: "https://www.abc.net.au/news/feed/51120/rss.xml", category_tab: "news", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
+  { id: 2, slug: "sbs-top-stories", name: "SBS News", type: "rss", url: "https://www.sbs.com.au/news/feed", category_tab: "news", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
+  { id: 3, slug: "guardian-au-culture", name: "The Guardian AU Culture", type: "rss", url: "https://www.theguardian.com/au/culture/rss", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
+  { id: 4, slug: "the-conversation-au", name: "The Conversation (AU)", type: "rss", url: "https://theconversation.com/au/politics/articles.atom", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
+  { id: 5, slug: "trouble-mag", name: "Trouble Magazine", type: "rss", url: "https://www.troublemag.com/feed/", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
+  { id: 6, slug: "the-gasometer-hotel", name: "The Gasometer Hotel", type: "scrape_event", url: "https://www.thegasometerhotel.com.au/gigs", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 5, last_error: null, last_polled_at: "2026-10-19 08:45:00" },
+  { id: 7, slug: "the-corner-hotel", name: "The Corner Hotel", type: "scrape_event", url: "https://thecornerhotel.com/gigs", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 7, last_error: null, last_polled_at: "2026-10-19 08:30:00" }
 ];
 
 let MOCK_VENUES = [
@@ -482,7 +483,177 @@ const MOCK_ITEMS = {
   ]
 };
 
-const requestHandler = (req, res) => {
+// --- Live RSS & Atom Feed Ingestion Engine ---
+function cleanCdata(str) {
+  if (!str) return "";
+  return str.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim();
+}
+
+function stripHtml(html) {
+  if (!html) return "";
+  return cleanCdata(html)
+    .replace(/<style[^>]*>.*?<\/style>/gis, "")
+    .replace(/<script[^>]*>.*?<\/script>/gis, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseFeedXml(xmlStr) {
+  const isAtom = xmlStr.includes("<feed") && xmlStr.includes("<entry");
+  const channelTitleMatch = xmlStr.match(/<channel[^>]*>[\s\S]*?<title[^>]*>([\s\S]*?)<\/title>/i) || xmlStr.match(/<feed[^>]*>[\s\S]*?<title[^>]*>([\s\S]*?)<\/title>/i);
+  const feedTitle = channelTitleMatch ? stripHtml(channelTitleMatch[1]) : "Live Feed";
+
+  const itemRegex = isAtom ? /<entry\b[^>]*>([\s\S]*?)<\/entry>/gi : /<item\b[^>]*>([\s\S]*?)<\/item>/gi;
+  const items = [];
+  let m;
+
+  while ((m = itemRegex.exec(xmlStr)) !== null && items.length < 30) {
+    const raw = m[1];
+
+    const titleMatch = raw.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
+    const title = titleMatch ? stripHtml(titleMatch[1]) : "Untitled Dispatch";
+
+    let link = "";
+    const atomLinkMatch = raw.match(/<link\b[^>]*href=["']([^"']+)["'][^>]*rel=["']alternate["']/i) || raw.match(/<link\b[^>]*href=["']([^"']+)["']/i);
+    const rssLinkMatch = raw.match(/<link\b[^>]*>([\s\S]*?)<\/link>/i);
+    if (isAtom && atomLinkMatch) link = atomLinkMatch[1];
+    else if (rssLinkMatch) link = cleanCdata(rssLinkMatch[1]);
+    else if (atomLinkMatch) link = atomLinkMatch[1];
+
+    const descMatch = raw.match(/<description\b[^>]*>([\s\S]*?)<\/description>/i) || raw.match(/<summary\b[^>]*>([\s\S]*?)<\/summary>/i);
+    const rawDesc = descMatch ? cleanCdata(descMatch[1]) : "";
+    const summary = stripHtml(rawDesc).slice(0, 320);
+
+    const contentMatch = raw.match(/<content:encoded\b[^>]*>([\s\S]*?)<\/content:encoded>/i) || raw.match(/<content\b[^>]*>([\s\S]*?)<\/content>/i);
+    const fullContent = contentMatch ? cleanCdata(contentMatch[1]) : (rawDesc || `<p>${summary}</p>`);
+
+    const dateMatch = raw.match(/<pubDate\b[^>]*>([\s\S]*?)<\/pubDate>/i) || raw.match(/<updated\b[^>]*>([\s\S]*?)<\/updated>/i) || raw.match(/<published\b[^>]*>([\s\S]*?)<\/published>/i);
+    let pubDate = new Date().toISOString();
+    if (dateMatch) {
+      const parsed = Date.parse(cleanCdata(dateMatch[1]));
+      if (!isNaN(parsed)) pubDate = new Date(parsed).toISOString();
+    }
+
+    const catMatch = raw.match(/<category\b[^>]*term=["']([^"']+)["']/i) || raw.match(/<category\b[^>]*>([\s\S]*?)<\/category>/i);
+    const category = catMatch ? stripHtml(catMatch[1]) : "General";
+
+    let imageUrl = "";
+    const enclosureImg = raw.match(/<enclosure\b[^>]*url=["']([^"']+)["'][^>]*type=["']image\//i) || raw.match(/<enclosure\b[^>]*type=["']image\/[^"']*["'][^>]*url=["']([^"']+)["']/i);
+    const mediaImg = raw.match(/<media:content\b[^>]*url=["']([^"']+)["']/i) || raw.match(/<media:thumbnail\b[^>]*url=["']([^"']+)["']/i);
+    const imgTag = raw.match(/<img\b[^>]*src=["']([^"']+)["']/i);
+
+    if (enclosureImg) imageUrl = enclosureImg[1];
+    else if (mediaImg) imageUrl = mediaImg[1];
+    else if (imgTag) imageUrl = imgTag[1];
+
+    items.push({
+      title,
+      link,
+      summary,
+      content: fullContent,
+      category,
+      image_url: imageUrl,
+      published_at: pubDate.replace("T", " ").slice(0, 19)
+    });
+  }
+
+  return { title: feedTitle, items };
+}
+
+let nextItemId = 1000;
+async function syncRssSource(source) {
+  if (source.type !== 'rss') return source.item_count || 0;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const res = await fetch(source.url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'AgendaWeb-Bot/1.0 (+https://agendaweb.app)'
+      }
+    });
+    clearTimeout(timeout);
+
+    source.http_code = res.status;
+    if (!res.ok) {
+      source.last_status = 'failed';
+      source.last_error = `HTTP ${res.status} ${res.statusText}`;
+      return 0;
+    }
+
+    const xml = await res.text();
+    const parsed = parseFeedXml(xml);
+    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    if (parsed.items.length > 0) {
+      const tab = source.category_tab || 'blogs';
+      if (!MOCK_ITEMS[tab]) MOCK_ITEMS[tab] = [];
+
+      // Avoid duplicating items by link
+      const existingLinks = new Set(MOCK_ITEMS[tab].map(i => i.link));
+      const formatted = parsed.items.map(item => ({
+        id: ++nextItemId,
+        source_name: source.name,
+        category_tab: tab,
+        category: item.category || 'General',
+        title: item.title,
+        link: item.link,
+        summary: item.summary,
+        content: item.content,
+        image_url: item.image_url || '',
+        published_at: item.published_at || now
+      }));
+
+      const toAdd = formatted.filter(item => !existingLinks.has(item.link));
+      MOCK_ITEMS[tab] = [...toAdd, ...MOCK_ITEMS[tab]];
+
+      source.item_count = parsed.items.length;
+      source.last_status = 'updated';
+      source.last_error = null;
+      source.last_polled_at = now;
+      return parsed.items.length;
+    }
+
+    source.last_status = 'active';
+    source.last_polled_at = now;
+    return 0;
+  } catch (err) {
+    source.last_status = 'failed';
+    source.last_error = err.message || 'Network error';
+    return 0;
+  }
+}
+
+async function syncAllActiveSources() {
+  let success = 0;
+  let failed = 0;
+  let totalItems = 0;
+  const logs = [];
+
+  for (const source of MOCK_SOURCES) {
+    if (source.is_active && source.type === 'rss') {
+      const count = await syncRssSource(source);
+      if (source.last_status === 'failed') {
+        failed++;
+        logs.push(`[FAILED] ${source.name}: ${source.last_error}`);
+      } else {
+        success++;
+        totalItems += count;
+        logs.push(`[UPDATED] ${source.name}: ${count} live items`);
+      }
+    }
+  }
+
+  return { success, failed, totalItems, logs };
+}
+
+const requestHandler = async (req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
 
@@ -572,7 +743,7 @@ const requestHandler = (req, res) => {
     return;
   }
 
-  // 3. API: Personal Feed CORS Proxy
+  // 3. API: Personal Feed CORS Proxy (Live Remote Fetch)
   if (pathname === '/api/proxy_feed.php') {
     const targetUrl = parsedUrl.query.url;
     if (!targetUrl) {
@@ -581,24 +752,36 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    // Mock parsed personal feed items
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify({
-      status: 'success',
-      feed_url: targetUrl,
-      title: "Sample Personal RSS Feed",
-      categories: ["All", "Visual Arts", "Interviews"],
-      items: [
-        {
-          title: "Melbourne Underground Zine Scene 2026",
-          link: "https://example.com/zine-scene",
-          summary: "Local risograph studios are banding together to form neighborhood micro-press collectives.",
-          category: "Visual Arts",
-          image_url: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=700&q=80",
-          published_at: new Date().toISOString()
-        }
-      ]
-    }));
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const feedRes = await fetch(targetUrl, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'AgendaWeb-Proxy/1.0 (+https://agendaweb.app)' }
+      });
+      clearTimeout(timeout);
+
+      if (!feedRes.ok) {
+        res.writeHead(422, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: `Unable to fetch remote feed (HTTP ${feedRes.status})` }));
+        return;
+      }
+
+      const xml = await feedRes.text();
+      const parsed = parseFeedXml(xml);
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        status: 'success',
+        feed_url: targetUrl,
+        title: parsed.title,
+        categories: ["All", ...new Set(parsed.items.map(i => i.category).filter(Boolean))],
+        items: parsed.items
+      }));
+    } catch (err) {
+      res.writeHead(422, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: `Failed to fetch or parse feed: ${err.message}` }));
+    }
     return;
   }
 
@@ -1256,64 +1439,96 @@ const requestHandler = (req, res) => {
         return;
       }
 
-      let host = 'example.com';
-      try { host = new URL(targetUrl).hostname; } catch(e) {}
-      const isEventVenue = targetUrl.includes('gasometer') || targetUrl.includes('corner') || targetUrl.includes('tote') || targetUrl.includes('forum') || targetUrl.includes('gig') || targetUrl.includes('event');
-      const venueName = host.replace(/^www\./, '').split('.')[0].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      const venueSlug = venueName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        const webRes = await fetch(targetUrl, {
+          signal: controller.signal,
+          headers: { 'User-Agent': 'AgendaWeb-Bot/1.0 (+https://agendaweb.app)' }
+        });
+        clearTimeout(timeout);
 
-      const detectedEvents = [
-        {
-          title: "The Sunset Sessions — Live Quintet",
-          start_time: "2026-10-25 20:00:00",
-          end_time: "2026-10-25 23:00:00",
-          category: "Live Music",
-          venue_name: venueName,
-          address: "Melbourne VIC",
-          ticket_url: targetUrl,
-          image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=700&q=80"
-        },
-        {
-          title: "Indie Album Launch & Special Guests",
-          start_time: "2026-10-28 19:30:00",
-          end_time: "2026-10-28 22:30:00",
-          category: "Live Music",
-          venue_name: venueName,
-          address: "Melbourne VIC",
-          ticket_url: targetUrl,
-          image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=700&q=80"
+        const html = await webRes.text();
+        const pageTitleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        const pageTitle = pageTitleMatch ? stripHtml(pageTitleMatch[1]) : 'Discovered Source';
+
+        // Check for alternate RSS/Atom links
+        const rssMatch = html.match(/<link\b[^>]*rel=["']alternate["'][^>]*type=["']application\/(rss\+xml|atom\+xml)["'][^>]*href=["']([^"']+)["']/i)
+          || html.match(/<link\b[^>]*href=["']([^"']+)["'][^>]*type=["']application\/(rss\+xml|atom\+xml)["']/i);
+        let discoveredFeed = rssMatch ? (rssMatch[2] || rssMatch[1]) : null;
+        if (discoveredFeed && !discoveredFeed.startsWith('http')) {
+          try {
+            discoveredFeed = new URL(discoveredFeed, targetUrl).href;
+          } catch(e) {}
         }
-      ];
 
-      const detectedVenue = {
-        slug: venueSlug,
-        name: venueName,
-        address: isEventVenue ? "484 Smith St, Collingwood VIC 3066" : "",
-        website_url: targetUrl,
-        feed_url: isEventVenue ? null : `${targetUrl.replace(/\/$/, '')}/feed.xml`
-      };
+        // Check for Schema.org JSON-LD events
+        const jsonLdMatches = html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+        const detectedEvents = [];
+        let detectedVenueName = '';
 
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({
-        status: 'success',
-        url: targetUrl,
-        http_code: 200,
-        page_title: `${venueName} | Gigs & Live Events Calendar`,
-        detected_type: isEventVenue ? 'scrape_event' : 'rss',
-        suggested_name: venueName,
-        suggested_tab: isEventVenue ? 'events' : 'blogs',
-        feed_url: isEventVenue ? null : `${targetUrl.replace(/\/$/, '')}/feed.xml`,
-        events_count: detectedEvents.length,
-        venue: detectedVenue,
-        events: detectedEvents
-      }));
+        for (const m of jsonLdMatches) {
+          try {
+            const data = JSON.parse(m[1].trim());
+            const nodes = Array.isArray(data) ? data : (data['@graph'] || [data]);
+            for (const node of nodes) {
+              const type = node['@type'] || '';
+              if (typeof type === 'string' && (type === 'Event' || type.endsWith('Event'))) {
+                if (!node.name || !node.startDate) continue;
+                const vName = node.location?.name || '';
+                if (vName && !detectedVenueName) detectedVenueName = vName;
+                detectedEvents.push({
+                  title: String(node.name).trim(),
+                  start_time: node.startDate ? node.startDate.replace('T', ' ').slice(0, 19) : '',
+                  end_time: node.endDate ? node.endDate.replace('T', ' ').slice(0, 19) : null,
+                  category: type.replace('Event', '') || 'Live Music',
+                  venue_name: vName,
+                  address: typeof node.location?.address === 'object' ? (node.location.address.streetAddress || '') : (node.location?.address || ''),
+                  ticket_url: node.url || targetUrl,
+                  image_url: node.image || ''
+                });
+              }
+            }
+          } catch (e) {}
+        }
+
+        let host = 'example.com';
+        try { host = new URL(targetUrl).hostname; } catch(e) {}
+        const isEventVenue = detectedEvents.length > 0 || /gig|event|hotel|theatre|hall|club/i.test(targetUrl);
+        const defaultName = detectedVenueName || pageTitle.split(/[-–|]/)[0].trim() || host;
+        const venueSlug = defaultName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          status: 'success',
+          url: targetUrl,
+          http_code: webRes.status,
+          page_title: pageTitle,
+          detected_type: (detectedEvents.length > 0 || (isEventVenue && !discoveredFeed)) ? 'scrape_event' : 'rss',
+          suggested_name: defaultName,
+          suggested_tab: isEventVenue ? 'events' : 'blogs',
+          feed_url: discoveredFeed,
+          events_count: detectedEvents.length,
+          venue: {
+            slug: venueSlug,
+            name: defaultName,
+            address: detectedEvents[0]?.address || 'Melbourne VIC',
+            website_url: targetUrl,
+            feed_url: discoveredFeed
+          },
+          events: detectedEvents
+        }));
+      } catch (err) {
+        res.writeHead(422, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'error', message: `Unable to inspect webpage: ${err.message}` }));
+      }
       return;
     }
 
     if (action === 'add_source' && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
-      req.on('end', () => {
+      req.on('end', async () => {
         let payload = {};
         try { payload = JSON.parse(body); } catch (e) {}
         const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
@@ -1326,13 +1541,18 @@ const requestHandler = (req, res) => {
           url: payload.url || 'https://example.com/feed.xml',
           category_tab: payload.category_tab || 'blogs',
           is_active: 1,
-          last_status: 'updated',
+          last_status: 'active',
           http_code: 200,
-          item_count: payload.type === 'scrape_event' ? 2 : 5,
+          item_count: 0,
           last_error: null,
           last_polled_at: now
         };
         MOCK_SOURCES.push(newSource);
+
+        // If RSS feed, immediately fetch real live dispatches
+        if (newSource.type === 'rss') {
+          await syncRssSource(newSource);
+        }
 
         // Update / Insert into MOCK_VENUES if it is an event source
         if (payload.category_tab === 'events' || payload.type === 'scrape_event' || payload.venue_name) {
@@ -1362,7 +1582,8 @@ const requestHandler = (req, res) => {
         res.end(JSON.stringify({ 
           status: 'success', 
           message: 'Source and venue database updated successfully', 
-          id: newSource.id 
+          id: newSource.id,
+          item_count: newSource.item_count
         }));
       });
       return;
@@ -1465,7 +1686,7 @@ const requestHandler = (req, res) => {
     if (action === 'sync_single' && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
-      req.on('end', () => {
+      req.on('end', async () => {
         let payload = {};
         try { payload = JSON.parse(body); } catch (e) {}
         const source = MOCK_SOURCES.find(s => s.id === payload.id);
@@ -1475,45 +1696,37 @@ const requestHandler = (req, res) => {
           return;
         }
 
-        const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
-        source.last_polled_at = now;
-        source.last_status = 'updated';
-        source.http_code = 200;
-        source.item_count = source.item_count || 5;
+        const count = await syncRssSource(source);
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({
           status: 'success',
           source_id: source.id,
           name: source.name,
-          last_status: 'updated',
-          item_count: source.item_count,
-          last_polled_at: now
+          last_status: source.last_status,
+          item_count: count,
+          last_error: source.last_error,
+          last_polled_at: source.last_polled_at
         }));
       });
       return;
     }
 
     if (action === 'sync_now' && req.method === 'POST') {
-      const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
-      MOCK_SOURCES.forEach(s => {
-        if (s.is_active) {
-          s.last_polled_at = now;
-          s.last_status = 'updated';
-          s.http_code = 200;
-        }
-      });
+      const report = await syncAllActiveSources();
+      const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({
         status: 'success',
         message: 'Sync worker executed successfully',
         report: {
-          total: MOCK_SOURCES.length,
-          success: MOCK_SOURCES.filter(s => s.is_active).length,
-          failed: 0,
+          total: MOCK_SOURCES.filter(s => s.is_active).length,
+          success: report.success,
+          failed: report.failed,
           timestamp: now
         },
-        log: `[${now}] Ingestion scan complete across ${MOCK_SOURCES.length} sources.\nAll active feeds updated. 0 errors.`
+        log: `[${now}] Live ingestion scan complete across active sources:\n${report.logs.join('\n')}`
       }));
       return;
     }
@@ -1581,3 +1794,10 @@ function startServer(port, isPrimary = false) {
 
 // Bind both primary port 8001 and port 8000 so all clients remain 100% updated
 PORTS_TO_SERVE.forEach((p, idx) => startServer(p, idx === 0));
+
+// Perform initial live RSS feed fetch in background so local development immediately has fresh real dispatches
+syncAllActiveSources().then(res => {
+  console.log(`[sync] Initial RSS live sync complete: ${res.success} feeds updated (${res.totalItems} real articles loaded).`);
+}).catch(e => {
+  console.warn('[sync] Initial RSS live sync background error:', e.message);
+});
