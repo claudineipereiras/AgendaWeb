@@ -226,7 +226,7 @@ async function setTab(tabName) {
   currentTab = tabName;
   currentCategory = 'All';
 
-  document.querySelectorAll('.tab-btn').forEach(btn => {
+  document.querySelectorAll('.tab-btn, .m3-tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabName);
   });
 
@@ -241,7 +241,7 @@ async function initCityAndAudienceUI() {
   if (cityLabel) cityLabel.textContent = matched ? matched.name : (savedCity === 'all' ? 'All Australia' : 'Melbourne');
 
   const savedAudience = await window.agendaDB.getAudienceFilter();
-  document.querySelectorAll('.audience-btn').forEach(btn => {
+  document.querySelectorAll('.audience-btn, .m3-chip').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.audience === savedAudience);
   });
 }
@@ -262,7 +262,12 @@ async function openCityModal() {
         <span class="city-card-name">${escapeHtml(c.name)}</span>
         <span class="city-card-state">${escapeHtml(c.state)}</span>
       </div>
-      <div class="city-card-count">⚡ ${c.event_count || 'Active'} cultural events</div>
+      <div class="city-card-count">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" style="vertical-align:-1px; margin-right:3px;">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+        ${c.event_count || 'Active'} cultural events
+      </div>
     </div>
   `).join('');
 }
@@ -288,7 +293,7 @@ async function selectCity(citySlug, cityName) {
 // Audience Filtering (All, 18+, All Ages, Kids & Family)
 async function setAudienceFilter(audience, btnElement) {
   await window.agendaDB.setAudienceFilter(audience);
-  document.querySelectorAll('.audience-btn').forEach(btn => {
+  document.querySelectorAll('.audience-btn, .m3-chip').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.audience === audience);
   });
   if (currentTab === 'events') {
@@ -402,19 +407,19 @@ async function renderEvents(refreshPills = true) {
     const starBtnClass = isStarred ? 'btn-secondary starred' : 'btn-secondary';
     const starBtnText = isStarred ? '★ Saved' : '★ Save';
 
-    // Age restriction badge
+    // Age restriction badge with Material Symbols vector icons
     let ageBadgeHtml = '';
     if (ev.age_restriction === '18+') {
-      ageBadgeHtml = '<span class="badge-age badge-age-18">🔞 18+</span>';
+      ageBadgeHtml = '<span class="badge-age badge-age-18"><svg class="badge-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12.3 2a10 10 0 0 0-1.9 19.8 10 10 0 0 0 11.5-11.5c-.2 0-.4.1-.6.1a10 10 0 0 1-9-8.4z"/></svg> 18+ Nightlife</span>';
     } else if (ev.age_restriction === 'all_ages') {
-      ageBadgeHtml = '<span class="badge-age badge-age-aa">🎟️ All Ages</span>';
+      ageBadgeHtml = '<span class="badge-age badge-age-aa"><svg class="badge-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/></svg> All Ages</span>';
     } else if (ev.age_restriction === 'kids_family' || ev.is_family_friendly) {
-      ageBadgeHtml = '<span class="badge-age badge-age-kids">🎈 Kids & Family</span>';
+      ageBadgeHtml = '<span class="badge-age badge-age-kids"><svg class="badge-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><circle cx="9" cy="4" r="2"/><path d="M9 7c-1.66 0-3 1.34-3 3v4h2v7h2v-7h2v-4c0-1.66-1.34-3-3-3z"/><circle cx="16" cy="9" r="1.5"/><path d="M16 11.5c-1.1 0-2 .9-2 2v2.5h1.2v5h1.6v-5H18v-2.5c0-1.1-.9-2-2-2z"/></svg> Kids & Family</span>';
     }
 
     // Suburb / City badge
     const suburbName = ev.suburb || (ev.city_name ? ev.city_name : '');
-    const suburbBadgeHtml = suburbName ? `<span class="badge-suburb">📍 ${escapeHtml(suburbName)}</span>` : '';
+    const suburbBadgeHtml = suburbName ? `<span class="badge-suburb"><svg class="badge-icon" viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> ${escapeHtml(suburbName)}</span>` : '';
 
     return `
       <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${ev.id}">
@@ -438,14 +443,32 @@ async function renderEvents(refreshPills = true) {
         <h2 class="card-title">
           <a href="#" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')}); return false;">${escapeHtml(ev.title)}</a>
         </h2>
-        <div class="card-location">📍 ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || ev.suburb || '')}</div>
+        <div class="card-location">
+          <svg class="loc-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="vertical-align:-2px; margin-right:3px; color:var(--color-racing-green);">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+          ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || ev.suburb || '')}
+        </div>
         ${ev.description ? `<p class="card-summary">${escapeHtml(ev.description)}</p>` : ''}
         <div class="card-actions">
           <div class="card-actions-left">
-            <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">📖 Read in Full</button>
-            <a href="calendar.php?id=${ev.id}" class="btn btn-outline" target="_blank" onclick="handleCardOpen('${ev.id}')">📅 Add to Calendar</a>
+            <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+              <span>Read in Full</span>
+            </button>
+            <a href="calendar.php?id=${ev.id}" class="btn btn-outline" target="_blank" onclick="handleCardOpen('${ev.id}')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <span>Calendar</span>
+            </a>
             <button class="btn ${starBtnClass}" onclick="toggleStar(${JSON.stringify(ev).replace(/"/g, '&quot;')}, this)">
-              ${starBtnText}
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="${isStarred ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>${starBtnText}</span>
             </button>
             ${ev.ticket_url ? `<a href="${ev.ticket_url}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${ev.id}')">Tickets</a>` : ''}
           </div>
@@ -481,7 +504,12 @@ async function renderFollowing(refreshPills = true) {
         <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:14px; max-width:440px; margin-left:auto; margin-right:auto;">
           Follow your favorite venues, artists, and independent organisers by tapping the <strong>Follow [RSS]</strong> button on any gig card.
         </p>
-        <button class="btn btn-primary" onclick="setTab('events')">⚡ Browse All Gigs</button>
+        <button class="btn btn-primary" onclick="setTab('events')">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+          <span>Browse All Events</span>
+        </button>
       </div>
     `;
     return;
