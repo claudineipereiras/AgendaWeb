@@ -9,6 +9,7 @@ const ASSETS_TO_CACHE = [
   './js/app.js',
   './assets/logo.svg',
   './assets/icon.svg',
+  './assets/techsousa-logo.png',
   './manifest.webmanifest'
 ];
 
