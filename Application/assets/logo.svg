@@ -1,5 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 500" width="1060" height="500" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1140 500" width="1140" height="500" fill="none">
   <!-- AgendaWeb Official Primary Website Logo (Full Horizontal Lockup - Completely Unclipped) -->
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&amp;display=swap');
+    </style>
+  </defs>
+
   <g id="logo-mark" transform="translate(40, 60)">
     <!-- Outer RSS wave arc in Sage Green (#4A5D4E) -->
     <path d="M 170 -26 A 166 166 0 0 1 336 140" fill="none" stroke="#4A5D4E" stroke-width="20" stroke-linecap="round" />
@@ -36,17 +42,17 @@
     <rect x="119" y="236" width="28" height="24" rx="3" fill="#1B3B2B" />
   </g>
 
-  <!-- Typography: Wordmark & Tagline vertically aligned -->
-  <g id="logo-text" transform="translate(440, 20)">
-    <text x="0" y="235" 
-          font-family="system-ui, -apple-system, 'Inter', 'Montserrat', 'Helvetica Neue', Arial, sans-serif" 
-          font-size="82" 
+  <!-- Typography: Wordmark & Tagline vertically aligned with calendar icon & under rounded lines -->
+  <g id="logo-text">
+    <text x="418" y="282" 
+          font-family="'Inter', system-ui, -apple-system, 'Montserrat', 'Helvetica Neue', Arial, sans-serif" 
+          font-size="102" 
           font-weight="900" 
           letter-spacing="2" 
           fill="#1B3B2B">AGENDAWEB</text>
-    <text x="28" y="288" 
-          font-family="system-ui, -apple-system, 'Inter', 'Montserrat', 'Helvetica Neue', Arial, sans-serif" 
-          font-size="30" 
+    <text x="422" y="340" 
+          font-family="'Inter', system-ui, -apple-system, 'Montserrat', 'Helvetica Neue', Arial, sans-serif" 
+          font-size="37" 
           font-weight="700" 
           letter-spacing="3" 
           fill="#1B3B2B">YOUR CULTURAL WEB FEED</text>
