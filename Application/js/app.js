@@ -405,7 +405,7 @@ async function renderEvents(refreshPills = true) {
     const isFollowed = await window.agendaDB.isEntityFollowed(ev.venue_name);
     const dateStr = formatDate(ev.start_time);
     const starBtnClass = isStarred ? 'btn-secondary starred' : 'btn-secondary';
-    const starBtnText = isStarred ? '★ Saved' : '★ Save';
+    const starBtnText = isStarred ? 'Saved' : 'Save';
 
     // Age restriction badge with Material Symbols vector icons
     let ageBadgeHtml = '';
@@ -537,7 +537,10 @@ async function renderFollowing(refreshPills = true) {
       <span class="following-header-label">Following (${followedList.length} Venues):</span>
       ${followedList.map(f => `
         <span class="following-chip">
-          📍 ${escapeHtml(f.name)}
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" style="color:var(--color-racing-green); flex-shrink:0;">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+          <span>${escapeHtml(f.name)}</span>
           <button class="following-chip-remove" onclick="unfollowFromSettings('${escapeQuote(f.name)}')">✕</button>
         </span>
       `).join('')}
@@ -569,7 +572,7 @@ async function renderFollowing(refreshPills = true) {
         const isRead = await window.agendaDB.isCardRead(ev.id);
         const dateStr = formatDate(ev.start_time);
         const starBtnClass = isStarred ? 'btn-secondary starred' : 'btn-secondary';
-        const starBtnText = isStarred ? '★ Saved' : '★ Save';
+        const starBtnText = isStarred ? 'Saved' : 'Save';
 
         return `
           <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${ev.id}">
@@ -591,14 +594,32 @@ async function renderFollowing(refreshPills = true) {
             <h2 class="card-title">
               <a href="#" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')}); return false;">${escapeHtml(ev.title)}</a>
             </h2>
-            <div class="card-location">📍 ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || '')}</div>
+            <div class="card-location">
+              <svg class="loc-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="vertical-align:-2px; margin-right:3px; color:var(--color-racing-green);">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
+              ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || '')}
+            </div>
             ${ev.description ? `<p class="card-summary">${escapeHtml(ev.description)}</p>` : ''}
             <div class="card-actions">
               <div class="card-actions-left">
-                <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">📖 Read in Full</button>
-                <a href="calendar.php?id=${ev.id}" class="btn btn-outline" target="_blank" onclick="handleCardOpen('${ev.id}')">📅 Add to Calendar</a>
+                <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                  </svg>
+                  <span>Read in Full</span>
+                </button>
+                <a href="calendar.php?id=${ev.id}" class="btn btn-outline" target="_blank" onclick="handleCardOpen('${ev.id}')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  <span>Calendar</span>
+                </a>
                 <button class="btn ${starBtnClass}" onclick="toggleStar(${JSON.stringify(ev).replace(/"/g, '&quot;')}, this)">
-                  ${starBtnText}
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="${isStarred ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  <span>${starBtnText}</span>
                 </button>
                 ${ev.ticket_url ? `<a href="${ev.ticket_url}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${ev.id}')">Tickets</a>` : ''}
               </div>
@@ -613,12 +634,24 @@ async function renderFollowing(refreshPills = true) {
       <section class="venue-group">
         <div class="venue-group-header">
           <div class="venue-group-title-wrap">
-            <h3 class="venue-group-title">📍 ${escapeHtml(venueName)}</h3>
+            <h3 class="venue-group-title">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="color:var(--color-racing-green); vertical-align:-2px; margin-right:4px;">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
+              ${escapeHtml(venueName)}
+            </h3>
             ${address ? `<span class="venue-group-address">${escapeHtml(address)}</span>` : ''}
           </div>
           <div class="venue-group-meta">
             <span class="venue-group-count">${venueEvents.length} upcoming gig${venueEvents.length === 1 ? '' : 's'}</span>
-            ${hasFeed ? `<span class="badge-rss-pill" title="Live syndication active">📡 Live RSS</span>` : ''}
+            ${hasFeed ? `
+              <span class="badge-rss-pill" title="Live syndication active">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" style="margin-right:3px; vertical-align:-1px;">
+                  <circle cx="6.18" cy="17.82" r="2.18"/>
+                  <path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"/>
+                </svg>
+                <span>Live RSS</span>
+              </span>` : ''}
             <button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="unfollowFromSettings('${escapeQuote(venueName)}')">Unfollow</button>
           </div>
         </div>
@@ -685,10 +718,18 @@ async function renderItems(tab, refreshPills = true) {
         <p class="card-summary">${escapeHtml(item.summary || '')}</p>
         <div class="card-actions">
           <div class="card-actions-left">
-            <button class="btn btn-primary" onclick="openReaderModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">📖 Full Text</button>
+            <button class="btn btn-primary" onclick="openReaderModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+              <span>Full Text</span>
+            </button>
             <a href="${item.link}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Source ↗</a>
             <button class="btn btn-outline" onclick="saveToReads('${item.link}', '${escapeQuote(item.title)}', '${escapeQuote(item.summary || '')}', '${escapeQuote(item.source_name || '')}', '${escapeQuote(item.image_url || '')}')">
-              🔖 Read Later
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>Read Later</span>
             </button>
           </div>
         </div>
@@ -780,10 +821,18 @@ async function renderPersonalFeeds(refreshPills = true) {
         <p class="card-summary">${escapeHtml(item.summary || '')}</p>
         <div class="card-actions">
           <div class="card-actions-left">
-            <button class="btn btn-primary" onclick="openReaderModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">📖 Full Text</button>
+            <button class="btn btn-primary" onclick="openReaderModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+              <span>Full Text</span>
+            </button>
             <a href="${item.link}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Source ↗</a>
             <button class="btn btn-outline" onclick="saveToReads('${item.link}', '${escapeQuote(item.title)}', '${escapeQuote(item.summary || '')}', '${escapeQuote(item.feed_name)}', '${escapeQuote(item.image_url || '')}')">
-              🔖 Read Later
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>Read Later</span>
             </button>
           </div>
         </div>
@@ -804,7 +853,7 @@ async function renderReads() {
     container.innerHTML = `
       <div class="state-message">
         <p>Your private offline reading list and saved gigs are empty.</p>
-        <p style="font-size:0.8rem; margin-top:8px;">Tap <strong>★ Save</strong> on events or <strong>🔖 Read Later</strong> on articles to store them here in IndexedDB.</p>
+        <p style="font-size:0.8rem; margin-top:8px;">Tap <strong>Save</strong> on events or <strong>Read Later</strong> on articles to store them here in IndexedDB.</p>
       </div>
     `;
     return;
@@ -813,7 +862,14 @@ async function renderReads() {
   let html = '';
 
   if (starredEvents.length > 0) {
-    html += '<h3 style="font-size:0.95rem; margin-bottom:12px; color:var(--color-nightfall);">★ Saved Gigs</h3>';
+    html += `
+      <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="color:var(--color-amber-rust);">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+        </svg>
+        <h3 style="font-size:0.95rem; margin:0; color:var(--color-nightfall);">Saved Gigs</h3>
+      </div>
+    `;
     const eventCards = await Promise.all(starredEvents.map(async (ev) => {
       const isRead = await window.agendaDB.isCardRead(ev.id);
       const isFollowed = await window.agendaDB.isEntityFollowed(ev.venue_name);
@@ -837,12 +893,33 @@ async function renderReads() {
           <h2 class="card-title">
             <a href="#" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')}); return false;">${escapeHtml(ev.title)}</a>
           </h2>
-          <div class="card-location">📍 ${escapeHtml(ev.venue_name)}</div>
+          <div class="card-location">
+            <svg class="loc-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="vertical-align:-2px; margin-right:3px; color:var(--color-racing-green);">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+            ${escapeHtml(ev.venue_name)}
+          </div>
           <div class="card-actions">
             <div class="card-actions-left">
-              <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">📖 Read in Full</button>
-              <a href="calendar.php?id=${ev.id}" class="btn btn-outline" onclick="handleCardOpen('${ev.id}')">📅 Add to Calendar</a>
-              <button class="btn btn-outline" onclick="removeStarred(${ev.id})">✕ Remove</button>
+              <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                </svg>
+                <span>Read in Full</span>
+              </button>
+              <a href="calendar.php?id=${ev.id}" class="btn btn-outline" onclick="handleCardOpen('${ev.id}')">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span>Calendar</span>
+              </a>
+              <button class="btn btn-outline" onclick="removeStarred(${ev.id})">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                <span>Remove</span>
+              </button>
             </div>
             <div class="card-actions-right">
               <button class="btn btn-follow ${isFollowed ? 'is-following' : ''}" 
@@ -862,7 +939,15 @@ async function renderReads() {
   }
 
   if (readLaterItems.length > 0) {
-    html += '<h3 style="font-size:0.95rem; margin:20px 0 12px 0; color:var(--color-nightfall);">🔖 Offline Reading Queue</h3>';
+    html += `
+      <div style="display:flex; align-items:center; gap:6px; margin:24px 0 12px 0;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--color-racing-green);">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <h3 style="font-size:0.95rem; margin:0; color:var(--color-nightfall);">Offline Reading Queue</h3>
+      </div>
+    `;
     const readCards = await Promise.all(readLaterItems.map(async (item) => {
       const cardKey = item.url;
       const isRead = await window.agendaDB.isCardRead(cardKey);
@@ -890,7 +975,13 @@ async function renderReads() {
           <div class="card-actions">
             <div class="card-actions-left">
               <a href="${item.url}" class="btn btn-primary" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Open Link ↗</a>
-              <button class="btn btn-outline" onclick="removeRead('${item.url}')">✕ Remove</button>
+              <button class="btn btn-outline" onclick="removeRead('${item.url}')">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                <span>Remove</span>
+              </button>
             </div>
           </div>
         </article>
@@ -906,7 +997,12 @@ async function renderReads() {
 async function toggleStar(eventData, btn) {
   const isNowStarred = await window.agendaDB.toggleStarredEvent(eventData);
   btn.classList.toggle('starred', isNowStarred);
-  btn.textContent = isNowStarred ? '★ Saved' : '★ Save';
+  btn.innerHTML = `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="${isNowStarred ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+    </svg>
+    <span>${isNowStarred ? 'Saved' : 'Save'}</span>
+  `;
 }
 
 async function removeStarred(id) {
@@ -1240,7 +1336,12 @@ function openReaderModal(item) {
 
   // Action Buttons
   const saveBtn = document.getElementById('reader-save-btn');
-  saveBtn.textContent = '🔖 Save to Reads';
+  saveBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+    </svg>
+    <span>Save to Reads</span>
+  `;
   saveBtn.onclick = () => {
     saveToReads(item.link, item.title, item.summary || '', item.source_name || item.feed_name || '', item.image_url || '');
   };
@@ -1265,13 +1366,29 @@ function openEventReaderModal(ev) {
   handleCardOpen(cardKey);
 
   // Set meta header
-  document.getElementById('reader-source-cat').textContent = `📍 ${ev.venue_name || 'Venue'} · ${ev.category || 'Culture'}`;
+  document.getElementById('reader-source-cat').innerHTML = `
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" style="vertical-align:-2px; margin-right:3px; color:var(--color-racing-green);">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+    </svg>
+    <span>${escapeHtml(ev.venue_name || 'Venue')} · ${escapeHtml(ev.category || 'Culture')}</span>
+  `;
   document.getElementById('reader-title').textContent = ev.title;
 
   const fullDateStr = formatFullDateTime(ev.start_time, ev.end_time);
   document.getElementById('reader-date').innerHTML = `
-    <div style="font-weight:600; color:var(--color-nightfall);">📅 ${fullDateStr}</div>
-    ${ev.address ? `<div style="font-size:0.84rem; color:var(--color-text-muted); margin-top:3px;">📍 ${escapeHtml(ev.address)}</div>` : ''}
+    <div style="font-weight:600; color:var(--color-nightfall); display:flex; align-items:center; gap:5px;">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span>${fullDateStr}</span>
+    </div>
+    ${ev.address ? `
+      <div style="font-size:0.84rem; color:var(--color-text-muted); margin-top:4px; display:flex; align-items:center; gap:4px;">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" style="color:var(--color-racing-green);">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+        <span>${escapeHtml(ev.address)}</span>
+      </div>` : ''}
   `;
 
   // Image
@@ -1305,7 +1422,12 @@ function openEventReaderModal(ev) {
 
   // Action Buttons
   const saveBtn = document.getElementById('reader-save-btn');
-  saveBtn.textContent = '★ Save to Reads';
+  saveBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+    </svg>
+    <span>Save to Reads</span>
+  `;
   saveBtn.onclick = () => {
     saveToReads(ev.ticket_url || `#event-${ev.id}`, ev.title, ev.description || '', ev.venue_name, ev.image_url || '');
   };
@@ -1314,7 +1436,12 @@ function openEventReaderModal(ev) {
   if (ev.ticket_url) {
     sourceLink.style.display = 'inline-flex';
     sourceLink.href = ev.ticket_url;
-    sourceLink.textContent = '🎟 Get Tickets ↗';
+    sourceLink.innerHTML = `
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2z"/>
+      </svg>
+      <span>Get Tickets ↗</span>
+    `;
   } else {
     sourceLink.style.display = 'none';
   }
@@ -1329,7 +1456,12 @@ function openEventReaderModal(ev) {
     saveBtn.parentElement.insertBefore(calBtn, saveBtn);
   }
   calBtn.href = `calendar.php?id=${ev.id}`;
-  calBtn.innerHTML = '📅 Add to Calendar';
+  calBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    <span>Add to Calendar</span>
+  `;
   calBtn.style.display = 'inline-flex';
 
   modal.style.display = 'flex';

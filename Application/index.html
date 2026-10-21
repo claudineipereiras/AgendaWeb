@@ -227,14 +227,21 @@
             <div style="font-weight:700; color:var(--color-nightfall); font-size:0.92rem; margin-bottom:3px;">Are you a venue or promoter?</div>
             <div style="font-size:0.78rem; color:var(--color-text-muted); line-height:1.4;">Submit your events page for automated Schema.org scraping or explore integration guides.</div>
           </div>
-          <a href="venues/index.html" target="_blank" class="btn btn-primary" style="font-size:0.82rem; white-space:nowrap;">🌐 Broadcast Your Venue Feed ↗</a>
+          <a href="venues/index.html" target="_blank" class="btn btn-primary" style="font-size:0.82rem; white-space:nowrap;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+            <span>Broadcast Your Venue Feed ↗</span>
+          </a>
         </div>
       </div>
 
       <!-- Local Database & Storage Management (Cultural Diary Mode) -->
       <div class="settings-section" style="border:none; margin-bottom:0; padding-bottom:0;">
         <div class="settings-section-header">
-          <div class="settings-section-title">⚙ Local Database & Storage Settings</div>
+          <div class="settings-section-title">Local Database & Storage Settings</div>
           <div class="settings-section-desc">Zero tracking. You have complete sovereignty over your local data footprint, search indexing, and retention horizon.</div>
         </div>
 
@@ -308,12 +315,30 @@
 
         <!-- Portability Buttons -->
         <div class="portability-actions" style="margin-top:14px;">
-          <button class="btn btn-primary" onclick="handleExportBackup()">💾 Backup Database to File</button>
+          <button class="btn btn-primary" onclick="handleExportBackup()">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Backup to File</span>
+          </button>
           <label class="btn btn-outline" style="cursor:pointer;">
-            📂 Restore from Backup
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <span>Restore Backup</span>
             <input type="file" accept=".json" style="display:none;" onchange="handleImportBackupFile(this)">
           </label>
-          <button class="btn btn-outline" onclick="handlePurgePastEvents()">🧹 Clean Expired Now</button>
+          <button class="btn btn-outline" onclick="handlePurgePastEvents()">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            <span>Clean Expired Now</span>
+          </button>
         </div>
       </div>
 
@@ -365,7 +390,12 @@
       </div>
       <div class="reader-actions">
         <div style="display:flex; gap:8px;">
-          <button class="btn btn-primary" id="reader-save-btn">🔖 Save to Reads</button>
+          <button class="btn btn-primary" id="reader-save-btn">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>Save to Reads</span>
+          </button>
           <a href="#" class="btn btn-outline" id="reader-source-link" target="_blank" rel="noopener">Open Source ↗</a>
         </div>
         <button class="btn btn-outline" onclick="closeReaderModal()">Done Reading</button>
@@ -389,21 +419,38 @@
         <p class="help-text" style="font-size:0.95rem; line-height:1.6; color:var(--color-nightfall); margin-bottom:12px;">
           <strong>AgendaWeb</strong> is an independent, community-first cultural guide celebrating Melbourne’s live music, neighborhood arts, zine culture, and grassroots events.
         </p>
-        <div style="display:flex; flex-direction:column; gap:10px; font-size:0.88rem; color:var(--color-nightfall); line-height:1.55; margin-bottom:14px;">
-          <div style="display:flex; gap:10px; align-items:flex-start;">
-            <span style="font-size:1.1rem; line-height:1;">🌱</span>
+        <div style="display:flex; flex-direction:column; gap:12px; font-size:0.88rem; color:var(--color-nightfall); line-height:1.55; margin-bottom:14px;">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="width:28px; height:28px; border-radius:50%; background:rgba(27, 59, 43, 0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--color-racing-green); margin-top:2px;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path>
+                <path d="M18 14h-8"></path>
+                <path d="M15 18h-5"></path>
+                <path d="M10 6h8v4h-8V6Z"></path>
+              </svg>
+            </div>
             <div>
               <strong>Free & Clean Broadsheet:</strong> No algorithms, corporate paywalls, or ticket markups. We believe finding a great gig or art show should be as simple and enjoyable as picking up a neighborhood printed broadsheet.
             </div>
           </div>
-          <div style="display:flex; gap:10px; align-items:flex-start;">
-            <span style="font-size:1.1rem; line-height:1;">🔒</span>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="width:28px; height:28px; border-radius:50%; background:rgba(27, 59, 43, 0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--color-racing-green); margin-top:2px;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
             <div>
               <strong>Your Privacy Comes First:</strong> No accounts, passwords, or tracking cookies. Your saved reads, personal diary archive, and followed venues are kept 100% private in your own device.
             </div>
           </div>
-          <div style="display:flex; gap:10px; align-items:flex-start;">
-            <span style="font-size:1.1rem; line-height:1;">📻</span>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="width:28px; height:28px; border-radius:50%; background:rgba(27, 59, 43, 0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--color-racing-green); margin-top:2px;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="2"></circle>
+                <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"></path>
+              </svg>
+            </div>
             <div>
               <strong>Direct from Local Venues:</strong> Gigs and reviews are gathered straight from venue websites and public broadcasters, keeping artists and independent stages in control of their own information.
             </div>
@@ -414,7 +461,7 @@
       <!-- Suggestion Box -->
       <div id="suggestion-section">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <div class="help-title" style="margin-bottom:0;">📬 Leave a Suggestion</div>
+          <div class="help-title" style="margin-bottom:0;">Leave a Suggestion</div>
           <button class="btn btn-outline" id="toggle-suggestion-form-btn" style="font-size:0.82rem; padding:4px 10px;" onclick="toggleSuggestionForm()">
             + Write Suggestion
           </button>
@@ -435,10 +482,10 @@
           <div class="form-group">
             <label for="suggestion-cat" style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:4px;">Category</label>
             <select id="suggestion-cat" class="form-control">
-              <option value="feature">💡 Feature Request</option>
-              <option value="venue_feed">📍 Suggest Venue / RSS Feed to Curate</option>
-              <option value="bug">🐛 Bug / Issue Report</option>
-              <option value="general">💬 General Feedback</option>
+              <option value="feature">Feature Request</option>
+              <option value="venue_feed">Suggest Venue / RSS Feed to Curate</option>
+              <option value="bug">Bug / Issue Report</option>
+              <option value="general">General Feedback</option>
             </select>
           </div>
           <div class="form-group">
@@ -462,7 +509,12 @@
   <div class="modal-overlay" id="city-modal" onclick="if(event.target===this) toggleCityModal()">
     <div class="modal-content" style="max-width:560px;">
       <div class="modal-header">
-        <h3>📍 Select City Hub</h3>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="color:var(--color-racing-green);">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+          <h3 style="margin:0;">Select City Hub</h3>
+        </div>
         <button class="icon-btn" onclick="toggleCityModal()">✕</button>
       </div>
       <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:14px; line-height:1.5;">
@@ -474,7 +526,14 @@
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; border-top:1px solid var(--color-oat); padding-top:14px;">
-        <button class="btn btn-outline" style="font-size:0.82rem;" onclick="selectCity('all', 'All Australia')">🌏 All Australia / Touring</button>
+        <button class="btn btn-outline" style="font-size:0.82rem;" onclick="selectCity('all', 'All Australia')">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          <span>All Australia / Touring</span>
+        </button>
         <button class="btn btn-primary" onclick="toggleCityModal()">Done</button>
       </div>
     </div>

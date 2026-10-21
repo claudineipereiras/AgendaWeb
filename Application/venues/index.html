@@ -324,7 +324,11 @@
             <div style="display:flex; gap:8px;">
               <input type="url" id="venue-url" class="form-control" placeholder="https://www.thegasometerhotel.com.au/gigs" required>
               <button type="button" id="btn-test-preview" class="btn btn-outline" style="white-space:nowrap;" onclick="testAndPreviewFeed()">
-                🔍 Test URL
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span>Test URL</span>
               </button>
             </div>
             <div class="form-hint">The webpage listing your upcoming dates, set times, and ticket links.</div>
@@ -337,7 +341,7 @@
                 <strong id="preview-title" style="font-size:0.95rem; color:var(--color-nightfall);">Detected Gig Guide</strong>
                 <div id="preview-address" style="font-size:0.8rem; color:var(--color-text-muted);"></div>
               </div>
-              <span class="preview-badge-status" id="preview-status-pill">✓ Ready</span>
+              <span class="preview-badge-status" id="preview-status-pill">Ready</span>
             </div>
             <div id="preview-message" style="font-size:0.85rem; color:var(--color-nightfall);"></div>
             <div class="preview-events-list" id="preview-events-list"></div>
@@ -378,14 +382,23 @@
 
           <div style="margin-top:24px;">
             <button type="submit" id="btn-submit-venue" class="btn btn-primary" style="width:100%; padding:12px; font-size:0.95rem; justify-content:center;">
-              ⚡ Connect Venue & Submit for Broadcaster Directory
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+              <span>Connect Venue & Submit for Broadcaster Directory</span>
             </button>
           </div>
         </form>
 
         <!-- Post-Submission Success State -->
         <div class="success-panel" id="success-panel">
-          <div class="success-icon">🎉</div>
+          <div class="success-icon" style="width:56px; height:56px; border-radius:50%; background:#e8f5e9; color:#2e7d32; display:flex; align-items:center; justify-content:center; margin:0 auto 16px auto;">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
           <h2 style="font-family:var(--font-serif); font-size:1.8rem; color:var(--color-nightfall); margin-bottom:8px;">
             Venue Submitted for Broadcast!
           </h2>
@@ -485,7 +498,13 @@
         <h4 style="font-size:0.92rem; color:var(--color-nightfall); margin-bottom:8px;">Copy-and-Paste Schema.org JSON-LD Template</h4>
         <div class="code-toolbar">
           <span>HTML &lt;script type="application/ld+json"&gt;</span>
-          <button type="button" class="copy-code-btn" onclick="copySnippet('code-schema')">📋 Copy Snippet</button>
+          <button type="button" class="copy-code-btn" onclick="copySnippet('code-schema')">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy Snippet</span>
+          </button>
         </div>
         <pre class="code-block-content" id="code-schema">&lt;script type="application/ld+json"&gt;
 {
@@ -526,7 +545,7 @@
 }
 &lt;/script&gt;</pre>
         <p class="form-hint" style="margin-top:8px;">
-          💡 <strong>Tip:</strong> Test your webpage using the official <a href="https://search.google.com/test/rich-results" target="_blank" rel="noopener">Google Rich Results Test</a> to verify structured data instantly.
+          <strong>Tip:</strong> Test your webpage using the official <a href="https://search.google.com/test/rich-results" target="_blank" rel="noopener">Google Rich Results Test</a> to verify structured data instantly.
         </p>
       </div>
 
@@ -542,7 +561,13 @@
 
         <div class="code-toolbar">
           <span>XML feed.xml (RSS 2.0 with ev: module)</span>
-          <button type="button" class="copy-code-btn" onclick="copySnippet('code-rss')">📋 Copy RSS Template</button>
+          <button type="button" class="copy-code-btn" onclick="copySnippet('code-rss')">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy RSS Template</span>
+          </button>
         </div>
         <pre class="code-block-content" id="code-rss">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;rss version="2.0" xmlns:ev="http://purl.org/rss/1.0/modules/event/"&gt;
@@ -578,11 +603,17 @@
 
         <div class="code-toolbar">
           <span>HTML Embed Snippet</span>
-          <button type="button" class="copy-code-btn" onclick="copySnippet('code-widget')">📋 Copy Embed Code</button>
+          <button type="button" class="copy-code-btn" onclick="copySnippet('code-widget')">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy Embed Code</span>
+          </button>
         </div>
         <pre class="code-block-content" id="code-widget">&lt;!-- 1. Target Container (Replace data-venue with your venue slug) --&gt;
 &lt;div class="agendaweb-widget" data-venue="the-gasometer-hotel" data-limit="5"&gt;&lt;/div&gt;
-
+ 
 &lt;!-- 2. Lightweight Embed Script (Loads asynchronously) --&gt;
 &lt;script src="https://agendaweb.app/widget.js" async&gt;&lt;/script&gt;</pre>
 
@@ -598,7 +629,7 @@
               <strong>The Echoes — Album Launch</strong>
               <div style="font-size:0.78rem; color:var(--color-text-muted);">Sat 24 Oct · 8:00 PM · Live Music</div>
             </div>
-            <span class="btn btn-primary" style="font-size:0.75rem; padding:4px 8px; pointer-events:none;">🎟 Tickets</span>
+            <span class="btn btn-primary" style="font-size:0.75rem; padding:4px 8px; pointer-events:none;">Tickets</span>
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:0.88rem;">
             <div>
@@ -732,7 +763,13 @@
         previewMessage.textContent = 'Network error verifying URL: ' + err.message;
       } finally {
         testBtn.disabled = false;
-        testBtn.textContent = '🔍 Test URL';
+        testBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span>Test URL</span>
+        `;
       }
     }
 
@@ -755,7 +792,7 @@
       }
 
       submitBtn.disabled = true;
-      submitBtn.textContent = '⏳ Registering Venue...';
+      submitBtn.textContent = 'Registering Venue...';
 
       try {
         const payload = {
@@ -795,7 +832,14 @@
         alert('Network error submitting venue: ' + err.message);
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = '⚡ Connect Venue & Submit for Broadcaster Directory';
+        submitBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          <span>Connect Venue & Submit for Broadcaster Directory</span>
+        `;
       }
     }
 
