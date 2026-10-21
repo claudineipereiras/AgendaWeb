@@ -149,3 +149,40 @@ INSERT INTO `venues` (`slug`, `city_id`, `name`, `address`, `suburb`, `state`, `
 ('the-enmore-theatre', 2, 'Enmore Theatre', '118-132 Enmore Rd, Newtown NSW 2042', 'Newtown', 'NSW', '2042', 'mixed', 'https://enmoretheatre.com.au', 'https://enmoretheatre.com.au/events', NULL),
 ('brisbane-powerhouse', 3, 'Brisbane Powerhouse', '119 Lamington St, New Farm QLD 4005', 'New Farm', 'QLD', '4005', 'all_ages', 'https://brisbanepowerhouse.org', 'https://brisbanepowerhouse.org/whats-on', NULL)
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `address`=VALUES(`address`), `suburb`=VALUES(`suburb`), `website_url`=VALUES(`website_url`);
+
+-- Authentication & Role-Based Access Control (Admin & Manager)
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(120) NOT NULL,
+  `email` VARCHAR(150) UNIQUE NOT NULL,
+  `password_hash` VARCHAR(255) NOT NULL,
+  `role` ENUM('admin', 'manager') NOT NULL DEFAULT 'manager',
+  `is_active` TINYINT(1) DEFAULT 1,
+  `last_login_at` DATETIME NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_user_email` (`email`),
+  INDEX `idx_user_role` (`role`),
+  INDEX `idx_user_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `user_sessions` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NOT NULL,
+  `token` VARCHAR(64) UNIQUE NOT NULL,
+  `ip_address` VARCHAR(45) NULL,
+  `user_agent` VARCHAR(255) NULL,
+  `expires_at` DATETIME NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  INDEX `idx_session_token` (`token`),
+  INDEX `idx_session_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Initial Seed: Default Admin & Manager Accounts
+-- Admin:   admin@agendaweb.app   / AgendaAdmin2026!
+-- Manager: curator@agendaweb.app / CuratorPass2026!
+INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `is_active`) VALUES
+(1, 'Claudinei Sousa', 'admin@agendaweb.app', '$2y$10$wE/kG3Vv6tF4XnL2x3h3seA.j9sT.G2hD3O9i5lqU1e9O2b4c6e8y', 'admin', 1),
+(2, 'Curation Manager', 'curator@agendaweb.app', '$2y$10$rP/kG3Vv6tF4XnL2x3h3seA.j9sT.G2hD3O9i5lqU1e9O2b4c6e8y', 'manager', 1)
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `role`=VALUES(`role`);

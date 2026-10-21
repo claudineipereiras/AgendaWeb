@@ -285,17 +285,44 @@
 
   <!-- Auth Screen -->
   <div id="auth-screen">
-    <div class="login-card">
-      <img src="../assets/logo.svg" alt="AgendaWeb" style="height:48px; margin-bottom:14px;">
-      <h2 style="font-size:1.3rem; margin-bottom:6px;">Curator Admin Portal</h2>
-      <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:20px;">Enter your admin passphrase to manage curated RSS sources and suggestions inbox.</p>
+    <div class="login-card" style="max-width:440px; text-align:left;">
+      <div style="text-align:center; margin-bottom:18px;">
+        <img src="../assets/logo.svg" alt="AgendaWeb" style="height:48px; margin-bottom:10px;">
+        <h2 style="font-size:1.25rem; margin-bottom:4px; color:var(--color-nightfall);">Curator & Admin Portal</h2>
+        <p style="font-size:0.83rem; color:var(--color-text-muted);">Sign in with your email and password to manage dispatches, gig ingestion, and team curation.</p>
+      </div>
+
+      <div id="login-error" style="display:none; color:#991b1b; background:#fee2e2; border:1px solid #fecaca; padding:10px 12px; border-radius:var(--radius-sm); font-size:0.82rem; margin-bottom:14px; line-height:1.4;"></div>
+
       <form onsubmit="handleLogin(event)">
-        <div class="form-group" style="text-align:left;">
-          <label for="admin-key-input">Admin Passphrase</label>
-          <input type="password" id="admin-key-input" class="form-control" placeholder="••••••••••••" required autofocus>
+        <div class="form-group">
+          <label for="login-email">Email Address</label>
+          <input type="email" id="login-email" class="form-control" placeholder="admin@agendaweb.app" required autofocus autocomplete="username">
         </div>
-        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:10px;">Unlock Dashboard →</button>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <div style="position:relative;">
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••••••" required autocomplete="current-password" style="padding-right:40px;">
+            <button type="button" onclick="togglePasswordVisibility('login-password', this)" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--color-text-muted); cursor:pointer; font-size:0.85rem;" title="Toggle password visibility">👁️</button>
+          </div>
+        </div>
+        <button type="submit" id="btn-login-submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:10px; margin-top:8px; font-size:0.95rem;">
+          Sign In to Portal →
+        </button>
       </form>
+
+      <!-- Quick Demo Account Fillers -->
+      <div style="margin-top:20px; padding-top:14px; border-top:1px dashed var(--color-oat); font-size:0.75rem; color:var(--color-text-muted);">
+        <strong style="color:var(--color-nightfall); display:block; margin-bottom:6px;">Demo Credentials:</strong>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-outline" style="padding:4px 8px; font-size:0.72rem;" onclick="fillDemoLogin('admin@agendaweb.app', 'AgendaAdmin2026!')">
+            👑 Admin Demo
+          </button>
+          <button type="button" class="btn btn-outline" style="padding:4px 8px; font-size:0.72rem;" onclick="fillDemoLogin('curator@agendaweb.app', 'CuratorPass2026!')">
+            📝 Manager Demo
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -303,11 +330,16 @@
   <header>
     <a href="../index.html" class="brand-group">
       <img src="../assets/logo.svg" alt="AgendaWeb">
-      <span class="admin-badge">Admin Manager</span>
+      <span class="admin-badge" id="header-portal-badge">Admin Portal</span>
     </a>
-    <div style="display:flex; align-items:center; gap:10px;">
-      <a href="../index.html" class="btn btn-outline">← Back to PWA</a>
-      <button class="btn btn-outline" onclick="logout()">Log Out</button>
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div id="user-info-pill" style="display:none; align-items:center; gap:8px; background:var(--color-oat); padding:4px 10px; border-radius:20px; font-size:0.82rem;">
+        <span id="user-display-name" style="font-weight:600; color:var(--color-nightfall);">Curator</span>
+        <span id="user-display-role" class="admin-badge" style="font-size:0.65rem; padding:2px 6px; background:var(--color-amber-rust);">ADMIN</span>
+      </div>
+      <button class="btn btn-outline" onclick="openChangePasswordModal()" style="font-size:0.82rem; padding:6px 10px;">🔑 Change Password</button>
+      <a href="../index.html" class="btn btn-outline" style="font-size:0.82rem; padding:6px 10px;">← Back to PWA</a>
+      <button class="btn btn-outline" onclick="logout()" style="font-size:0.82rem; padding:6px 10px;">Log Out</button>
     </div>
   </header>
 
@@ -341,6 +373,9 @@
       <button class="nav-btn" data-tab="suggestions" onclick="switchAdminTab('suggestions')">
         📬 Suggestion Inbox <span class="badge-count" id="inbox-badge" style="display:none;">0</span>
       </button>
+      <button class="nav-btn" data-tab="users" id="nav-btn-users" onclick="switchAdminTab('users')">
+        👥 Team & Roles
+      </button>
       <button class="nav-btn" data-tab="system" onclick="switchAdminTab('system')">
         ⚙️ Hostinger Ingestion & Cron
       </button>
@@ -354,7 +389,7 @@
           <p style="font-size:0.85rem; color:var(--color-text-muted);">Manage the public Australian RSS and venue targets ingested by Hostinger cron into MySQL.</p>
         </div>
         <div style="display:flex; gap:8px;">
-          <button class="btn btn-amber" onclick="triggerSyncNow()">⚡ Run Sync Now</button>
+          <button class="btn btn-amber" id="btn-trigger-sync" onclick="triggerSyncNow()">⚡ Run Sync Now</button>
           <button class="btn btn-primary" onclick="openAddSourceModal()">+ Add New Feed</button>
         </div>
       </div>
@@ -441,9 +476,38 @@
         <pre style="background:var(--color-nightfall); color:#4ade80; padding:12px; border-radius:6px; font-size:0.82rem; overflow-x:auto;">php -q /home/YOUR_CPANEL_USER/public_html/sync_sources.php > /dev/null 2>&1</pre>
       </div>
       <div class="stat-card">
-        <h3 style="font-size:1.1rem; margin-bottom:8px;">Security & Token Management</h3>
-        <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:12px;">The Admin API is protected by <code>ADMIN_API_KEY</code> defined in <code>Application/config/config.php</code> or environment variables.</p>
+        <h3 style="font-size:1.1rem; margin-bottom:8px;">Security & Role Management</h3>
+        <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:12px;">The Admin API uses session tokens validated against MySQL <code>users</code> and <code>user_sessions</code> tables with Argon2/Bcrypt password hashing and RBAC permission checks.</p>
       </div>
+    </section>
+
+    <!-- Tab 4: Team & Roles Management (Admin Only) -->
+    <section id="tab-users" style="display:none;">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Team Members & Access Roles</h2>
+          <p style="font-size:0.85rem; color:var(--color-text-muted);">Manage curator team accounts. Admins have complete control over feeds, cron, and users; Managers have editorial rights for feeds and suggestion review.</p>
+        </div>
+        <div>
+          <button class="btn btn-primary" onclick="openAddUserModal()">+ Add Team Member</button>
+        </div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Last Login</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="users-table-body">
+          <tr><td colspan="6" style="text-align:center; padding:24px;">Loading team members...</td></tr>
+        </tbody>
+      </table>
     </section>
 
   </main>
@@ -505,57 +569,540 @@
         </div>
       </form>
     </div>
+  <!-- Change Password Modal -->
+  <div class="modal-overlay" id="modal-change-password">
+    <div class="modal-content" style="max-width:440px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h3 style="font-size:1.15rem; color:var(--color-nightfall);">🔑 Update Your Password</h3>
+        <button type="button" class="btn btn-outline" style="padding:2px 8px;" onclick="closeChangePasswordModal()">✕</button>
+      </div>
+      <p style="font-size:0.83rem; color:var(--color-text-muted); margin-bottom:14px;">
+        Change your login credentials directly inside the portal. New password must be at least 8 characters.
+      </p>
+
+      <div id="cp-alert" style="display:none; padding:10px 12px; border-radius:var(--radius-sm); font-size:0.82rem; margin-bottom:14px; line-height:1.4;"></div>
+
+      <form onsubmit="handleChangePasswordSubmit(event)">
+        <div class="form-group">
+          <label for="cp-current">Current Password</label>
+          <div style="position:relative;">
+            <input type="password" id="cp-current" class="form-control" required placeholder="Enter your current password" style="padding-right:40px;">
+            <button type="button" onclick="togglePasswordVisibility('cp-current', this)" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--color-text-muted); cursor:pointer; font-size:0.85rem;" title="Toggle visibility">👁️</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="cp-new">New Password (min 8 characters)</label>
+          <div style="position:relative;">
+            <input type="password" id="cp-new" class="form-control" required minlength="8" placeholder="••••••••••••" style="padding-right:40px;">
+            <button type="button" onclick="togglePasswordVisibility('cp-new', this)" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--color-text-muted); cursor:pointer; font-size:0.85rem;" title="Toggle visibility">👁️</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="cp-confirm">Confirm New Password</label>
+          <input type="password" id="cp-confirm" class="form-control" required minlength="8" placeholder="••••••••••••">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="closeChangePasswordModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-password">Update Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Team Member Modal (Admin Only) -->
+  <div class="modal-overlay" id="modal-add-user">
+    <div class="modal-content" style="max-width:440px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h3 style="font-size:1.15rem; color:var(--color-nightfall);">👤 Add New Team Member</h3>
+        <button type="button" class="btn btn-outline" style="padding:2px 8px;" onclick="closeAddUserModal()">✕</button>
+      </div>
+      <p style="font-size:0.83rem; color:var(--color-text-muted); margin-bottom:14px;">
+        Provision an account for an editorial curator or co-administrator.
+      </p>
+
+      <div id="add-user-alert" style="display:none; padding:10px 12px; border-radius:var(--radius-sm); font-size:0.82rem; margin-bottom:14px; line-height:1.4;"></div>
+
+      <form onsubmit="handleAddUserSubmit(event)">
+        <div class="form-group">
+          <label for="new-user-name">Full Name</label>
+          <input type="text" id="new-user-name" class="form-control" required placeholder="e.g. Alex Morgan">
+        </div>
+        <div class="form-group">
+          <label for="new-user-email">Email Address</label>
+          <input type="email" id="new-user-email" class="form-control" required placeholder="alex@agendaweb.app">
+        </div>
+        <div class="form-group">
+          <label for="new-user-password">Initial Password (min 8 characters)</label>
+          <input type="password" id="new-user-password" class="form-control" required minlength="8" placeholder="••••••••••••">
+        </div>
+        <div class="form-group">
+          <label for="new-user-role">Permission Role</label>
+          <select id="new-user-role" class="form-control">
+            <option value="manager" selected>Manager (Curation & Suggestion Inbox)</option>
+            <option value="admin">Admin (Full System, Cron & Team Control)</option>
+          </select>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="closeAddUserModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-new-user">Create Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Reset Password for Team Member Modal -->
+  <div class="modal-overlay" id="modal-reset-user-password">
+    <div class="modal-content" style="max-width:440px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h3 style="font-size:1.15rem; color:var(--color-nightfall);">🔐 Reset Member Password</h3>
+        <button type="button" class="btn btn-outline" style="padding:2px 8px;" onclick="closeResetUserPasswordModal()">✕</button>
+      </div>
+      <p style="font-size:0.83rem; color:var(--color-text-muted); margin-bottom:14px;">
+        Set a new temporary password for <strong id="reset-target-user-name">-</strong>.
+      </p>
+
+      <div id="reset-user-alert" style="display:none; padding:10px 12px; border-radius:var(--radius-sm); font-size:0.82rem; margin-bottom:14px; line-height:1.4;"></div>
+
+      <form onsubmit="handleResetUserPasswordSubmit(event)">
+        <input type="hidden" id="reset-target-user-id" value="">
+        <div class="form-group">
+          <label for="reset-user-new-password">New Password (min 8 characters)</label>
+          <input type="password" id="reset-user-new-password" class="form-control" required minlength="8" placeholder="••••••••••••">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="closeResetUserPasswordModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-reset-password">Save New Password</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <script>
-    let adminKey = localStorage.getItem('agendaweb_admin_key') || '';
+    let authToken = localStorage.getItem('agendaweb_token') || localStorage.getItem('agendaweb_admin_key') || '';
+    let currentUser = null;
     let currentSources = [];
     let currentSourceFilter = 'all';
+    let currentUsers = [];
 
-    document.addEventListener('DOMContentLoaded', () => {
-      if (adminKey) {
-        document.getElementById('auth-screen').style.display = 'none';
-        loadDashboard();
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (authToken) {
+        const valid = await restoreSession();
+        if (valid) {
+          document.getElementById('auth-screen').style.display = 'none';
+          loadDashboard();
+          return;
+        }
       }
+      document.getElementById('auth-screen').style.display = 'flex';
     });
 
-    function handleLogin(e) {
-      e.preventDefault();
-      const input = document.getElementById('admin-key-input').value.trim();
+    function togglePasswordVisibility(id, btn) {
+      const input = document.getElementById(id);
       if (!input) return;
-      adminKey = input;
-      localStorage.setItem('agendaweb_admin_key', adminKey);
-      loadDashboard().then(success => {
-        if (success) {
-          document.getElementById('auth-screen').style.display = 'none';
-        } else {
-          alert('Invalid Admin Key. Please check your credentials.');
-          localStorage.removeItem('agendaweb_admin_key');
-          adminKey = '';
-        }
-      });
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+      }
     }
 
-    function logout() {
+    function fillDemoLogin(email, password) {
+      document.getElementById('login-email').value = email;
+      document.getElementById('login-password').value = password;
+      document.getElementById('login-error').style.display = 'none';
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const errBox = document.getElementById('login-error');
+      const submitBtn = document.getElementById('btn-login-submit');
+      errBox.style.display = 'none';
+
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      if (!email || !password) return;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Signing In...';
+
+      try {
+        const res = await fetch('../api/auth.php?action=login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.status === 'success') {
+          authToken = data.token;
+          currentUser = data.user;
+          localStorage.setItem('agendaweb_token', authToken);
+          applyCurrentUserState();
+          document.getElementById('auth-screen').style.display = 'none';
+          await loadDashboard();
+        } else {
+          errBox.textContent = data.message || 'Invalid email or password.';
+          errBox.style.display = 'block';
+        }
+      } catch (err) {
+        errBox.textContent = 'Unable to connect to authentication server. Check network connection.';
+        errBox.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In to Portal →';
+      }
+    }
+
+    async function restoreSession() {
+      if (!authToken) return false;
+      try {
+        const res = await apiRequest('../api/auth.php?action=me');
+        if (res && res.status === 'success' && res.user) {
+          currentUser = res.user;
+          applyCurrentUserState();
+          return true;
+        }
+      } catch (e) {
+        console.warn('Session check failed:', e);
+      }
+      return false;
+    }
+
+    function applyCurrentUserState() {
+      if (!currentUser) return;
+      document.getElementById('user-display-name').textContent = currentUser.name || currentUser.email;
+      const roleBadge = document.getElementById('user-display-role');
+      roleBadge.textContent = (currentUser.role || 'manager').toUpperCase();
+      roleBadge.style.background = currentUser.role === 'admin' ? 'var(--color-amber-rust)' : 'var(--color-sage-green)';
+      document.getElementById('user-info-pill').style.display = 'inline-flex';
+
+      const portalBadge = document.getElementById('header-portal-badge');
+      if (portalBadge) {
+        portalBadge.textContent = currentUser.role === 'admin' ? 'Admin Portal' : 'Curator Desk';
+      }
+
+      const usersTabBtn = document.getElementById('nav-btn-users');
+      if (usersTabBtn) {
+        usersTabBtn.style.display = currentUser.role === 'admin' ? 'inline-flex' : 'none';
+      }
+
+      const syncBtn = document.getElementById('btn-trigger-sync');
+      if (syncBtn) {
+        syncBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
+      }
+    }
+
+    async function logout() {
+      try {
+        if (authToken) {
+          await apiRequest('../api/auth.php?action=logout', { method: 'POST' });
+        }
+      } catch (e) {}
+      localStorage.removeItem('agendaweb_token');
       localStorage.removeItem('agendaweb_admin_key');
-      adminKey = '';
+      authToken = '';
+      currentUser = null;
       window.location.reload();
     }
 
     async function apiRequest(endpoint, options = {}) {
       options.headers = options.headers || {};
-      options.headers['X-Admin-Key'] = adminKey;
+      if (authToken) {
+        options.headers['Authorization'] = 'Bearer ' + authToken;
+        options.headers['X-Admin-Token'] = authToken;
+        options.headers['X-Admin-Key'] = authToken;
+      }
       if (options.body && typeof options.body === 'object') {
         options.headers['Content-Type'] = 'application/json';
         options.body = JSON.stringify(options.body);
       }
       try {
         const res = await fetch(endpoint, options);
-        if (res.status === 401) return null;
+        if (res.status === 401) {
+          logout();
+          return null;
+        }
         return await res.json();
       } catch (err) {
         console.error('API Error:', err);
         return null;
+      }
+    }
+
+    function openChangePasswordModal() {
+      document.getElementById('cp-alert').style.display = 'none';
+      document.getElementById('cp-current').value = '';
+      document.getElementById('cp-new').value = '';
+      document.getElementById('cp-confirm').value = '';
+      document.getElementById('modal-change-password').style.display = 'flex';
+      setTimeout(() => document.getElementById('cp-current').focus(), 100);
+    }
+
+    function closeChangePasswordModal() {
+      document.getElementById('modal-change-password').style.display = 'none';
+    }
+
+    async function handleChangePasswordSubmit(e) {
+      e.preventDefault();
+      const alertBox = document.getElementById('cp-alert');
+      const submitBtn = document.getElementById('btn-save-password');
+      alertBox.style.display = 'none';
+
+      const current = document.getElementById('cp-current').value;
+      const newPass = document.getElementById('cp-new').value;
+      const confirmPass = document.getElementById('cp-confirm').value;
+
+      if (!current || !newPass || !confirmPass) {
+        alertBox.textContent = 'All fields are required.';
+        alertBox.style.background = '#fee2e2';
+        alertBox.style.color = '#991b1b';
+        alertBox.style.display = 'block';
+        return;
+      }
+
+      if (newPass !== confirmPass) {
+        alertBox.textContent = 'New passwords do not match. Please verify.';
+        alertBox.style.background = '#fee2e2';
+        alertBox.style.color = '#991b1b';
+        alertBox.style.display = 'block';
+        return;
+      }
+
+      if (newPass.length < 8) {
+        alertBox.textContent = 'New password must be at least 8 characters long.';
+        alertBox.style.background = '#fee2e2';
+        alertBox.style.color = '#991b1b';
+        alertBox.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Updating...';
+
+      const res = await apiRequest('../api/auth.php?action=change_password', {
+        method: 'POST',
+        body: { current_password: current, new_password: newPass }
+      });
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Update Password';
+
+      if (res && res.status === 'success') {
+        alertBox.textContent = '✓ Password updated successfully! Please keep it safe.';
+        alertBox.style.background = '#dcfce7';
+        alertBox.style.color = '#166534';
+        alertBox.style.display = 'block';
+        setTimeout(() => {
+          closeChangePasswordModal();
+        }, 1200);
+      } else {
+        alertBox.textContent = res ? res.message : 'Failed to update password.';
+        alertBox.style.background = '#fee2e2';
+        alertBox.style.color = '#991b1b';
+        alertBox.style.display = 'block';
+      }
+    }
+
+    // Team & Roles Management (Admin Only)
+    async function loadUsers() {
+      const tbody = document.getElementById('users-table-body');
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px;">Loading team members...</td></tr>';
+
+      const res = await apiRequest('../api/users.php?action=list');
+      if (!res || res.status !== 'success') {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--color-amber-rust);">Failed to load team members: ${res ? res.message : 'Unauthorized'}</td></tr>`;
+        return;
+      }
+
+      currentUsers = res.data;
+      if (currentUsers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--color-text-muted);">No team members found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = currentUsers.map(u => {
+        const isSelf = currentUser && u.id === currentUser.id;
+        const roleColor = u.role === 'admin' ? 'var(--color-amber-rust)' : 'var(--color-sage-green)';
+        const statusHtml = u.is_active 
+          ? '<span style="color:#16a34a; font-weight:600; font-size:0.8rem;">● Active</span>' 
+          : '<span style="color:#dc2626; font-weight:600; font-size:0.8rem;">○ Inactive</span>';
+
+        return `
+          <tr>
+            <td>
+              <strong>${escapeHtml(u.name)}</strong>
+              ${isSelf ? '<span style="font-size:0.7rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; margin-left:6px; font-weight:600;">You</span>' : ''}
+            </td>
+            <td><small style="color:var(--color-text-muted);">${escapeHtml(u.email)}</small></td>
+            <td>
+              <span class="admin-badge" style="background:${roleColor}; font-size:0.68rem; padding:2px 6px;">
+                ${u.role.toUpperCase()}
+              </span>
+            </td>
+            <td>${statusHtml}</td>
+            <td style="font-size:0.78rem; color:var(--color-text-muted);">${u.last_login_at || 'Never'}</td>
+            <td>
+              <div style="display:flex; gap:6px; align-items:center;">
+                ${!isSelf ? `
+                  <button class="btn btn-outline" style="padding:2px 8px; font-size:0.75rem;" onclick="toggleUserStatus(${u.id}, '${escapeQuote(u.name)}', ${u.is_active})">
+                    ${u.is_active ? 'Deactivate' : 'Activate'}
+                  </button>
+                  <button class="btn btn-outline" style="padding:2px 8px; font-size:0.75rem;" onclick="changeUserRole(${u.id}, '${escapeQuote(u.name)}', '${u.role === 'admin' ? 'manager' : 'admin'}')">
+                    Make ${u.role === 'admin' ? 'Manager' : 'Admin'}
+                  </button>
+                  <button class="btn btn-outline" style="padding:2px 8px; font-size:0.75rem;" onclick="openResetUserPasswordModal(${u.id}, '${escapeQuote(u.name)}')">
+                    Reset Pass
+                  </button>
+                ` : `
+                  <span style="font-size:0.75rem; color:var(--color-text-muted); font-style:italic;">Current Account</span>
+                `}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openAddUserModal() {
+      document.getElementById('add-user-alert').style.display = 'none';
+      document.getElementById('new-user-name').value = '';
+      document.getElementById('new-user-email').value = '';
+      document.getElementById('new-user-password').value = '';
+      document.getElementById('new-user-role').value = 'manager';
+      document.getElementById('modal-add-user').style.display = 'flex';
+      setTimeout(() => document.getElementById('new-user-name').focus(), 100);
+    }
+
+    function closeAddUserModal() {
+      document.getElementById('modal-add-user').style.display = 'none';
+    }
+
+    async function handleAddUserSubmit(e) {
+      e.preventDefault();
+      const alertBox = document.getElementById('add-user-alert');
+      const submitBtn = document.getElementById('btn-save-new-user');
+      alertBox.style.display = 'none';
+
+      const name = document.getElementById('new-user-name').value.trim();
+      const email = document.getElementById('new-user-email').value.trim();
+      const password = document.getElementById('new-user-password').value;
+      const role = document.getElementById('new-user-role').value;
+
+      if (!name || !email || !password) return;
+      if (password.length < 8) {
+        alertBox.textContent = 'Password must be at least 8 characters long.';
+        alertBox.style.background = '#fee2e2';
+        alertBox.style.color = '#991b1b';
+        alertBox.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating...';
+
+      const res = await apiRequest('../api/users.php?action=create', {
+        method: 'POST',
+        body: { name, email, password, role }
+      });
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Member';
+
+      if (res && res.status === 'success') {
+        closeAddUserModal();
+        await loadUsers();
+        alert(`✓ Team member "${name}" created successfully.`);
+      } else {
+        alertBox.textContent = res ? res.message : 'Failed to create team member.';
+        alertBox.style.background = '#fee2e2';
+        alertBox.style.color = '#991b1b';
+        alertBox.style.display = 'block';
+      }
+    }
+
+    async function toggleUserStatus(id, name, currentStatus) {
+      const actionVerb = currentStatus ? 'deactivate' : 'activate';
+      if (!confirm(`Are you sure you want to ${actionVerb} "${name}"?`)) return;
+
+      const res = await apiRequest('../api/users.php?action=toggle_status', {
+        method: 'POST',
+        body: { id }
+      });
+
+      if (res && res.status === 'success') {
+        await loadUsers();
+      } else {
+        alert(res ? res.message : 'Failed to update user status.');
+      }
+    }
+
+    async function changeUserRole(id, name, targetRole) {
+      if (!confirm(`Change role for "${name}" to ${targetRole.toUpperCase()}?`)) return;
+
+      const res = await apiRequest('../api/users.php?action=change_role', {
+        method: 'POST',
+        body: { id, role: targetRole }
+      });
+
+      if (res && res.status === 'success') {
+        await loadUsers();
+      } else {
+        alert(res ? res.message : 'Failed to update user role.');
+      }
+    }
+
+    function openResetUserPasswordModal(id, name) {
+      document.getElementById('reset-user-alert').style.display = 'none';
+      document.getElementById('reset-target-user-id').value = id;
+      document.getElementById('reset-target-user-name').textContent = name;
+      document.getElementById('reset-user-new-password').value = '';
+      document.getElementById('modal-reset-user-password').style.display = 'flex';
+      setTimeout(() => document.getElementById('reset-user-new-password').focus(), 100);
+    }
+
+    function closeResetUserPasswordModal() {
+      document.getElementById('modal-reset-user-password').style.display = 'none';
+    }
+
+    async function handleResetUserPasswordSubmit(e) {
+      e.preventDefault();
+      const alertBox = document.getElementById('reset-user-alert');
+      const submitBtn = document.getElementById('btn-submit-reset-password');
+      alertBox.style.display = 'none';
+
+      const id = parseInt(document.getElementById('reset-target-user-id').value, 10);
+      const newPassword = document.getElementById('reset-user-new-password').value;
+
+      if (!id || !newPassword) return;
+      if (newPassword.length < 8) {
+        alertBox.textContent = 'Password must be at least 8 characters long.';
+        alertBox.style.background = '#fee2e2';
+        alertBox.style.color = '#991b1b';
+        alertBox.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+
+      const res = await apiRequest('../api/users.php?action=reset_password', {
+        method: 'POST',
+        body: { id, new_password: newPassword }
+      });
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save New Password';
+
+      if (res && res.status === 'success') {
+        closeResetUserPasswordModal();
+        alert('✓ User password reset successfully.');
+      } else {
+        alertBox.textContent = res ? res.message : 'Failed to reset password.';
+        alertBox.style.background = '#fee2e2';
+        alertBox.style.color = '#991b1b';
+        alertBox.style.display = 'block';
       }
     }
 
@@ -584,10 +1131,13 @@
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
       document.getElementById('tab-sources').style.display = tabName === 'sources' ? 'block' : 'none';
       document.getElementById('tab-suggestions').style.display = tabName === 'suggestions' ? 'block' : 'none';
+      const tabUsers = document.getElementById('tab-users');
+      if (tabUsers) tabUsers.style.display = tabName === 'users' ? 'block' : 'none';
       document.getElementById('tab-system').style.display = tabName === 'system' ? 'block' : 'none';
 
       if (tabName === 'suggestions') loadSuggestions();
       if (tabName === 'sources') loadSources();
+      if (tabName === 'users') loadUsers();
     }
 
     async function loadSources() {
@@ -686,7 +1236,9 @@
                   <button class="btn btn-outline" style="padding:2px 7px; font-size:0.75rem;" onclick="toggleSource(${s.id})">
                     ${s.is_active ? '⏸' : '▶'}
                   </button>
-                  <button class="btn btn-danger" style="padding:2px 7px; font-size:0.75rem;" onclick="deleteSource(${s.id}, '${escapeQuote(s.name)}')">✕</button>
+                  ${(currentUser && currentUser.role === 'admin') ? `
+                    <button class="btn btn-danger" style="padding:2px 7px; font-size:0.75rem;" onclick="deleteSource(${s.id}, '${escapeQuote(s.name)}')">✕</button>
+                  ` : ''}
                 `}
               </div>
             </td>

@@ -8,6 +8,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
+const crypto = require('crypto');
 
 const PORTS_TO_SERVE = process.env.PORT 
   ? [parseInt(process.env.PORT, 10)] 
@@ -361,6 +362,71 @@ let MOCK_SUGGESTIONS = [
   { id: 2, name: "Chloe S.", email: "chloe@example.com", category: "feature", message: "The offline reading queue in IndexedDB is brilliant. Could we have an option to export selected reading lists?", status: "read", created_at: "2026-10-17 19:40:05" }
 ];
 
+let MOCK_USERS = [
+  {
+    id: 1,
+    name: "Claudinei Sousa",
+    email: "admin@agendaweb.app",
+    password: "AgendaAdmin2026!",
+    role: "admin",
+    is_active: 1,
+    last_login_at: "2026-10-21 21:00:00",
+    created_at: "2026-10-01 10:00:00",
+    updated_at: "2026-10-21 21:00:00"
+  },
+  {
+    id: 2,
+    name: "Curation Manager",
+    email: "curator@agendaweb.app",
+    password: "CuratorPass2026!",
+    role: "manager",
+    is_active: 1,
+    last_login_at: "2026-10-20 15:30:00",
+    created_at: "2026-10-05 11:00:00",
+    updated_at: "2026-10-20 15:30:00"
+  }
+];
+
+let MOCK_SESSIONS = new Map(); // token -> { user_id, expires_at }
+
+function authenticateUser(req, parsedUrl) {
+  // 1. Check Bearer token or X-Admin-Token
+  const authHeader = req.headers['authorization'] || '';
+  let token = null;
+  const match = authHeader.match(/Bearer\s+(\S+)/i);
+  if (match) {
+    token = match[1];
+  } else if (req.headers['x-admin-token']) {
+    token = req.headers['x-admin-token'];
+  } else if (parsedUrl.query && parsedUrl.query.token) {
+    token = parsedUrl.query.token;
+  }
+
+  if (token && MOCK_SESSIONS.has(token)) {
+    const session = MOCK_SESSIONS.get(token);
+    if (session.expires_at > Date.now()) {
+      const user = MOCK_USERS.find(u => u.id === session.user_id && u.is_active === 1);
+      if (user) return user;
+    } else {
+      MOCK_SESSIONS.delete(token);
+    }
+  }
+
+  // 2. Fallback: master key bypass
+  const providedKey = req.headers['x-admin-key'] || (parsedUrl.query && parsedUrl.query.key);
+  if (providedKey && providedKey === 'agendaweb-admin-secret-2026') {
+    return {
+      id: 0,
+      name: "System Superadmin",
+      email: "admin@agendaweb.app",
+      role: "admin",
+      is_active: 1
+    };
+  }
+
+  return null;
+}
+
 const MOCK_ITEMS = {
   news: [
     {
@@ -423,7 +489,7 @@ const requestHandler = (req, res) => {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Admin-Token, X-Admin-Key');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
@@ -781,15 +847,379 @@ const requestHandler = (req, res) => {
     }
   }
 
+  // 7.1 API: Auth Operations
+  if (pathname === '/api/auth.php') {
+    const action = parsedUrl.query.action || 'me';
+
+    if (action === 'login' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const email = (payload.email || '').trim().toLowerCase();
+        const password = payload.password || '';
+
+        if (!email || !password) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'Email and password are required.' }));
+          return;
+        }
+
+        const user = MOCK_USERS.find(u => u.email.toLowerCase() === email && u.password === password);
+        if (!user) {
+          res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'Invalid email or password.' }));
+          return;
+        }
+
+        if (user.is_active !== 1) {
+          res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'Account is inactive. Please contact an administrator.' }));
+          return;
+        }
+
+        const token = crypto.randomBytes(32).toString('hex');
+        MOCK_SESSIONS.set(token, {
+          user_id: user.id,
+          expires_at: Date.now() + 30 * 24 * 60 * 60 * 1000
+        });
+
+        user.last_login_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          status: 'success',
+          token: token,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+          }
+        }));
+      });
+      return;
+    }
+
+    if (action === 'me') {
+      const user = authenticateUser(req, parsedUrl);
+      if (!user) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'error', message: 'Unauthorized: Please log in with your email and password' }));
+        return;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        status: 'success',
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      }));
+      return;
+    }
+
+    if (action === 'change_password' && req.method === 'POST') {
+      const user = authenticateUser(req, parsedUrl);
+      if (!user) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'error', message: 'Unauthorized: Please log in' }));
+        return;
+      }
+
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const currentPassword = payload.current_password || '';
+        const newPassword = payload.new_password || '';
+
+        if (!currentPassword || !newPassword) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'Current password and new password are required.' }));
+          return;
+        }
+
+        if (newPassword.length < 8) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'New password must be at least 8 characters long.' }));
+          return;
+        }
+
+        // Verify current password
+        const targetUser = MOCK_USERS.find(u => u.id === user.id);
+        if (targetUser && targetUser.password !== currentPassword) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'Incorrect current password.' }));
+          return;
+        }
+
+        if (targetUser) {
+          targetUser.password = newPassword;
+          targetUser.updated_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          status: 'success',
+          message: 'Password updated successfully.'
+        }));
+      });
+      return;
+    }
+
+    if (action === 'logout' && req.method === 'POST') {
+      const authHeader = req.headers['authorization'] || '';
+      let token = null;
+      const match = authHeader.match(/Bearer\s+(\S+)/i);
+      if (match) token = match[1];
+      else if (req.headers['x-admin-token']) token = req.headers['x-admin-token'];
+      else if (parsedUrl.query && parsedUrl.query.token) token = parsedUrl.query.token;
+
+      if (token) {
+        MOCK_SESSIONS.delete(token);
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ status: 'success', message: 'Logged out successfully.' }));
+      return;
+    }
+
+    res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ status: 'error', message: 'Unknown auth action.' }));
+    return;
+  }
+
+  // 7.2 API: User & Team Management
+  if (pathname === '/api/users.php') {
+    const action = parsedUrl.query.action || 'list';
+    const currentUser = authenticateUser(req, parsedUrl);
+
+    if (!currentUser) {
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ status: 'error', message: 'Unauthorized: Please log in with your email and password' }));
+      return;
+    }
+
+    if (currentUser.role !== 'admin') {
+      res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ status: 'error', message: 'Forbidden: Admin privilege required for this action' }));
+      return;
+    }
+
+    if (action === 'list') {
+      const safeUsers = MOCK_USERS.map(({ password, ...u }) => u);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        status: 'success',
+        count: safeUsers.length,
+        data: safeUsers
+      }));
+      return;
+    }
+
+    if (action === 'create' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const name = (payload.name || '').trim();
+        const email = (payload.email || '').trim().toLowerCase();
+        const password = payload.password || '';
+        const role = (payload.role === 'admin') ? 'admin' : 'manager';
+
+        if (!name || !email || !password) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'Name, email, and password are required.' }));
+          return;
+        }
+
+        if (!email.includes('@') || !email.includes('.')) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'Invalid email address format.' }));
+          return;
+        }
+
+        if (password.length < 8) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'Password must be at least 8 characters long.' }));
+          return;
+        }
+
+        if (MOCK_USERS.some(u => u.email.toLowerCase() === email)) {
+          res.writeHead(409, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'A user with this email address already exists.' }));
+          return;
+        }
+
+        const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+        const newUser = {
+          id: MOCK_USERS.length + 1,
+          name,
+          email,
+          password,
+          role,
+          is_active: 1,
+          last_login_at: null,
+          created_at: now,
+          updated_at: now
+        };
+        MOCK_USERS.push(newUser);
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          status: 'success',
+          message: `Team member '${name}' created successfully.`,
+          id: newUser.id
+        }));
+      });
+      return;
+    }
+
+    if (action === 'toggle_status' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const id = parseInt(payload.id, 10);
+
+        if (!id) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'User ID is required.' }));
+          return;
+        }
+
+        if (id === currentUser.id) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'You cannot deactivate your own account.' }));
+          return;
+        }
+
+        const target = MOCK_USERS.find(u => u.id === id);
+        if (!target) {
+          res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'User not found.' }));
+          return;
+        }
+
+        target.is_active = target.is_active === 1 ? 0 : 1;
+        target.updated_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+        // Revoke active sessions if deactivated
+        if (target.is_active === 0) {
+          for (const [token, sess] of MOCK_SESSIONS.entries()) {
+            if (sess.user_id === id) MOCK_SESSIONS.delete(token);
+          }
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          status: 'success',
+          message: `User '${target.name}' is now ${target.is_active === 1 ? 'Active' : 'Inactive'}`,
+          is_active: target.is_active
+        }));
+      });
+      return;
+    }
+
+    if (action === 'change_role' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const id = parseInt(payload.id, 10);
+        const role = payload.role === 'admin' ? 'admin' : (payload.role === 'manager' ? 'manager' : null);
+
+        if (!id || !role) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'User ID and valid role (admin or manager) are required.' }));
+          return;
+        }
+
+        if (id === currentUser.id && role !== 'admin') {
+          const adminCount = MOCK_USERS.filter(u => u.role === 'admin' && u.is_active === 1).length;
+          if (adminCount <= 1) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ status: 'error', message: 'Cannot demote yourself: at least one active Admin must remain in the system.' }));
+            return;
+          }
+        }
+
+        const target = MOCK_USERS.find(u => u.id === id);
+        if (target) {
+          target.role = role;
+          target.updated_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          status: 'success',
+          message: `Role updated to '${role}'.`
+        }));
+      });
+      return;
+    }
+
+    if (action === 'reset_password' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const id = parseInt(payload.id, 10);
+        const newPassword = payload.new_password || '';
+
+        if (!id || newPassword.length < 8) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'User ID and new password (min 8 characters) are required.' }));
+          return;
+        }
+
+        const target = MOCK_USERS.find(u => u.id === id);
+        if (target) {
+          target.password = newPassword;
+          target.updated_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
+          for (const [token, sess] of MOCK_SESSIONS.entries()) {
+            if (sess.user_id === id) MOCK_SESSIONS.delete(token);
+          }
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          status: 'success',
+          message: 'Password reset successfully for user.'
+        }));
+      });
+      return;
+    }
+
+    res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ status: 'error', message: `Unknown user action: ${action}` }));
+    return;
+  }
+
   // 8. API: Admin Operations
   if (pathname === '/api/admin.php') {
     const action = parsedUrl.query.action || 'stats';
-    const providedKey = req.headers['x-admin-key'] || parsedUrl.query.key;
-    const EXPECTED_KEY = 'agendaweb-admin-secret-2026';
+    const currentUser = authenticateUser(req, parsedUrl);
 
-    if (!providedKey || providedKey !== EXPECTED_KEY) {
+    if (!currentUser) {
       res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ status: 'error', message: 'Unauthorized: Invalid Admin Key' }));
+      res.end(JSON.stringify({ status: 'error', message: 'Unauthorized: Please log in with your email and password' }));
+      return;
+    }
+
+    if (['sync_now', 'delete_source'].includes(action) && currentUser.role !== 'admin') {
+      res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ status: 'error', message: `Admin privilege required to perform '${action}'.` }));
       return;
     }
 

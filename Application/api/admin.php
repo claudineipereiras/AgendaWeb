@@ -2,33 +2,35 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../src/Database.php';
+require_once __DIR__ . '/../src/Auth.php';
 
 use AgendaWeb\Database;
+use AgendaWeb\Auth;
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-Admin-Key');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Admin-Token, X-Admin-Key');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
 $config = require __DIR__ . '/../config/config.php';
-$expectedKey = $config['app']['admin_key'] ?? 'agendaweb-admin-secret-2026';
-
-// Verify Admin Key
-$providedKey = $_SERVER['HTTP_X_ADMIN_KEY'] ?? ($_GET['key'] ?? '');
-if (empty($providedKey) || !hash_equals($expectedKey, $providedKey)) {
-    http_response_code(401);
-    echo json_encode(['status' => 'error', 'message' => 'Unauthorized: Invalid Admin Key']);
-    exit;
-}
-
 $action = filter_input(INPUT_GET, 'action', FILTER_DEFAULT) ?? 'stats';
 
 try {
     $pdo = Database::getConnection();
+
+    // Verify authentication: Manager or Admin required
+    $currentUser = Auth::requireAuth($pdo, 'manager');
+
+    // System-critical actions require Admin role
+    if (in_array($action, ['sync_now', 'delete_source'], true) && $currentUser['role'] !== 'admin') {
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => "Admin privilege required to perform '$action'."]);
+        exit;
+    }
 
     // 1. Stats Overview
     if ($action === 'stats') {

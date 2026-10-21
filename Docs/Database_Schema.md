@@ -223,3 +223,45 @@ Stores reader suggestions, feedback, and venue recommendations submitted via the
 **Indexes:**
 - `INDEX (status)`: Fast filtering in Admin Suggestion Inbox.
 - `INDEX (created_at)`: Reverse chronological sorting.
+
+---
+
+### 2.5 `users`
+Stores authenticated users and managers for the Admin and Curator Portal with role-based access control (RBAC).
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INT` | `AUTO_INCREMENT`, `PRIMARY KEY` | User identifier. |
+| `name` | `VARCHAR(120)` | `NOT NULL` | Display name of the team member. |
+| `email` | `VARCHAR(150)` | `UNIQUE`, `NOT NULL` | Unique login email address. |
+| `password_hash` | `VARCHAR(255)` | `NOT NULL` | Bcrypt/Argon2 password hash. |
+| `role` | `ENUM` | `'admin', 'manager'` (default `'manager'`) | Access level (`admin`: full team, cron & system control; `manager`: curation & dispatches). |
+| `is_active` | `TINYINT(1)` | `DEFAULT 1` | Active account toggle (0 blocks login and revokes active sessions). |
+| `last_login_at` | `DATETIME` | `NULL` | Timestamp of last successful login. |
+| `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` | Account creation timestamp. |
+| `updated_at` | `TIMESTAMP` | `ON UPDATE CURRENT_TIMESTAMP` | Last profile/password change timestamp. |
+
+**Indexes:**
+- `INDEX (email)`: Fast login lookup.
+- `INDEX (role)`: Role-based filtering.
+- `INDEX (is_active)`: Status checks.
+
+---
+
+### 2.6 `user_sessions`
+Stores active authentication tokens (Bearer tokens) issued upon email/password verification.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INT` | `AUTO_INCREMENT`, `PRIMARY KEY` | Session record identifier. |
+| `user_id` | `INT` | `NOT NULL`, `FK (users.id)` | User reference (`ON DELETE CASCADE`). |
+| `token` | `VARCHAR(64)` | `UNIQUE`, `NOT NULL` | Cryptographically secure 64-character session token. |
+| `ip_address` | `VARCHAR(45)` | `NULL` | Client IP address at login. |
+| `user_agent` | `VARCHAR(255)` | `NULL` | User agent string for session audit. |
+| `expires_at` | `DATETIME` | `NOT NULL` | Session expiry timestamp (standard 30 days rolling). |
+| `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` | Session start timestamp. |
+
+**Indexes:**
+- `INDEX (token)`: O(1) Bearer token lookup for API authentication.
+- `INDEX (expires_at)`: Fast session expiration cleanup.
+
