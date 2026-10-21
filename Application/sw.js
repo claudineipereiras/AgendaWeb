@@ -8,6 +8,7 @@ const ASSETS_TO_CACHE = [
   './js/api.js',
   './js/app.js',
   './assets/logo.svg',
+  './assets/icon.svg',
   './manifest.webmanifest'
 ];
 

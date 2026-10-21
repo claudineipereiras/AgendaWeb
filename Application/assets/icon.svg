@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 500" width="440" height="500" fill="none">
+  <!-- AgendaWeb Standalone Icon / App Mark / Favicon (Fully padded, unclipped) -->
+  <g id="app-icon-mark" transform="translate(30, 60)">
+    <!-- Concentric RSS wave arcs in Sage Green (#4A5D4E) with ample top clearance -->
+    <path d="M 170 -26 A 166 166 0 0 1 336 140" fill="none" stroke="#4A5D4E" stroke-width="20" stroke-linecap="round" />
+    <path d="M 170 20 A 120 120 0 0 1 290 140" fill="none" stroke="#4A5D4E" stroke-width="20" stroke-linecap="round" />
+
+    <!-- Bookmark Ribbon in Amber Rust (#C85A32) -->
+    <path d="M 20 65 L 170 65 A 75 75 0 0 1 245 140 L 245 410 L 132.5 330 L 20 410 Z" fill="#C85A32" />
+
+    <!-- Calendar Container: Nightfall plate (#1B3B2B) -->
+    <rect x="52" y="116" width="162" height="174" rx="20" fill="#1B3B2B" />
+
+    <!-- Chalk Calendar inner faceplate -->
+    <rect x="62" y="150" width="142" height="130" rx="6" fill="#F7F5F0" />
+
+    <!-- Dual binder rings -->
+    <rect x="88" y="98" width="16" height="32" rx="8" fill="#F7F5F0" />
+    <rect x="93" y="103" width="6" height="22" rx="3" fill="#1B3B2B" />
+
+    <rect x="162" y="98" width="16" height="32" rx="8" fill="#F7F5F0" />
+    <rect x="167" y="103" width="6" height="22" rx="3" fill="#1B3B2B" />
+
+    <!-- Calendar Grid (7-block refined editorial layout) -->
+    <!-- Row 1 -->
+    <rect x="119" y="164" width="28" height="24" rx="3" fill="#1B3B2B" />
+    <rect x="162" y="164" width="28" height="24" rx="3" fill="#1B3B2B" />
+    <!-- Row 2 -->
+    <rect x="76" y="200" width="28" height="24" rx="3" fill="#1B3B2B" />
+    <rect x="119" y="200" width="28" height="24" rx="3" fill="#1B3B2B" />
+    <rect x="162" y="200" width="28" height="24" rx="3" fill="#1B3B2B" />
+    <!-- Row 3 -->
+    <rect x="76" y="236" width="28" height="24" rx="3" fill="#1B3B2B" />
+    <rect x="119" y="236" width="28" height="24" rx="3" fill="#1B3B2B" />
+  </g>
+</svg>
