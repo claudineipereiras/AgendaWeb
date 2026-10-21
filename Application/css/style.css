@@ -952,3 +952,190 @@ header {
   color: var(--color-white);
   border-color: var(--color-nightfall);
 }
+
+/* Header City Switcher */
+.header-brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.city-selector-btn {
+  background: var(--color-chalk);
+  border: 1px solid var(--color-oat);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-nightfall);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease-in-out;
+}
+
+.city-selector-btn:hover {
+  background: var(--color-oat);
+  border-color: var(--color-sage-green);
+  transform: translateY(-1px);
+}
+
+.city-pin {
+  font-size: 0.9rem;
+}
+
+.city-arrow {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+/* Audience Filter Bar (Age & Family Restrictions) */
+.audience-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-oat);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.audience-filter-bar::-webkit-scrollbar { display: none; }
+
+.audience-btn {
+  background: var(--color-chalk);
+  border: 1px solid var(--color-oat);
+  padding: 5px 13px;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.audience-btn:hover {
+  color: var(--color-nightfall);
+  border-color: var(--color-sage-green);
+}
+
+.audience-btn.active {
+  background: var(--color-nightfall);
+  color: var(--color-white);
+  border-color: var(--color-nightfall);
+}
+
+.audience-btn.audience-kids {
+  border-color: #ffd180;
+}
+.audience-btn.audience-kids.active {
+  background: #d85a1a;
+  color: #fff;
+  border-color: #d85a1a;
+}
+
+/* Badges for Suburb & Age Restrictions on Event Cards */
+.badge-suburb {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(67, 107, 85, 0.08);
+  color: var(--color-racing-green);
+  padding: 2px 7px;
+  border-radius: 10px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.badge-age {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  text-transform: none;
+  letter-spacing: normal;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.badge-age-18 {
+  background: #fbe9e7;
+  color: #d84315;
+}
+
+.badge-age-aa {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.badge-age-kids {
+  background: #fff8e1;
+  color: #e65100;
+  border: 1px solid #ffe082;
+}
+
+/* City Selection Modal */
+.city-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.city-card {
+  background: var(--color-chalk);
+  border: 1.5px solid var(--color-oat);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.city-card:hover {
+  border-color: var(--color-sage-green);
+  background: var(--color-white);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.city-card.selected {
+  border-color: var(--color-racing-green);
+  background: rgba(27, 59, 43, 0.06);
+}
+
+.city-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.city-card-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-nightfall);
+}
+
+.city-card-state {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-white);
+  border: 1px solid var(--color-oat);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.city-card-count {
+  font-size: 0.75rem;
+  color: var(--color-sage-green);
+  font-weight: 600;
+}

@@ -341,6 +341,33 @@
             <div class="preview-events-list" id="preview-events-list"></div>
           </div>
 
+          <!-- City & Age Policy Selectors -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
+            <div class="form-group">
+              <label for="venue-city">City Hub / Region *</label>
+              <select id="venue-city" class="form-control" required>
+                <option value="melbourne">Melbourne (VIC)</option>
+                <option value="sydney">Sydney (NSW)</option>
+                <option value="brisbane">Brisbane (QLD)</option>
+                <option value="perth">Perth (WA)</option>
+                <option value="adelaide">Adelaide (SA)</option>
+                <option value="hobart">Hobart (TAS)</option>
+              </select>
+              <div class="form-hint" id="city-detected-hint">Auto-detected from webpage or select your metropolitan region.</div>
+            </div>
+
+            <div class="form-group">
+              <label for="venue-age-policy">Audience / Age Policy *</label>
+              <select id="venue-age-policy" class="form-control" required>
+                <option value="mixed">Mixed (Depends on gig / event)</option>
+                <option value="18+">Strictly 18+ Licensed Venue</option>
+                <option value="all_ages">All Ages (AA)</option>
+                <option value="family">Kids & Family Friendly</option>
+              </select>
+              <div class="form-hint">Allows readers to filter for AA gigs or dedicated family/kids activities.</div>
+            </div>
+          </div>
+
           <div class="form-group" style="margin-top:16px;">
             <label for="venue-email">Contact Email (Optional)</label>
             <input type="email" id="venue-email" class="form-control" placeholder="bookings@thegasometerhotel.com.au">
@@ -673,6 +700,23 @@
           if (!nameInput.value.trim() && json.suggested_name) {
             nameInput.value = json.suggested_name;
           }
+
+          // Auto-select city hub & audience policy
+          if (json.venue && json.venue.city_slug) {
+            const citySelect = document.getElementById('venue-city');
+            if (citySelect) {
+              citySelect.value = json.venue.city_slug;
+              const hint = document.getElementById('city-detected-hint');
+              if (hint) {
+                hint.innerHTML = `✓ Auto-detected as <strong>${escapeHtml(json.venue.city_name || json.venue.city_slug)}</strong> (${escapeHtml(json.venue.suburb || json.venue.address || '')})`;
+                hint.style.color = '#2e7d32';
+              }
+            }
+          }
+          if (json.venue && json.venue.default_age_policy) {
+            const ageSelect = document.getElementById('venue-age-policy');
+            if (ageSelect) ageSelect.value = json.venue.default_age_policy;
+          }
         } else {
           previewStatusPill.textContent = 'Notice';
           previewStatusPill.style.background = '#ffebee';
@@ -699,6 +743,8 @@
       const name = document.getElementById('venue-name').value.trim();
       const url = document.getElementById('venue-url').value.trim();
       const email = document.getElementById('venue-email').value.trim();
+      const citySlug = document.getElementById('venue-city').value;
+      const agePolicy = document.getElementById('venue-age-policy').value;
       const submitBtn = document.getElementById('btn-submit-venue');
 
       if (!name || !url) {
@@ -713,9 +759,14 @@
         const payload = {
           name,
           url,
+          city_slug: citySlug,
+          default_age_policy: agePolicy,
           polling_frequency: '24h', // Standard default; curator customizes in admin
           contact_email: email,
           address: detectedData?.venue?.address || '',
+          suburb: detectedData?.venue?.suburb || '',
+          state: detectedData?.venue?.state || '',
+          postcode: detectedData?.venue?.postcode || '',
           feed_url: detectedData?.feed_url || null
         };
 

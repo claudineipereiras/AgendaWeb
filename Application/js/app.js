@@ -112,6 +112,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize Storage Retention & Metrics
   await initRetentionSettings();
 
+  // Initialize City Hub & Audience Filter
+  await initCityAndAudienceUI();
+
   // Render initial tab
   await setTab('events');
 
@@ -230,9 +233,77 @@ async function setTab(tabName) {
   await renderCurrentTab();
 }
 
+async function initCityAndAudienceUI() {
+  const savedCity = await window.agendaDB.getSelectedCity();
+  const cities = await window.agendaAPI.getCities();
+  const matched = cities.find(c => c.slug === savedCity);
+  const cityLabel = document.getElementById('current-city-label');
+  if (cityLabel) cityLabel.textContent = matched ? matched.name : (savedCity === 'all' ? 'All Australia' : 'Melbourne');
+
+  const savedAudience = await window.agendaDB.getAudienceFilter();
+  document.querySelectorAll('.audience-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.audience === savedAudience);
+  });
+}
+
+// City Hub Modal & Switcher
+async function openCityModal() {
+  toggleCityModal();
+  const grid = document.getElementById('city-grid-list');
+  if (!grid) return;
+
+  grid.innerHTML = '<div style="padding:10px; color:var(--color-text-muted);">Loading Australian cities...</div>';
+  const cities = await window.agendaAPI.getCities();
+  const currentCity = await window.agendaDB.getSelectedCity();
+
+  grid.innerHTML = cities.map(c => `
+    <div class="city-card ${c.slug === currentCity ? 'selected' : ''}" onclick="selectCity('${c.slug}', '${escapeQuote(c.name)}')">
+      <div class="city-card-header">
+        <span class="city-card-name">${escapeHtml(c.name)}</span>
+        <span class="city-card-state">${escapeHtml(c.state)}</span>
+      </div>
+      <div class="city-card-count">⚡ ${c.event_count || 'Active'} cultural events</div>
+    </div>
+  `).join('');
+}
+
+function toggleCityModal() {
+  const modal = document.getElementById('city-modal');
+  if (modal) modal.classList.toggle('active');
+}
+
+async function selectCity(citySlug, cityName) {
+  await window.agendaDB.setSelectedCity(citySlug);
+  const label = document.getElementById('current-city-label');
+  if (label) label.textContent = cityName;
+  toggleCityModal();
+
+  if (currentTab === 'events') {
+    await renderEvents(true);
+  } else if (currentTab === 'following') {
+    await renderFollowing(true);
+  }
+}
+
+// Audience Filtering (All, 18+, All Ages, Kids & Family)
+async function setAudienceFilter(audience, btnElement) {
+  await window.agendaDB.setAudienceFilter(audience);
+  document.querySelectorAll('.audience-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.audience === audience);
+  });
+  if (currentTab === 'events') {
+    await renderEvents(false);
+  }
+}
+
 async function renderCurrentTab() {
   const container = document.getElementById('feed');
   container.innerHTML = '<div class="state-message">Loading cultural feed...</div>';
+
+  const audienceBar = document.getElementById('audience-filter-bar');
+  if (audienceBar) {
+    audienceBar.style.display = (currentTab === 'events') ? 'flex' : 'none';
+  }
 
   if (currentTab === 'events') {
     await renderEvents();
@@ -296,7 +367,10 @@ async function setFilter(category, btnElement) {
 // Render Events Tab
 async function renderEvents(refreshPills = true) {
   const container = document.getElementById('feed');
-  const res = await window.agendaAPI.getEvents(currentCategory);
+  const selectedCity = await window.agendaDB.getSelectedCity();
+  const audience = await window.agendaDB.getAudienceFilter();
+
+  const res = await window.agendaAPI.getEvents(currentCategory, 'all', selectedCity, audience);
   if (res.venues && res.venues.length > 0) {
     window.agendaVenues = res.venues;
   }
@@ -328,6 +402,20 @@ async function renderEvents(refreshPills = true) {
     const starBtnClass = isStarred ? 'btn-secondary starred' : 'btn-secondary';
     const starBtnText = isStarred ? '★ Saved' : '★ Save';
 
+    // Age restriction badge
+    let ageBadgeHtml = '';
+    if (ev.age_restriction === '18+') {
+      ageBadgeHtml = '<span class="badge-age badge-age-18">🔞 18+</span>';
+    } else if (ev.age_restriction === 'all_ages') {
+      ageBadgeHtml = '<span class="badge-age badge-age-aa">🎟️ All Ages</span>';
+    } else if (ev.age_restriction === 'kids_family' || ev.is_family_friendly) {
+      ageBadgeHtml = '<span class="badge-age badge-age-kids">🎈 Kids & Family</span>';
+    }
+
+    // Suburb / City badge
+    const suburbName = ev.suburb || (ev.city_name ? ev.city_name : '');
+    const suburbBadgeHtml = suburbName ? `<span class="badge-suburb">📍 ${escapeHtml(suburbName)}</span>` : '';
+
     return `
       <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${ev.id}">
         ${ev.image_url ? `
@@ -338,6 +426,8 @@ async function renderEvents(refreshPills = true) {
           <div class="card-meta-left">
             <span>${dateStr}</span>
             <span class="card-meta-source">${escapeHtml(ev.category || 'Culture')}</span>
+            ${suburbBadgeHtml}
+            ${ageBadgeHtml}
           </div>
           <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
                   onclick="toggleCardCheck('${ev.id}', event, this)" 
@@ -348,7 +438,7 @@ async function renderEvents(refreshPills = true) {
         <h2 class="card-title">
           <a href="#" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')}); return false;">${escapeHtml(ev.title)}</a>
         </h2>
-        <div class="card-location">📍 ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || '')}</div>
+        <div class="card-location">📍 ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || ev.suburb || '')}</div>
         ${ev.description ? `<p class="card-summary">${escapeHtml(ev.description)}</p>` : ''}
         <div class="card-actions">
           <div class="card-actions-left">

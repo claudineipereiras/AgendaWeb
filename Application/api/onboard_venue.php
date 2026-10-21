@@ -62,6 +62,9 @@ if ($action === 'preview') {
     $events = [];
     $detectedVenue = null;
     $detectedAddress = null;
+    $detectedSuburb = null;
+    $detectedState = null;
+    $detectedPostcode = null;
     $scripts = $xpath->query('//script[@type="application/ld+json"]');
 
     foreach ($scripts as $s) {
@@ -80,10 +83,25 @@ if ($action === 'preview') {
                 $vName = $node['location']['name'] ?? null;
                 if ($vName && !$detectedVenue) $detectedVenue = $vName;
 
-                $vAddr = is_array($node['location']['address'] ?? null)
-                    ? ($node['location']['address']['streetAddress'] ?? '')
-                    : ($node['location']['address'] ?? '');
+                $locAddr = $node['location']['address'] ?? null;
+                $vAddr = is_array($locAddr) ? ($locAddr['streetAddress'] ?? '') : ($locAddr ?? '');
+                $suburb = is_array($locAddr) ? ($locAddr['addressLocality'] ?? '') : '';
+                $postcode = is_array($locAddr) ? ($locAddr['postalCode'] ?? '') : '';
+                $state = is_array($locAddr) ? ($locAddr['addressRegion'] ?? '') : '';
+
                 if ($vAddr && !$detectedAddress) $detectedAddress = $vAddr;
+                if ($suburb && !$detectedSuburb) $detectedSuburb = $suburb;
+                if ($postcode && !$detectedPostcode) $detectedPostcode = $postcode;
+                if ($state && !$detectedState) $detectedState = $state;
+
+                // Detect age restriction
+                $haystack = strtolower(($node['typicalAgeRange'] ?? '') . ' ' . ($node['name'] ?? '') . ' ' . ($node['description'] ?? ''));
+                $ageTag = 'all_ages';
+                if (str_contains($haystack, '18+') || str_contains($haystack, 'over 18') || str_contains($haystack, 'licensed')) {
+                    $ageTag = '18+';
+                } elseif (str_contains($haystack, 'kid') || str_contains($haystack, 'children') || str_contains($haystack, 'family') || str_contains($haystack, 'puppet') || str_contains($haystack, 'matinee')) {
+                    $ageTag = 'kids_family';
+                }
 
                 $events[] = [
                     'title'      => trim($node['name']),
@@ -91,6 +109,8 @@ if ($action === 'preview') {
                     'category'   => str_replace('Event', '', $type) ?: 'Live Music',
                     'venue_name' => $vName,
                     'address'    => $vAddr,
+                    'suburb'     => $suburb,
+                    'age'        => $ageTag,
                     'ticket_url' => $node['offers']['url'] ?? $node['url'] ?? $targetUrl
                 ];
             }
@@ -100,6 +120,30 @@ if ($action === 'preview') {
     $suggestedName = $detectedVenue ?: preg_replace('/(\s*[-|–]\s*.*)$/i', '', $pageTitle);
     $suggestedName = trim($suggestedName) ?: parse_url($targetUrl, PHP_URL_HOST);
 
+    // Resolve city hub
+    $detectedCitySlug = 'melbourne';
+    $detectedCityName = 'Melbourne';
+    $firstDigit = $detectedPostcode ? substr(trim($detectedPostcode), 0, 1) : '';
+    if ($firstDigit === '2' || strtoupper((string)$detectedState) === 'NSW' || stripos($pageTitle, 'Sydney') !== false) {
+        $detectedCitySlug = 'sydney';
+        $detectedCityName = 'Sydney';
+    } elseif ($firstDigit === '3' || strtoupper((string)$detectedState) === 'VIC' || stripos($pageTitle, 'Melbourne') !== false) {
+        $detectedCitySlug = 'melbourne';
+        $detectedCityName = 'Melbourne';
+    } elseif ($firstDigit === '4' || strtoupper((string)$detectedState) === 'QLD' || stripos($pageTitle, 'Brisbane') !== false) {
+        $detectedCitySlug = 'brisbane';
+        $detectedCityName = 'Brisbane';
+    } elseif ($firstDigit === '6' || strtoupper((string)$detectedState) === 'WA' || stripos($pageTitle, 'Perth') !== false) {
+        $detectedCitySlug = 'perth';
+        $detectedCityName = 'Perth';
+    } elseif ($firstDigit === '5' || strtoupper((string)$detectedState) === 'SA' || stripos($pageTitle, 'Adelaide') !== false) {
+        $detectedCitySlug = 'adelaide';
+        $detectedCityName = 'Adelaide';
+    } elseif ($firstDigit === '7' || strtoupper((string)$detectedState) === 'TAS' || stripos($pageTitle, 'Hobart') !== false) {
+        $detectedCitySlug = 'hobart';
+        $detectedCityName = 'Hobart';
+    }
+
     echo json_encode([
         'status'         => 'success',
         'url'            => $targetUrl,
@@ -108,8 +152,13 @@ if ($action === 'preview') {
         'feed_url'       => $discoveredFeed,
         'events_count'   => count($events),
         'venue'          => [
-            'name'    => $suggestedName,
-            'address' => $detectedAddress ?: ''
+            'name'      => $suggestedName,
+            'address'   => $detectedAddress ?: '',
+            'suburb'    => $detectedSuburb ?: '',
+            'state'     => $detectedState ?: '',
+            'postcode'  => $detectedPostcode ?: '',
+            'city_slug' => $detectedCitySlug,
+            'city_name' => $detectedCityName
         ],
         'events'         => array_slice($events, 0, 6)
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -130,12 +179,17 @@ if ($action === 'submit' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $name    = trim((string)($data['name'] ?? ''));
-    $url     = trim((string)($data['url'] ?? ''));
-    $email   = trim((string)($data['contact_email'] ?? ''));
-    $address = trim((string)($data['address'] ?? ''));
-    $feedUrl = trim((string)($data['feed_url'] ?? ''));
-    $polling = trim((string)($data['polling_frequency'] ?? '24h'));
+    $name      = trim((string)($data['name'] ?? ''));
+    $url       = trim((string)($data['url'] ?? ''));
+    $email     = trim((string)($data['contact_email'] ?? ''));
+    $address   = trim((string)($data['address'] ?? ''));
+    $suburb    = trim((string)($data['suburb'] ?? ''));
+    $state     = trim((string)($data['state'] ?? 'VIC'));
+    $postcode  = trim((string)($data['postcode'] ?? ''));
+    $citySlug  = trim((string)($data['city_slug'] ?? 'melbourne'));
+    $agePolicy = trim((string)($data['default_age_policy'] ?? 'mixed'));
+    $feedUrl   = trim((string)($data['feed_url'] ?? ''));
+    $polling   = trim((string)($data['polling_frequency'] ?? '24h'));
 
     if (!$name || !filter_var($url, FILTER_VALIDATE_URL)) {
         http_response_code(400);
@@ -173,28 +227,47 @@ if ($action === 'submit' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             'name'  => $name,
             'url'   => $url,
             'email' => $email ?: null,
-            'notes' => "Self-service onboarding request. Polling: {$polling}"
+            'notes' => "Self-service onboarding request. City: {$citySlug}. Age: {$agePolicy}. Polling: {$polling}"
         ]);
         $newSourceId = (int)$pdo->lastInsertId();
+
+        // Resolve city_id
+        $cityId = 1;
+        try {
+            $cstmt = $pdo->prepare("SELECT id FROM cities WHERE slug = :slug LIMIT 1");
+            $cstmt->execute(['slug' => $citySlug]);
+            $cid = $cstmt->fetchColumn();
+            if ($cid) $cityId = (int)$cid;
+        } catch (\Throwable $e) {}
 
         // Stage venue in venues table with is_active = 0
         try {
             $vstmt = $pdo->prepare("
-                INSERT INTO venues (slug, name, address, website_url, feed_url, source_id, is_active)
-                VALUES (:slug, :name, :address, :web, :feed, :sid, 0)
+                INSERT INTO venues (slug, city_id, name, address, suburb, state, postcode, default_age_policy, website_url, feed_url, source_id, is_active)
+                VALUES (:slug, :city_id, :name, :address, :suburb, :state, :postcode, :age_policy, :web, :feed, :sid, 0)
                 ON DUPLICATE KEY UPDATE 
                     name = VALUES(name),
+                    city_id = VALUES(city_id),
                     address = IF(VALUES(address) != '', VALUES(address), address),
+                    suburb = IF(VALUES(suburb) != '', VALUES(suburb), suburb),
+                    state = VALUES(state),
+                    postcode = IF(VALUES(postcode) != '', VALUES(postcode), postcode),
+                    default_age_policy = VALUES(default_age_policy),
                     website_url = VALUES(website_url),
                     source_id = VALUES(source_id)
             ");
             $vstmt->execute([
-                'slug'    => $slug,
-                'name'    => $name,
-                'address' => $address ?: null,
-                'web'     => $url,
-                'feed'    => $feedUrl ?: null,
-                'sid'     => $newSourceId
+                'slug'       => $slug,
+                'city_id'    => $cityId,
+                'name'       => $name,
+                'address'    => $address ?: null,
+                'suburb'     => $suburb ?: null,
+                'state'      => $state ?: 'VIC',
+                'postcode'   => $postcode ?: null,
+                'age_policy' => $agePolicy,
+                'web'        => $url,
+                'feed'       => $feedUrl ?: null,
+                'sid'        => $newSourceId
             ]);
         } catch (\Throwable $ve) {
             // Non-fatal if venues table not migrated

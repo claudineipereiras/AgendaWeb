@@ -20,31 +20,61 @@ CREATE TABLE IF NOT EXISTS `sources` (
   INDEX (`last_status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `cities` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `slug` VARCHAR(50) UNIQUE NOT NULL,
+  `name` VARCHAR(100) NOT NULL,
+  `state` VARCHAR(10) NOT NULL,
+  `country` VARCHAR(10) DEFAULT 'AU',
+  `postcode_prefix` VARCHAR(20) NOT NULL,
+  `latitude` DECIMAL(10, 7) NULL,
+  `longitude` DECIMAL(10, 7) NULL,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_city_slug` (`slug`),
+  INDEX `idx_city_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `venues` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `slug` VARCHAR(60) UNIQUE NOT NULL,
+  `city_id` INT NULL,
   `name` VARCHAR(150) NOT NULL,
   `address` VARCHAR(255) DEFAULT NULL,
+  `suburb` VARCHAR(100) DEFAULT NULL,
+  `state` VARCHAR(10) DEFAULT 'VIC',
+  `postcode` VARCHAR(10) DEFAULT NULL,
+  `latitude` DECIMAL(10, 7) NULL,
+  `longitude` DECIMAL(10, 7) NULL,
   `website_url` VARCHAR(255) DEFAULT NULL,
   `feed_url` VARCHAR(255) DEFAULT NULL,
+  `default_age_policy` ENUM('18+', 'all_ages', 'mixed', 'family') DEFAULT 'mixed',
   `source_id` INT NULL,
   `is_active` TINYINT(1) DEFAULT 1,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX `idx_venue_name` (`name`),
   INDEX `idx_venue_slug` (`slug`),
+  INDEX `idx_venue_city` (`city_id`),
+  INDEX `idx_venue_suburb` (`suburb`),
+  FOREIGN KEY (`city_id`) REFERENCES `cities`(`id`) ON DELETE SET NULL,
   FOREIGN KEY (`source_id`) REFERENCES `sources`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `events` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `city_id` INT NULL,
   `venue_slug` VARCHAR(60) NOT NULL,
   `title` VARCHAR(255) NOT NULL,
   `description` TEXT,
   `category` VARCHAR(60) DEFAULT 'Culture',
+  `age_restriction` ENUM('18+', 'all_ages', '15+', 'kids_family', 'unrated') NOT NULL DEFAULT 'unrated',
+  `min_age` TINYINT UNSIGNED NULL,
+  `is_family_friendly` TINYINT(1) DEFAULT 0,
   `start_time` DATETIME NOT NULL,
   `end_time` DATETIME DEFAULT NULL,
   `venue_name` VARCHAR(150) NOT NULL,
   `address` VARCHAR(255) DEFAULT NULL,
+  `suburb` VARCHAR(100) DEFAULT NULL,
   `ticket_url` VARCHAR(255) DEFAULT NULL,
   `image_url` VARCHAR(500) DEFAULT NULL,
   `origin` ENUM('scraped', 'manual') DEFAULT 'scraped',
@@ -53,7 +83,11 @@ CREATE TABLE IF NOT EXISTS `events` (
   UNIQUE KEY `idx_venue_event_time` (`venue_slug`, `title`(100), `start_time`),
   INDEX `idx_start_time` (`start_time`),
   INDEX `idx_venue_slug` (`venue_slug`),
-  INDEX `idx_event_category` (`category`)
+  INDEX `idx_event_category` (`category`),
+  INDEX `idx_event_city_time` (`city_id`, `start_time`),
+  INDEX `idx_event_age` (`age_restriction`),
+  INDEX `idx_event_family` (`is_family_friendly`),
+  FOREIGN KEY (`city_id`) REFERENCES `cities`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `items` (
@@ -86,6 +120,16 @@ CREATE TABLE IF NOT EXISTS `suggestions` (
   INDEX `idx_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Initial Seed: Australian Cultural Hubs (Cities)
+INSERT INTO `cities` (`slug`, `name`, `state`, `country`, `postcode_prefix`, `latitude`, `longitude`) VALUES
+('melbourne', 'Melbourne', 'VIC', 'AU', '3', -37.8136, 144.9631),
+('sydney', 'Sydney', 'NSW', 'AU', '2', -33.8688, 151.2093),
+('brisbane', 'Brisbane', 'QLD', 'AU', '4', -27.4698, 153.0251),
+('perth', 'Perth', 'WA', 'AU', '6', -31.9505, 115.8605),
+('adelaide', 'Adelaide', 'SA', 'AU', '5', -34.9285, 138.6007),
+('hobart', 'Hobart', 'TAS', 'AU', '7', -42.8821, 147.3272)
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `postcode_prefix`=VALUES(`postcode_prefix`);
+
 -- Initial Seed: Public Australian RSS & Event Targets
 INSERT INTO `sources` (`slug`, `name`, `type`, `url`, `category_tab`) VALUES
 ('abc-just-in', 'ABC News', 'rss', 'https://www.abc.net.au/news/feed/51120/rss.xml', 'news'),
@@ -98,8 +142,10 @@ INSERT INTO `sources` (`slug`, `name`, `type`, `url`, `category_tab`) VALUES
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 
 -- Initial Seed: Curated Venues
-INSERT INTO `venues` (`slug`, `name`, `address`, `website_url`, `feed_url`, `source_id`) VALUES
-('the-gasometer-hotel', 'The Gasometer Hotel', '484 Smith St, Collingwood VIC 3066', 'https://www.thegasometerhotel.com.au', 'https://www.thegasometerhotel.com.au/gigs', 7),
-('the-corner-hotel', 'The Corner Hotel', '57 Swan St, Richmond VIC 3121', 'https://thecornerhotel.com', 'https://thecornerhotel.com/gigs', NULL),
-('fitzroy-community-arts', 'Fitzroy Community Arts', '128 Gertrude St, Fitzroy VIC 3065', 'https://fitzroyarts.org.au', NULL, NULL)
-ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `address`=VALUES(`address`), `website_url`=VALUES(`website_url`);
+INSERT INTO `venues` (`slug`, `city_id`, `name`, `address`, `suburb`, `state`, `postcode`, `default_age_policy`, `website_url`, `feed_url`, `source_id`) VALUES
+('the-gasometer-hotel', 1, 'The Gasometer Hotel', '484 Smith St, Collingwood VIC 3066', 'Collingwood', 'VIC', '3066', '18+', 'https://www.thegasometerhotel.com.au', 'https://www.thegasometerhotel.com.au/gigs', 7),
+('the-corner-hotel', 1, 'The Corner Hotel', '57 Swan St, Richmond VIC 3121', 'Richmond', 'VIC', '3121', '18+', 'https://thecornerhotel.com', 'https://thecornerhotel.com/gigs', NULL),
+('fitzroy-community-arts', 1, 'Fitzroy Community Arts', '128 Gertrude St, Fitzroy VIC 3065', 'Fitzroy', 'VIC', '3065', 'all_ages', 'https://fitzroyarts.org.au', NULL, NULL),
+('the-enmore-theatre', 2, 'Enmore Theatre', '118-132 Enmore Rd, Newtown NSW 2042', 'Newtown', 'NSW', '2042', 'mixed', 'https://enmoretheatre.com.au', 'https://enmoretheatre.com.au/events', NULL),
+('brisbane-powerhouse', 3, 'Brisbane Powerhouse', '119 Lamington St, New Farm QLD 4005', 'New Farm', 'QLD', '4005', 'all_ages', 'https://brisbanepowerhouse.org', 'https://brisbanepowerhouse.org/whats-on', NULL)
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `address`=VALUES(`address`), `suburb`=VALUES(`suburb`), `website_url`=VALUES(`website_url`);

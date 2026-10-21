@@ -22,9 +22,17 @@
 
   <!-- Brand Header -->
   <header>
-    <a href="#" class="brand">
-      <img src="assets/logo.svg" alt="AgendaWeb">
-    </a>
+    <div class="header-brand-wrap">
+      <a href="#" class="brand">
+        <img src="assets/logo.svg" alt="AgendaWeb">
+      </a>
+      <!-- City Selector Pill -->
+      <button class="city-selector-btn" id="city-selector-btn" onclick="openCityModal()" title="Select City Hub">
+        <span class="city-pin">📍</span>
+        <span id="current-city-label">Melbourne</span>
+        <span class="city-arrow">▾</span>
+      </button>
+    </div>
     <div class="header-actions">
       <button class="icon-btn" onclick="toggleHelpModal()">ℹ Help</button>
       <button class="icon-btn" onclick="toggleSettingsModal()">⚙ Settings</button>
@@ -40,6 +48,14 @@
     <button class="tab-btn" id="tab-btn-news" data-tab="news" style="display:none;" onclick="setTab('news')">📰 News</button>
     <button class="tab-btn" id="tab-btn-personal" data-tab="personal" style="display:none;" onclick="setTab('personal')">📁 Personal</button>
   </nav>
+
+  <!-- Audience Filter Bar (Age & Family Restrictions) -->
+  <div class="audience-filter-bar" id="audience-filter-bar">
+    <button class="audience-btn active" data-audience="all" onclick="setAudienceFilter('all', this)">All Audiences</button>
+    <button class="audience-btn" data-audience="18+" onclick="setAudienceFilter('18+', this)">🔞 18+ Nightlife</button>
+    <button class="audience-btn" data-audience="all_ages" onclick="setAudienceFilter('all_ages', this)">🎟️ All Ages (AA)</button>
+    <button class="audience-btn audience-kids" data-audience="kids_family" onclick="setAudienceFilter('kids_family', this)">🎈 Kids & Family</button>
+  </div>
 
   <!-- Dynamic Feed Search Bar -->
   <div class="search-filter-bar">
@@ -352,6 +368,28 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- City Hub Selection Modal -->
+  <div class="modal-overlay" id="city-modal" onclick="if(event.target===this) toggleCityModal()">
+    <div class="modal-content" style="max-width:560px;">
+      <div class="modal-header">
+        <h3>📍 Select City Hub</h3>
+        <button class="icon-btn" onclick="toggleCityModal()">✕</button>
+      </div>
+      <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:14px; line-height:1.5;">
+        Browse local independent gigs, exhibitions, and cultural feeds by metropolitan region. Your choice is stored locally on your device with zero tracking.
+      </p>
+
+      <div class="city-grid" id="city-grid-list">
+        <!-- Dynamically rendered by app.js -->
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; border-top:1px solid var(--color-oat); padding-top:14px;">
+        <button class="btn btn-outline" style="font-size:0.82rem;" onclick="selectCity('all', 'All Australia')">🌏 All Australia / Touring</button>
+        <button class="btn btn-primary" onclick="toggleCityModal()">Done</button>
+      </div>
     </div>
   </div>
 

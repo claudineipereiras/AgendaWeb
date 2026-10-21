@@ -71,7 +71,29 @@ erDiagram
 
 ## 2. Table Specifications
 
-### 2.1 `sources`
+### 2.1 `cities`
+Maintains Australian cultural hub metropolitan areas and states for multi-city feed filtering and automated postal code mapping.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INT` | `AUTO_INCREMENT`, `PRIMARY KEY` | Unique city identifier. |
+| `slug` | `VARCHAR(50)` | `UNIQUE`, `NOT NULL` | URL-safe slug (e.g. `melbourne`, `sydney`, `brisbane`). |
+| `name` | `VARCHAR(100)` | `NOT NULL` | Display name (e.g. `Melbourne`, `Sydney`). |
+| `state` | `VARCHAR(10)` | `NOT NULL` | Australian State/Territory code (e.g. `VIC`, `NSW`, `QLD`). |
+| `country` | `VARCHAR(10)` | `DEFAULT 'AU'` | ISO Country Code. |
+| `postcode_prefix`| `VARCHAR(20)` | `NOT NULL` | Postcode prefix digit for automated city classification (e.g. `3` for VIC). |
+| `latitude` | `DECIMAL(10, 7)` | `NULL` | City center geographic coordinate for client distance calculations. |
+| `longitude`| `DECIMAL(10, 7)` | `NULL` | City center geographic coordinate. |
+| `is_active` | `TINYINT(1)` | `DEFAULT 1` | Active city state. |
+| `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` | Record creation timestamp. |
+
+**Indexes:**
+- `INDEX (slug)`: Fast slug-based city routing.
+- `INDEX (is_active)`: City selector filtering.
+
+---
+
+### 2.2 `sources`
 Maintains the registry of all external ingestion targets (RSS feeds and scrape targets).
 
 | Column | Type | Constraints | Description |
@@ -98,17 +120,24 @@ Maintains the registry of all external ingestion targets (RSS feeds and scrape t
 
 ---
 
-### 2.2 `venues`
+### 2.3 `venues`
 Stores physical and cultural venues with their addresses, official websites, and syndication/feed links. Automatically populated/updated when event websites are auto-detected and scraped.
 
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | `INT` | `AUTO_INCREMENT`, `PRIMARY KEY` | Unique venue identifier. |
 | `slug` | `VARCHAR(60)` | `UNIQUE`, `NOT NULL` | URL-safe slug identifying the venue (e.g. `the-gasometer-hotel`). |
+| `city_id` | `INT` | `NULL`, `FK (cities.id)` | Associated city reference (`ON DELETE SET NULL`). |
 | `name` | `VARCHAR(150)` | `NOT NULL` | Full display name of the venue or organizer. |
 | `address` | `VARCHAR(255)` | `NULL` | Street address and postcode (e.g. `484 Smith St, Collingwood VIC 3066`). |
+| `suburb` | `VARCHAR(100)` | `NULL` | Neighborhood/suburb for hyper-local filtering (e.g. `Collingwood`, `Newtown`). |
+| `state` | `VARCHAR(10)` | `DEFAULT 'VIC'` | Australian state. |
+| `postcode` | `VARCHAR(10)` | `NULL` | Postal code for spatial proximity. |
+| `latitude` | `DECIMAL(10, 7)` | `NULL` | Latitude for client distance calculation. |
+| `longitude`| `DECIMAL(10, 7)` | `NULL` | Longitude for client distance calculation. |
 | `website_url` | `VARCHAR(255)` | `NULL` | Official website or gig guide page URL. |
 | `feed_url` | `VARCHAR(255)` | `NULL` | RSS/Atom or iCal feed URL if provided by the venue. |
+| `default_age_policy` | `ENUM` | `'18+', 'all_ages', 'mixed', 'family'` | Default venue entry age policy. |
 | `source_id` | `INT` | `NULL`, `FK` | Linked source ID in `sources` table. |
 | `is_active` | `TINYINT(1)` | `DEFAULT 1` | Active venue status. |
 | `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` | Venue registration timestamp. |
@@ -116,31 +145,41 @@ Stores physical and cultural venues with their addresses, official websites, and
 **Indexes:**
 - `INDEX (name)`: Venue search and alphabetical ordering.
 - `INDEX (slug)`: Fast foreign key and slug lookup.
+- `INDEX (city_id)`: Multi-city venue filtering.
+- `INDEX (suburb)`: Neighborhood aggregation.
 
 ---
 
-### 2.3 `events`
-Stores parsed and verified cultural listings (music gigs, art exhibitions, screenings).
+### 2.4 `events`
+Stores parsed and verified cultural listings (music gigs, art exhibitions, screenings, family activities).
 
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | `INT` | `AUTO_INCREMENT`, `PRIMARY KEY` | Event ID used for permalinks and `.ics` generation. |
+| `city_id` | `INT` | `NULL`, `FK (cities.id)` | Associated city reference (`ON DELETE SET NULL`). |
 | `venue_slug` | `VARCHAR(60)` | `NOT NULL` | Maps event to venue identity or subdomain. |
 | `title` | `VARCHAR(255)` | `NOT NULL` | Title of the event or performance. |
 | `description` | `TEXT` | `NULL` | Sanitized text summary of the event. |
 | `category` | `VARCHAR(60)` | `DEFAULT 'Culture'` | Genre/type (e.g., `Live Music`, `Art`, `Comedy`, `Festival`). Auto-grouped for subcategory filtering. |
+| `age_restriction` | `ENUM` | `'18+', 'all_ages', '15+', 'kids_family', 'unrated'` | Age restriction classification for audience filtering. |
+| `min_age` | `TINYINT UNSIGNED` | `NULL` | Explicit minimum age limit (e.g. 18, 15, 0). |
+| `is_family_friendly` | `TINYINT(1)` | `DEFAULT 0` | Flag for children's theatre, puppet shows, and daytime matinees. |
 | `start_time` | `DATETIME` | `NOT NULL` | Scheduled start date and time. |
 | `end_time` | `DATETIME` | `NULL` | Optional end time (defaults to `+2 hours` if null). |
 | `venue_name` | `VARCHAR(150)` | `NOT NULL` | Canonical venue or space name. |
 | `address` | `VARCHAR(255)` | `NULL` | Physical address for geocoding and map orientation. |
+| `suburb` | `VARCHAR(100)` | `NULL` | Suburb location. |
 | `ticket_url` | `VARCHAR(255)` | `NULL` | Deep-link directly to venue or ticketing partner checkout. |
 | `image_url` | `VARCHAR(500)` | `NULL` | Promotional banner / poster image URL for card rendering. |
 | `origin` | `ENUM` | `'scraped', 'manual'` | Source provenance (`manual` prevents scraper overwrites). |
 | `is_verified` | `TINYINT(1)` | `DEFAULT 0` | Trust badge indicator (1 = verified venue/organizer). |
 | `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` | Record creation time. |
 
-**Deduplication Constraint:**
+**Indexes & Deduplication:**
 - `UNIQUE KEY idx_venue_event_time (venue_slug, title(100), start_time)`: Prevents duplicate entries on repeated scraper runs while enabling safe `ON DUPLICATE KEY UPDATE`.
+- `INDEX (city_id, start_time)`: High-performance composite index for chronological multi-city feed loading.
+- `INDEX (age_restriction)`: Rapid filtering for 18+ vs Family feeds.
+- `INDEX (is_family_friendly)`: One-tap family mode activation.
 
 ---
 

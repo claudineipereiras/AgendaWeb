@@ -19,50 +19,101 @@ $appUrl = rtrim($config['app']['url'], '/');
 
 $venue = filter_input(INPUT_GET, 'venue', FILTER_DEFAULT) ?? 'all';
 $category = filter_input(INPUT_GET, 'category', FILTER_DEFAULT) ?? 'all';
+$city = filter_input(INPUT_GET, 'city', FILTER_DEFAULT) ?? 'all';
+$suburb = filter_input(INPUT_GET, 'suburb', FILTER_DEFAULT) ?? 'all';
+$age = filter_input(INPUT_GET, 'age', FILTER_DEFAULT) ?? 'all';
+$family = filter_input(INPUT_GET, 'family', FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
 $limit = min(max((int)(filter_input(INPUT_GET, 'limit', FILTER_VALIDATE_INT) ?: 50), 1), 100);
 $offset = max((int)(filter_input(INPUT_GET, 'offset', FILTER_VALIDATE_INT) ?: 0), 0);
 
 try {
     $pdo = Database::getConnection();
 
-    $where = ["start_time >= NOW()"];
+    $where = ["e.start_time >= NOW()"];
     $params = [];
 
     if ($venue !== 'all') {
-        $where[] = "venue_slug = :venue";
+        $where[] = "e.venue_slug = :venue";
         $params['venue'] = $venue;
     }
     if ($category !== 'all' && $category !== 'All') {
-        $where[] = "category = :category";
+        $where[] = "e.category = :category";
         $params['category'] = $category;
+    }
+    if ($city !== 'all' && $city !== 'All') {
+        $where[] = "(c.slug = :city OR e.address LIKE CONCAT('%', :city, '%'))";
+        $params['city'] = $city;
+    }
+    if ($suburb !== 'all' && $suburb !== 'All') {
+        $where[] = "(e.suburb = :suburb OR v.suburb = :suburb OR e.address LIKE CONCAT('%', :suburb, '%'))";
+        $params['suburb'] = $suburb;
+    }
+    if ($age !== 'all' && $age !== 'All') {
+        $where[] = "e.age_restriction = :age";
+        $params['age'] = $age;
+    }
+    if ($family === true) {
+        $where[] = "(e.is_family_friendly = 1 OR e.age_restriction IN ('kids_family', 'all_ages'))";
     }
 
     $whereSql = implode(' AND ', $where);
 
     // Get total count
-    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM events WHERE {$whereSql}");
+    $countStmt = $pdo->prepare("
+        SELECT COUNT(e.id) 
+        FROM events e
+        LEFT JOIN venues v ON v.slug = e.venue_slug
+        LEFT JOIN cities c ON (c.id = e.city_id OR c.id = v.city_id)
+        WHERE {$whereSql}
+    ");
     $countStmt->execute($params);
     $total = (int)$countStmt->fetchColumn();
 
-    // Dynamically retrieve distinct available categories for auto-grouping
-    $catQuery = "SELECT DISTINCT category FROM events WHERE start_time >= NOW()";
+    // Dynamically retrieve distinct available categories
+    $catQuery = "
+        SELECT DISTINCT e.category 
+        FROM events e
+        LEFT JOIN venues v ON v.slug = e.venue_slug
+        LEFT JOIN cities c ON (c.id = e.city_id OR c.id = v.city_id)
+        WHERE e.start_time >= NOW()
+    ";
     $catParams = [];
-    if ($venue !== 'all') {
-        $catQuery .= " AND venue_slug = :vslug";
-        $catParams['vslug'] = $venue;
+    if ($city !== 'all' && $city !== 'All') {
+        $catQuery .= " AND (c.slug = :city OR e.address LIKE CONCAT('%', :city, '%'))";
+        $catParams['city'] = $city;
     }
-    $catQuery .= " ORDER BY category ASC";
+    $catQuery .= " ORDER BY e.category ASC";
     $catStmt = $pdo->prepare($catQuery);
     $catStmt->execute($catParams);
     $rawCategories = $catStmt->fetchAll(PDO::FETCH_COLUMN);
     $categories = array_values(array_unique(array_merge(['All'], array_filter($rawCategories))));
 
-    // Query events with image_url
-    $sql = "SELECT id, venue_slug, venue_name, title, description, category, 
-                   start_time, end_time, address, ticket_url, image_url, origin, is_verified
-            FROM events
+    // Query events with image_url, location and age metadata
+    $sql = "SELECT 
+                e.id, 
+                e.venue_slug, 
+                e.venue_name, 
+                e.title, 
+                e.description, 
+                e.category, 
+                e.age_restriction,
+                e.min_age,
+                e.is_family_friendly,
+                e.start_time, 
+                e.end_time, 
+                e.address, 
+                e.suburb,
+                e.ticket_url, 
+                e.image_url, 
+                e.origin, 
+                e.is_verified,
+                COALESCE(c.name, 'Melbourne') AS city_name,
+                COALESCE(c.slug, 'melbourne') AS city_slug
+            FROM events e
+            LEFT JOIN venues v ON v.slug = e.venue_slug
+            LEFT JOIN cities c ON (c.id = e.city_id OR c.id = v.city_id)
             WHERE {$whereSql}
-            ORDER BY start_time ASC
+            ORDER BY e.start_time ASC
             LIMIT {$limit} OFFSET {$offset}";
 
     $stmt = $pdo->prepare($sql);
@@ -74,11 +125,24 @@ try {
         $ev['calendar_url'] = "{$appUrl}/calendar.php?id={$ev['id']}";
     }
 
+    // Query active cities for frontend switcher
+    $cities = [];
+    try {
+        $citiesStmt = $pdo->query("SELECT id, slug, name, state, latitude, longitude FROM cities WHERE is_active = 1 ORDER BY name ASC");
+        if ($citiesStmt) $cities = $citiesStmt->fetchAll();
+    } catch (\Throwable $ce) {
+        $cities = [
+            ['id' => 1, 'slug' => 'melbourne', 'name' => 'Melbourne', 'state' => 'VIC'],
+            ['id' => 2, 'slug' => 'sydney', 'name' => 'Sydney', 'state' => 'NSW'],
+            ['id' => 3, 'slug' => 'brisbane', 'name' => 'Brisbane', 'state' => 'QLD']
+        ];
+    }
+
     // Query active venues for grouping and metadata
     $venues = [];
     try {
         $venuesStmt = $pdo->query("
-            SELECT v.slug, v.name, v.address, v.website_url, v.feed_url,
+            SELECT v.slug, v.name, v.address, v.suburb, v.website_url, v.feed_url, v.default_age_policy,
                    COUNT(e.id) AS event_count
             FROM venues v
             LEFT JOIN events e ON e.venue_slug = v.slug AND e.start_time >= NOW()
@@ -90,22 +154,24 @@ try {
             $venues = $venuesStmt->fetchAll();
         }
     } catch (\Throwable $ve) {
-        // Fallback gracefully if venues table is not yet migrated
         $venues = [];
     }
 
     echo json_encode([
         'status'     => 'success',
+        'city'       => $city,
+        'age'        => $age,
         'count'      => count($events),
         'total'      => $total,
         'offset'     => $offset,
         'limit'      => $limit,
         'categories' => $categories,
+        'cities'     => $cities,
         'venues'     => $venues,
         'data'       => $events
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
 } catch (\Throwable $e) {
     http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'Failed to fetch events']);
+    echo json_encode(['status' => 'error', 'message' => 'Failed to fetch events: ' . $e->getMessage()]);
 }

@@ -26,18 +26,34 @@ const MIME_TYPES = {
   '.ics': 'text/calendar; charset=utf-8'
 };
 
+const MOCK_CITIES = [
+  { id: 1, slug: "melbourne", name: "Melbourne", state: "VIC", country: "Australia", postcode_prefix: "3", latitude: -37.8136, longitude: 144.9631, event_count: 4 },
+  { id: 2, slug: "sydney", name: "Sydney", state: "NSW", country: "Australia", postcode_prefix: "2", latitude: -33.8688, longitude: 151.2093, event_count: 2 },
+  { id: 3, slug: "brisbane", name: "Brisbane", state: "QLD", country: "Australia", postcode_prefix: "4", latitude: -27.4698, longitude: 153.0251, event_count: 1 },
+  { id: 4, slug: "perth", name: "Perth", state: "WA", country: "Australia", postcode_prefix: "6", latitude: -31.9505, longitude: 115.8605, event_count: 1 },
+  { id: 5, slug: "adelaide", name: "Adelaide", state: "SA", country: "Australia", postcode_prefix: "5", latitude: -34.9285, longitude: 138.6007, event_count: 1 },
+  { id: 6, slug: "hobart", name: "Hobart", state: "TAS", country: "Australia", postcode_prefix: "7", latitude: -42.8821, longitude: 147.3272, event_count: 1 }
+];
+
 // Seed Mock Data with image support matching Docs/Schema.sql & Docs/API_Spec.md
 const MOCK_EVENTS = [
   {
     id: 1,
+    city_id: 1,
+    city_slug: "melbourne",
+    city_name: "Melbourne",
     venue_slug: "the-gasometer-hotel",
     venue_name: "The Gasometer Hotel",
     title: "The Echoes — Album Launch",
-    description: "Melbourne indie rock outfit celebrating their debut LP release with special guests.",
+    description: "Melbourne indie rock outfit celebrating their debut LP release with special guests. Licensed 18+ event.",
     category: "Live Music",
+    age_restriction: "18+",
+    min_age: 18,
+    is_family_friendly: 0,
     start_time: "2026-10-24 20:00:00",
     end_time: "2026-10-24 23:30:00",
     address: "484 Smith St, Collingwood VIC 3066",
+    suburb: "Collingwood",
     ticket_url: "https://oztix.com.au/event/12345",
     image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=700&q=80",
     origin: "scraped",
@@ -46,14 +62,21 @@ const MOCK_EVENTS = [
   },
   {
     id: 2,
+    city_id: 1,
+    city_slug: "melbourne",
+    city_name: "Melbourne",
     venue_slug: "fitzroy-community-arts",
     venue_name: "Fitzroy Community Arts",
     title: "Contemporary Printmaking Biennial",
-    description: "Showcasing emerging Australian printmakers, risograph posters, and indie zines.",
+    description: "Showcasing emerging Australian printmakers, risograph posters, and indie zines. Open to all ages.",
     category: "Art",
+    age_restriction: "all_ages",
+    min_age: 0,
+    is_family_friendly: 1,
     start_time: "2026-10-25 10:00:00",
     end_time: "2026-10-25 17:00:00",
     address: "128 Gertrude St, Fitzroy VIC 3065",
+    suburb: "Fitzroy",
     ticket_url: "",
     image_url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=700&q=80",
     origin: "manual",
@@ -62,14 +85,21 @@ const MOCK_EVENTS = [
   },
   {
     id: 3,
+    city_id: 1,
+    city_slug: "melbourne",
+    city_name: "Melbourne",
     venue_slug: "the-corner-hotel",
     venue_name: "The Corner Hotel",
     title: "Sunset Soundscapes: Ambient & Synth Showcase",
-    description: "An evening of analog synthesizers and ambient soundscapes featuring local producers.",
+    description: "An evening of analog synthesizers and ambient soundscapes featuring local producers. 18+ photo ID required.",
     category: "Live Music",
+    age_restriction: "18+",
+    min_age: 18,
+    is_family_friendly: 0,
     start_time: "2026-10-26 19:30:00",
     end_time: "2026-10-26 23:00:00",
     address: "57 Swan St, Richmond VIC 3121",
+    suburb: "Richmond",
     ticket_url: "https://thecornerhotel.com",
     image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=700&q=80",
     origin: "scraped",
@@ -78,19 +108,164 @@ const MOCK_EVENTS = [
   },
   {
     id: 4,
+    city_id: 1,
+    city_slug: "melbourne",
+    city_name: "Melbourne",
     venue_slug: "collingwood-yards",
     venue_name: "Collingwood Yards",
-    title: "Community Record Fair & Open Studios",
-    description: "Vinyl crate digging, open artist studios, food trucks, and live radio broadcasts.",
+    title: "Puppet Theatre & Shadow Craft Workshop",
+    description: "Hands-on creative workshop for children, kids, and families. Construct your own cardboard silhouette puppet with live storytelling.",
     category: "Community",
-    start_time: "2026-10-27 11:00:00",
-    end_time: "2026-10-27 18:00:00",
+    age_restriction: "kids_family",
+    min_age: 0,
+    is_family_friendly: 1,
+    start_time: "2026-10-27 10:30:00",
+    end_time: "2026-10-27 14:00:00",
     address: "35 Johnston St, Collingwood VIC 3066",
+    suburb: "Collingwood",
     ticket_url: "",
     image_url: "https://images.unsplash.com/photo-1526478806334-5fd488fcaabc?auto=format&fit=crop&w=700&q=80",
     origin: "manual",
     is_verified: 1,
     calendar_url: "calendar.php?id=4"
+  },
+  {
+    id: 5,
+    city_id: 2,
+    city_slug: "sydney",
+    city_name: "Sydney",
+    venue_slug: "enmore-theatre",
+    venue_name: "Enmore Theatre",
+    title: "Newtown Noise: Post-Punk Collective",
+    description: "Four Sydney underground acts take over the iconic Enmore stage for an electrifying night of live sound. 18+ licensed venue.",
+    category: "Live Music",
+    age_restriction: "18+",
+    min_age: 18,
+    is_family_friendly: 0,
+    start_time: "2026-10-28 20:00:00",
+    end_time: "2026-10-28 23:45:00",
+    address: "118-132 Enmore Rd, Newtown NSW 2042",
+    suburb: "Newtown",
+    ticket_url: "https://enmoretheatre.com.au",
+    image_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=700&q=80",
+    origin: "scraped",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=5"
+  },
+  {
+    id: 6,
+    city_id: 2,
+    city_slug: "sydney",
+    city_name: "Sydney",
+    venue_slug: "enmore-theatre",
+    venue_name: "Enmore Theatre",
+    title: "Saturday Morning Family Matinee & Story Symphony",
+    description: "An interactive musical tale designed for toddlers, kids, and parents with acoustic chamber instruments.",
+    category: "Community",
+    age_restriction: "kids_family",
+    min_age: 0,
+    is_family_friendly: 1,
+    start_time: "2026-10-31 10:00:00",
+    end_time: "2026-10-31 12:00:00",
+    address: "118-132 Enmore Rd, Newtown NSW 2042",
+    suburb: "Newtown",
+    ticket_url: "https://enmoretheatre.com.au",
+    image_url: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=700&q=80",
+    origin: "manual",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=6"
+  },
+  {
+    id: 7,
+    city_id: 3,
+    city_slug: "brisbane",
+    city_name: "Brisbane",
+    venue_slug: "brisbane-powerhouse",
+    venue_name: "Brisbane Powerhouse",
+    title: "Riverfront Jazz & Vinyl Fair",
+    description: "Riverside open-air live acoustic sets, vinyl stalls, and indie food pop-ups. All ages welcome.",
+    category: "Live Music",
+    age_restriction: "all_ages",
+    min_age: 0,
+    is_family_friendly: 1,
+    start_time: "2026-11-01 14:00:00",
+    end_time: "2026-11-01 20:00:00",
+    address: "119 Lamington St, New Farm QLD 4005",
+    suburb: "New Farm",
+    ticket_url: "https://brisbanepowerhouse.org",
+    image_url: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=700&q=80",
+    origin: "scraped",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=7"
+  },
+  {
+    id: 8,
+    city_id: 4,
+    city_slug: "perth",
+    city_name: "Perth",
+    venue_slug: "fremantle-arts-centre",
+    venue_name: "Fremantle Arts Centre",
+    title: "Maritime Sound Art Installation",
+    description: "Immersive field recordings and sonic frequencies inspired by the Indian Ocean. Free entry for all ages.",
+    category: "Art",
+    age_restriction: "all_ages",
+    min_age: 0,
+    is_family_friendly: 1,
+    start_time: "2026-11-02 11:00:00",
+    end_time: "2026-11-02 17:00:00",
+    address: "1 Finnerty St, Fremantle WA 6160",
+    suburb: "Fremantle",
+    ticket_url: "",
+    image_url: "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=700&q=80",
+    origin: "manual",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=8"
+  },
+  {
+    id: 9,
+    city_id: 5,
+    city_slug: "adelaide",
+    city_name: "Adelaide",
+    venue_slug: "lion-arts-factory",
+    venue_name: "Lion Arts Factory",
+    title: "West End Experimental Synth Lab",
+    description: "Underground modular synth performances, audio-visual experiments, and cider bar. 18+ strictly.",
+    category: "Live Music",
+    age_restriction: "18+",
+    min_age: 18,
+    is_family_friendly: 0,
+    start_time: "2026-11-05 20:30:00",
+    end_time: "2026-11-06 01:00:00",
+    address: "68 North Terrace, Adelaide SA 5000",
+    suburb: "Adelaide",
+    ticket_url: "",
+    image_url: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=700&q=80",
+    origin: "scraped",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=9"
+  },
+  {
+    id: 10,
+    city_id: 6,
+    city_slug: "hobart",
+    city_name: "Hobart",
+    venue_slug: "the-odeon-theatre",
+    venue_name: "The Odeon Theatre",
+    title: "Tasmanian Winter Light & Shadow Show",
+    description: "Large-scale projection mapping and live cello scores. All ages cultural gathering.",
+    category: "Art",
+    age_restriction: "all_ages",
+    min_age: 0,
+    is_family_friendly: 1,
+    start_time: "2026-11-07 19:00:00",
+    end_time: "2026-11-07 22:00:00",
+    address: "167 Liverpool St, Hobart TAS 7000",
+    suburb: "Hobart",
+    ticket_url: "",
+    image_url: "https://images.unsplash.com/photo-1499364615650-ec38552f4f34?auto=format&fit=crop&w=700&q=80",
+    origin: "manual",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=10"
   }
 ];
 
@@ -106,9 +281,14 @@ let MOCK_SOURCES = [
 let MOCK_VENUES = [
   {
     id: 1,
+    city_id: 1,
     slug: "the-gasometer-hotel",
     name: "The Gasometer Hotel",
     address: "484 Smith St, Collingwood VIC 3066",
+    suburb: "Collingwood",
+    state: "VIC",
+    postcode: "3066",
+    default_age_policy: "18+",
     website_url: "https://www.thegasometerhotel.com.au",
     feed_url: "https://www.thegasometerhotel.com.au/gigs",
     source_id: 5,
@@ -116,9 +296,14 @@ let MOCK_VENUES = [
   },
   {
     id: 2,
+    city_id: 1,
     slug: "the-corner-hotel",
     name: "The Corner Hotel",
     address: "57 Swan St, Richmond VIC 3121",
+    suburb: "Richmond",
+    state: "VIC",
+    postcode: "3121",
+    default_age_policy: "18+",
     website_url: "https://thecornerhotel.com",
     feed_url: "https://thecornerhotel.com/gigs",
     source_id: 6,
@@ -126,10 +311,45 @@ let MOCK_VENUES = [
   },
   {
     id: 3,
+    city_id: 1,
     slug: "fitzroy-community-arts",
     name: "Fitzroy Community Arts",
     address: "128 Gertrude St, Fitzroy VIC 3065",
+    suburb: "Fitzroy",
+    state: "VIC",
+    postcode: "3065",
+    default_age_policy: "all_ages",
     website_url: "https://fitzroyarts.org.au",
+    feed_url: null,
+    source_id: null,
+    is_active: 1
+  },
+  {
+    id: 4,
+    city_id: 2,
+    slug: "enmore-theatre",
+    name: "Enmore Theatre",
+    address: "118-132 Enmore Rd, Newtown NSW 2042",
+    suburb: "Newtown",
+    state: "NSW",
+    postcode: "2042",
+    default_age_policy: "mixed",
+    website_url: "https://enmoretheatre.com.au",
+    feed_url: null,
+    source_id: null,
+    is_active: 1
+  },
+  {
+    id: 5,
+    city_id: 3,
+    slug: "brisbane-powerhouse",
+    name: "Brisbane Powerhouse",
+    address: "119 Lamington St, New Farm QLD 4005",
+    suburb: "New Farm",
+    state: "QLD",
+    postcode: "4005",
+    default_age_policy: "mixed",
+    website_url: "https://brisbanepowerhouse.org",
     feed_url: null,
     source_id: null,
     is_active: 1
@@ -211,17 +431,40 @@ const requestHandler = (req, res) => {
     return;
   }
 
-  // 1. API: Events Feed
+  // 1. API: Cities Directory
+  if (pathname === '/api/cities.php') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({
+      status: 'success',
+      count: MOCK_CITIES.length,
+      data: MOCK_CITIES
+    }));
+    return;
+  }
+
+  // 1.1 API: Events Feed
   if (pathname === '/api/events.php') {
     const category = parsedUrl.query.category || 'all';
     const venue = parsedUrl.query.venue || 'all';
+    const city = parsedUrl.query.city || 'all';
+    const age = parsedUrl.query.age || 'all';
+    const family = parsedUrl.query.family;
 
     let filtered = MOCK_EVENTS;
+    if (city && city !== 'all') {
+      filtered = filtered.filter(e => e.city_slug === city || (e.city_name || '').toLowerCase() === city.toLowerCase());
+    }
     if (category && category !== 'all' && category !== 'All') {
       filtered = filtered.filter(e => e.category.toLowerCase() === category.toLowerCase());
     }
     if (venue && venue !== 'all') {
       filtered = filtered.filter(e => e.venue_slug === venue);
+    }
+    if (age && age !== 'all') {
+      filtered = filtered.filter(e => e.age_restriction === age);
+    }
+    if (family === 'true' || family === '1') {
+      filtered = filtered.filter(e => e.is_family_friendly === 1);
     }
 
     const categories = ['All', ...new Set(MOCK_EVENTS.map(e => e.category))];
@@ -232,6 +475,7 @@ const requestHandler = (req, res) => {
       count: filtered.length,
       total: MOCK_EVENTS.length,
       categories: categories,
+      cities: MOCK_CITIES,
       venues: MOCK_VENUES,
       data: filtered
     }));
@@ -423,6 +667,13 @@ const requestHandler = (req, res) => {
       const venueName = host.replace(/^www\./, '').split('.')[0].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
       const venueSlug = venueName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
+      const venueCitySlug = (targetUrl.includes('sydney') || targetUrl.includes('enmore')) ? 'sydney' 
+        : (targetUrl.includes('brisbane') ? 'brisbane' : 'melbourne');
+      const venueCityName = venueCitySlug === 'sydney' ? 'Sydney' : (venueCitySlug === 'brisbane' ? 'Brisbane' : 'Melbourne');
+      const venueSuburb = venueCitySlug === 'sydney' ? 'Newtown' : (venueCitySlug === 'brisbane' ? 'New Farm' : 'Collingwood');
+      const venueState = venueCitySlug === 'sydney' ? 'NSW' : (venueCitySlug === 'brisbane' ? 'QLD' : 'VIC');
+      const venuePostcode = venueCitySlug === 'sydney' ? '2042' : (venueCitySlug === 'brisbane' ? '4005' : '3066');
+
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({
         status: 'success',
@@ -434,7 +685,13 @@ const requestHandler = (req, res) => {
         venue: {
           slug: venueSlug,
           name: venueName,
-          address: "Melbourne VIC"
+          address: `${venueSuburb} ${venueState} ${venuePostcode}`,
+          suburb: venueSuburb,
+          state: venueState,
+          postcode: venuePostcode,
+          city_slug: venueCitySlug,
+          city_name: venueCityName,
+          default_age_policy: '18+'
         },
         events: [
           {
@@ -442,15 +699,19 @@ const requestHandler = (req, res) => {
             start_time: "2026-10-25 20:00:00",
             category: "Live Music",
             venue_name: venueName,
-            address: "Melbourne VIC",
+            address: `${venueSuburb} ${venueState}`,
+            suburb: venueSuburb,
+            age: "18+",
             ticket_url: targetUrl
           },
           {
-            title: "Weekend Sound System Residency",
-            start_time: "2026-10-27 21:00:00",
+            title: "Sunday Acoustic & Coffee Matinee",
+            start_time: "2026-10-27 11:00:00",
             category: "Live Music",
             venue_name: venueName,
-            address: "Melbourne VIC",
+            address: `${venueSuburb} ${venueState}`,
+            suburb: venueSuburb,
+            age: "kids_family",
             ticket_url: targetUrl
           }
         ]
@@ -474,6 +735,7 @@ const requestHandler = (req, res) => {
         const venueName = payload.name || payload.venue_name || 'New Venue';
         const venueUrl = payload.url || payload.feed_url || '';
         const sourceSlug = venueName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const citySlug = payload.city_slug || 'melbourne';
         const newSource = {
           id: MOCK_SOURCES.length + 1,
           slug: sourceSlug,
@@ -486,7 +748,7 @@ const requestHandler = (req, res) => {
           http_code: 200,
           item_count: 2,
           contact_email: payload.contact_email || null,
-          submission_notes: `Self-service onboarding request. Polling: ${payload.polling_frequency || payload.polling_freq || '24h'}`,
+          submission_notes: `Self-service onboarding request. City: ${citySlug}. Age: ${payload.default_age_policy || 'mixed'}. Polling: ${payload.polling_frequency || payload.polling_freq || '24h'}`,
           last_error: null,
           last_polled_at: null
         };
@@ -494,9 +756,14 @@ const requestHandler = (req, res) => {
 
         MOCK_VENUES.push({
           id: MOCK_VENUES.length + 1,
+          city_id: citySlug === 'sydney' ? 2 : (citySlug === 'brisbane' ? 3 : 1),
           slug: sourceSlug,
           name: venueName,
-          address: payload.address || 'Melbourne VIC',
+          address: payload.address || `${payload.suburb || 'Collingwood'} ${payload.state || 'VIC'}`,
+          suburb: payload.suburb || 'Collingwood',
+          state: payload.state || 'VIC',
+          postcode: payload.postcode || '3066',
+          default_age_policy: payload.default_age_policy || 'mixed',
           website_url: venueUrl,
           feed_url: payload.feed_url || null,
           source_id: newSource.id,

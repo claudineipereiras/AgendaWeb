@@ -143,6 +143,48 @@ function syncRss(PDO $pdo, array $source, string $userAgent): int {
     return $count;
 }
 
+function resolveAustralianCity(PDO $pdo, string $addressText, ?string $postcode): ?int {
+    if ($postcode && strlen(trim($postcode)) >= 4) {
+        $firstDigit = substr(trim($postcode), 0, 1);
+        try {
+            $stmt = $pdo->prepare("SELECT id FROM cities WHERE postcode_prefix = :pfx LIMIT 1");
+            $stmt->execute(['pfx' => $firstDigit]);
+            $cityId = $stmt->fetchColumn();
+            if ($cityId) return (int)$cityId;
+        } catch (\Throwable $e) {}
+    }
+    $lower = strtolower($addressText);
+    if (str_contains($lower, 'vic') || str_contains($lower, 'melbourne')) return 1;
+    if (str_contains($lower, 'nsw') || str_contains($lower, 'sydney')) return 2;
+    if (str_contains($lower, 'qld') || str_contains($lower, 'brisbane')) return 3;
+    if (str_contains($lower, 'wa') || str_contains($lower, 'perth')) return 4;
+    if (str_contains($lower, 'sa') || str_contains($lower, 'adelaide')) return 5;
+    if (str_contains($lower, 'tas') || str_contains($lower, 'hobart')) return 6;
+    return 1; // Default to Melbourne hub
+}
+
+function resolveAgeRestriction(?string $ageRange, string $title, string $description): array {
+    $haystack = strtolower(($ageRange ?? '') . ' ' . $title . ' ' . $description);
+    
+    // Check for kids / family first
+    if (str_contains($haystack, 'kids') || str_contains($haystack, 'children') || str_contains($haystack, 'family') || str_contains($haystack, 'puppet') || str_contains($haystack, 'under 12') || str_contains($haystack, 'matinee') || str_contains($haystack, 'workshop for')) {
+        return ['age' => 'kids_family', 'min_age' => 0, 'family' => 1];
+    }
+    // Check for 18+
+    if (str_contains($haystack, '18+') || str_contains($haystack, 'over 18') || str_contains($haystack, 'licensed') || str_contains($haystack, 'photo id')) {
+        return ['age' => '18+', 'min_age' => 18, 'family' => 0];
+    }
+    // Check for All Ages
+    if (str_contains($haystack, 'all ages') || str_contains($haystack, ' aa ') || str_ends_with($haystack, ' aa') || str_contains($haystack, 'under 18')) {
+        return ['age' => 'all_ages', 'min_age' => 0, 'family' => 1];
+    }
+    // Check for 15+
+    if (str_contains($haystack, '15+')) {
+        return ['age' => '15+', 'min_age' => 15, 'family' => 0];
+    }
+    return ['age' => 'unrated', 'min_age' => null, 'family' => 0];
+}
+
 function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): int {
     $ctx = stream_context_create(['http' => ['timeout' => 12, 'user_agent' => $userAgent]]);
     $html = @file_get_contents($source['url'], false, $ctx);
@@ -156,15 +198,16 @@ function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): int {
     $xpath = new DOMXPath($dom);
     $scripts = $xpath->query('//script[@type="application/ld+json"]');
 
-    // Only update if origin is 'scraped' to protect manual venue updates
     $stmt = $pdo->prepare("
-        INSERT INTO events (venue_slug, title, description, category, start_time, end_time, venue_name, address, ticket_url, image_url, origin)
-        VALUES (:slug, :title, :description, :cat, :start, :end, :vname, :addr, :turl, :image, 'scraped')
+        INSERT INTO events (city_id, venue_slug, title, description, category, age_restriction, min_age, is_family_friendly, start_time, end_time, venue_name, address, suburb, ticket_url, image_url, origin)
+        VALUES (:city_id, :slug, :title, :description, :cat, :age, :min_age, :family, :start, :end, :vname, :addr, :suburb, :turl, :image, 'scraped')
         ON DUPLICATE KEY UPDATE 
             description = IF(origin = 'manual', description, VALUES(description)),
             ticket_url = IF(origin = 'manual', ticket_url, VALUES(ticket_url)),
             end_time = IF(origin = 'manual', end_time, VALUES(end_time)),
-            image_url = IF(origin = 'manual', image_url, VALUES(image_url))
+            image_url = IF(origin = 'manual', image_url, VALUES(image_url)),
+            age_restriction = VALUES(age_restriction),
+            is_family_friendly = VALUES(is_family_friendly)
     ");
 
     $count = 0;
@@ -188,39 +231,67 @@ function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): int {
                 }
 
                 $vname = $node['location']['name'] ?? $source['name'];
-                $vaddr = is_array($node['location']['address'] ?? null) ? ($node['location']['address']['streetAddress'] ?? '') : ($node['location']['address'] ?? '');
+                $locAddr = $node['location']['address'] ?? null;
+                $vaddr = is_array($locAddr) ? ($locAddr['streetAddress'] ?? '') : ($locAddr ?? '');
+                $suburb = is_array($locAddr) ? ($locAddr['addressLocality'] ?? '') : '';
+                $postcode = is_array($locAddr) ? ($locAddr['postalCode'] ?? '') : '';
+                $state = is_array($locAddr) ? ($locAddr['addressRegion'] ?? 'VIC') : 'VIC';
+
+                if (!$vaddr && is_array($locAddr)) {
+                    $vaddr = trim(($locAddr['streetAddress'] ?? '') . ', ' . $suburb . ' ' . $state . ' ' . $postcode);
+                }
+
+                // Resolve City Hub & Age Restrictions
+                $cityId = resolveAustralianCity($pdo, $vaddr . ' ' . $source['name'], $postcode);
+                $titleText = trim($node['name']);
+                $descText = strip_tags($node['description'] ?? '');
+                $ageInfo = resolveAgeRestriction($node['typicalAgeRange'] ?? null, $titleText, $descText);
 
                 // Ensure venues table is updated with auto-detected venue details
                 try {
                     $vstmt = $pdo->prepare("
-                        INSERT INTO venues (slug, name, address, website_url, source_id)
-                        VALUES (:slug, :name, :address, :web, :sid)
+                        INSERT INTO venues (slug, city_id, name, address, suburb, state, postcode, default_age_policy, website_url, source_id)
+                        VALUES (:slug, :city_id, :name, :address, :suburb, :state, :postcode, :age_policy, :web, :sid)
                         ON DUPLICATE KEY UPDATE 
                             name = VALUES(name),
+                            city_id = COALESCE(VALUES(city_id), city_id),
                             address = IF(VALUES(address) != '', VALUES(address), address),
+                            suburb = IF(VALUES(suburb) != '', VALUES(suburb), suburb),
+                            state = VALUES(state),
+                            postcode = IF(VALUES(postcode) != '', VALUES(postcode), postcode),
                             website_url = VALUES(website_url),
                             source_id = VALUES(source_id)
                     ");
                     $vstmt->execute([
-                        'slug'    => $source['slug'],
-                        'name'    => $vname,
-                        'address' => $vaddr,
-                        'web'     => $source['url'],
-                        'sid'     => $source['id']
+                        'slug'       => $source['slug'],
+                        'city_id'    => $cityId,
+                        'name'       => $vname,
+                        'address'    => $vaddr,
+                        'suburb'     => $suburb,
+                        'state'      => $state,
+                        'postcode'   => $postcode,
+                        'age_policy' => ($ageInfo['age'] === '18+') ? '18+' : (($ageInfo['family']) ? 'family' : 'mixed'),
+                        'web'        => $source['url'],
+                        'sid'        => $source['id']
                     ]);
                 } catch (\Throwable $ve) {
-                    // Continue even if venues table not migrated yet
+                    // Continue gracefully
                 }
 
                 $stmt->execute([
+                    'city_id'     => $cityId,
                     'slug'        => $source['slug'],
-                    'title'       => trim($node['name']),
-                    'description' => strip_tags($node['description'] ?? ''),
+                    'title'       => $titleText,
+                    'description' => $descText,
                     'cat'         => str_replace('Event', '', (string)$type) ?: 'Culture',
+                    'age'         => $ageInfo['age'],
+                    'min_age'     => $ageInfo['min_age'],
+                    'family'      => $ageInfo['family'],
                     'start'       => $start,
                     'end'         => !empty($node['endDate']) ? date('Y-m-d H:i:s', strtotime($node['endDate'])) : null,
                     'vname'       => $vname,
                     'addr'        => $vaddr,
+                    'suburb'      => $suburb,
                     'turl'        => $node['offers']['url'] ?? $node['url'] ?? $source['url'],
                     'image'       => $imageUrl
                 ]);
