@@ -148,6 +148,16 @@ header, .app-header {
   color: var(--color-nightfall);
 }
 
+.m3-icon-btn.is-active {
+  background: rgba(27, 59, 43, 0.12);
+  color: var(--color-racing-green);
+  border-color: rgba(27, 59, 43, 0.28);
+}
+
+.m3-icon-btn.is-active .m3-icon {
+  color: var(--color-racing-green);
+}
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -488,6 +498,11 @@ header, .app-header {
 
 .card.is-read .card-title {
   color: #3b5042;
+}
+
+/* Hide seen cards when toggle is active */
+body.hide-seen-active .card.is-read {
+  display: none !important;
 }
 
 .card-title {

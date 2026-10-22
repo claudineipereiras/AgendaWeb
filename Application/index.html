@@ -43,6 +43,17 @@
     </div>
 
     <div class="header-right header-actions">
+      <!-- Toggle Hide Seen Cards (Eye Icon) -->
+      <button class="m3-icon-btn" id="hide-seen-btn" onclick="toggleHideSeenCards()" title="Hide cards marked as seen">
+        <span id="hide-seen-icon">
+          <svg class="m3-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </span>
+        <span class="btn-text" id="hide-seen-label">Seen</span>
+      </button>
+
       <button class="m3-icon-btn" onclick="toggleHelpModal()" title="About AgendaWeb">
         <svg class="m3-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>

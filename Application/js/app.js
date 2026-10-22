@@ -115,6 +115,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize City Hub & Audience Filter
   await initCityAndAudienceUI();
 
+  // Initialize Hide-Seen Preference
+  updateHideSeenUI();
+
   // Render initial tab
   await setTab('events');
 
@@ -125,6 +128,95 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 });
+
+// Seen / Read State & Hide-Seen Toggle Controller
+let isHideSeenActive = localStorage.getItem('agendaweb_hide_seen') === 'true';
+
+function updateHideSeenUI() {
+  const btn = document.getElementById('hide-seen-btn');
+  const iconSpan = document.getElementById('hide-seen-icon');
+  const labelSpan = document.getElementById('hide-seen-label');
+  
+  if (isHideSeenActive) {
+    document.body.classList.add('hide-seen-active');
+    if (btn) {
+      btn.classList.add('is-active');
+      btn.title = 'Showing unread cards only (tap to show seen cards)';
+    }
+    if (labelSpan) labelSpan.textContent = 'Hidden';
+    if (iconSpan) {
+      // Closed / Slashed Eye
+      iconSpan.innerHTML = `
+        <svg class="m3-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        </svg>
+      `;
+    }
+  } else {
+    document.body.classList.remove('hide-seen-active');
+    if (btn) {
+      btn.classList.remove('is-active');
+      btn.title = 'Hide cards marked as seen';
+    }
+    if (labelSpan) labelSpan.textContent = 'Seen';
+    if (iconSpan) {
+      // Open Eye
+      iconSpan.innerHTML = `
+        <svg class="m3-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      `;
+    }
+  }
+  updateHiddenSeenNotice();
+}
+
+function toggleHideSeenCards() {
+  isHideSeenActive = !isHideSeenActive;
+  localStorage.setItem('agendaweb_hide_seen', isHideSeenActive ? 'true' : 'false');
+  updateHideSeenUI();
+}
+
+function updateHiddenSeenNotice() {
+  const feed = document.getElementById('feed');
+  if (!feed) return;
+  const existingNotice = document.getElementById('hidden-seen-notice');
+  if (existingNotice) existingNotice.remove();
+
+  if (!isHideSeenActive) return;
+
+  const cards = feed.querySelectorAll('.card');
+  if (cards.length === 0) return;
+
+  const readCards = feed.querySelectorAll('.card.is-read');
+  if (readCards.length > 0 && readCards.length === cards.length) {
+    const notice = document.createElement('div');
+    notice.id = 'hidden-seen-notice';
+    notice.className = 'state-message';
+    notice.style.padding = '36px 20px';
+    notice.style.textAlign = 'center';
+    notice.style.maxWidth = '460px';
+    notice.style.margin = '28px auto';
+    notice.innerHTML = `
+      <div style="width:48px; height:48px; border-radius:50%; background:rgba(27, 59, 43, 0.08); display:flex; align-items:center; justify-content:center; margin:0 auto 12px; color:var(--color-racing-green);">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        </svg>
+      </div>
+      <h3 style="font-family:var(--font-serif); font-size:1.15rem; color:var(--color-nightfall); margin-bottom:6px;">All cards in this view are marked as seen</h3>
+      <p style="font-size:0.85rem; color:var(--color-text-muted); line-height:1.5; margin-bottom:14px;">
+        You've read all ${readCards.length} cards in this category. Tap below or the eye icon in the top bar to show them again.
+      </p>
+      <button class="btn btn-outline" onclick="toggleHideSeenCards()" style="font-size:0.82rem;">
+        👁️ Show Seen Cards
+      </button>
+    `;
+    feed.appendChild(notice);
+  }
+}
 
 // Circle Check Mark Helpers (Mark as Read / Checked)
 function renderCheckCircleSvg(isRead) {
@@ -153,8 +245,9 @@ async function toggleCardCheck(cardKey, event, btnElement) {
   if (btnElement) {
     btnElement.classList.toggle('is-read', isNowRead);
     btnElement.innerHTML = renderCheckCircleSvg(isNowRead);
-    btnElement.title = isNowRead ? 'Mark as unread' : 'Mark as read';
+    btnElement.title = isNowRead ? 'Mark as unseen' : 'Mark as seen';
   }
+  updateHiddenSeenNotice();
 }
 
 async function handleCardOpen(cardKey) {
@@ -166,9 +259,10 @@ async function handleCardOpen(cardKey) {
     if (checkBtn) {
       checkBtn.classList.add('is-read');
       checkBtn.innerHTML = renderCheckCircleSvg(true);
-      checkBtn.title = 'Mark as unread';
+      checkBtn.title = 'Mark as unseen';
     }
   }
+  updateHiddenSeenNotice();
 }
 
 // Follow Venue / Artist / Organiser Handler (with RSS icon)
@@ -489,6 +583,7 @@ async function renderEvents(refreshPills = true) {
   }));
 
   container.innerHTML = html.join('');
+  updateHiddenSeenNotice();
 }
 
 // Render Following Tab (Grouped by Followed Venue / Organizer)
@@ -663,6 +758,7 @@ async function renderFollowing(refreshPills = true) {
   }));
 
   container.innerHTML = headerHtml + groupsHtml.join('');
+  updateHiddenSeenNotice();
 }
 
 // Render Curated News / Blogs Tab
@@ -738,6 +834,7 @@ async function renderItems(tab, refreshPills = true) {
   }));
 
   container.innerHTML = html.join('');
+  updateHiddenSeenNotice();
 }
 
 // Render Personal Custom Feeds Tab
@@ -841,6 +938,7 @@ async function renderPersonalFeeds(refreshPills = true) {
   }));
 
   container.innerHTML = html.join('');
+  updateHiddenSeenNotice();
 }
 
 // Render Reads Tab (Offline Saved Gigs & Articles)
@@ -991,6 +1089,7 @@ async function renderReads() {
   }
 
   container.innerHTML = html;
+  updateHiddenSeenNotice();
 }
 
 // User Actions
