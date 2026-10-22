@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.0] - 2026-10-22
+
+### Added
+- **Live Feed Moderation & Cascading Purge (`/api/admin.php`):**
+  - Added **"🗓️ Published Events"** management tab to Curator Admin Manager with live search, venue/date tags, and one-click "✕ Remove from Feed".
+  - Cascading Source Deletion & Deactivation: Toggling a source inactive or deleting it instantly hides or removes all associated events and dispatches from the public feeds (`/api/events.php` and `/api/items.php`).
+  - Added `delete_event` and `delete_item` administrative actions with tombstone protection (`DELETED_EVENT_KEYS`, `DELETED_ITEM_LINKS`, `DELETED_SOURCE_URLS`) preventing deleted items from re-appearing during scheduled scraper runs.
+- **Role-Based Admin Authentication (`/api/auth.php`):**
+  - Session-based Bearer token authentication with password hashing (`password_hash`), user session tracking (`user_sessions`), and role authorization (`admin`, `editor`, `curator`).
+  - Seamless fallback to `X-Admin-Key` for legacy automation.
+- **Read Card Visibility Toggle (`👁️`):**
+  - Added an eye toggle button in the application header alongside Help and Settings, enabling readers to hide or reveal cards marked as read/seen.
+- **Branding & Visual Polish:**
+  - Standardized branding to "AgendaWeb powered by TechSousa".
+
+---
+
+## [0.6.0] - 2026-10-21
+
+### Added
+- **Multi-City Cultural Directory (`/api/cities.php` & Migration `002`):**
+  - Normalized database schema supporting Australian cultural centers: Melbourne, Sydney, Brisbane, Perth, Adelaide, Hobart.
+  - Header geographic selector allowing instantaneous switching between cultural hubs with persistent local preferences.
+- **Audience & Age Restriction Filters:**
+  - Added `age_restriction` (`all_ages`, `18_plus`, `licensed_all_ages`) and `is_family_friendly` flags to events schema and API.
+  - Material 3 tonal audience filter chips: All Audiences, 18+ Nightlife, All Ages, and Kids & Family.
+- **Multi-Strategy Ingestion Engine (`sync_sources.php` & `dev_server.js`):**
+  - Ingestion strategy architecture supporting RSS/Atom (`ev:`), Schema.org JSON-LD crawler, RFC 5545 iCalendar, and custom venue scrapers.
+  - Live production ingestion strategy for Bar Oussou live music gig guide, pulling 100+ live upcoming gigs.
+- **Purge of Dummy Data:**
+  - Fully eliminated all mock fallback arrays (`FALLBACK_EVENTS`, `FALLBACK_ITEMS`) from frontend client (`app.js`) and backend server (`dev_server.js`). All feeds reflect 100% authentic live syndicated sources.
+
+---
+
 ## [0.5.0] - 2026-10-19
 
 ### Added

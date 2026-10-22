@@ -1,43 +1,155 @@
 # AgendaWeb — Your Cultural Web Feed
 
-> Open-web, decentralized cultural calendar and editorial magazine reader for Australia.
+> Open-web, decentralized cultural calendar and editorial broadsheet reader for Australia.
 
-## Directory Layout
+---
+
+## 1. Project Directory Structure
 
 ```
 AgendaWeb/
-├── Application/              # All application source code
-│   ├── assets/               # Production assets (logo.svg, icons)
-│   ├── index.html            # Local-first PWA broadsheet client
-│   ├── feed.php              # Dual RSS 2.0 + ev: event feed generator
-│   ├── calendar.php          # RFC 5545 iCalendar (.ics & webcal://) generator
-│   ├── extract.php           # OpenGraph / Twitter Card link scraper for "Read Later"
-│   └── sync_sources.php      # Hostinger cron background ingestor (RSS & JSON-LD)
-├── Docs/                     # All project documentation & specs
-│   ├── Architecture.md       # System topology, protocols, and anti-spam specs
-│   ├── Brand_Guidelines.md   # Design tokens, color palette, typography, logo geometry
-│   ├── Rules.md              # System constraints and architectural directives
-│   ├── Schema.sql            # Hostinger MySQL tables & Australian seed feeds
-│   ├── Whole_Ideas.pdf       # Initial project evolution & design conversation transcript
-│   ├── Idea_Gemini.txt       # Early folder structure notes
-│   ├── Logo.svg              # Master vector mark
-│   └── icon_Denifition.jpeg  # Visual brand guide mockup
-├── .antigravity/             # Antigravity agent system configuration
-│   └── rules.md              # Project boundaries for AI pair programming
-└── .gitignore                # Git ignore configuration
+├── Application/                         # All core application source code
+│   ├── admin/
+│   │   └── index.html                   # Admin & Curator Portal (RBAC, source & event management)
+│   ├── api/                             # REST & Ingestion API endpoints (PHP backend)
+│   │   ├── admin.php                    # Source sync, moderation, deletion, and feed controls
+│   │   ├── auth.php                     # Curator authentication & session management
+│   │   ├── cities.php                   # Multi-city directory with dynamic event counters
+│   │   ├── events.php                   # Public cultural events feed with city & audience filtering
+│   │   ├── extract.php                  # OpenGraph & metadata extractor for Read Later
+│   │   ├── items.php                    # Curated news & blog dispatches feed
+│   │   ├── onboard_venue.php            # Venue automated scanner & self-service onboarding
+│   │   ├── proxy_feed.php               # CORS proxy for personal RSS/Atom subscriptions
+│   │   ├── suggestions.php              # Reader suggestion inbox submission
+│   │   └── users.php                    # Staff & role-based access management (Admins & Managers)
+│   ├── assets/                          # SVG brand emblems, iconography, and logos
+│   │   ├── icon.svg                     # Application PWA square icon
+│   │   ├── logo.svg                     # AgendaWeb geometric masthead emblem
+│   │   └── techsousa-logo.png           # TechSousa development attribution logo
+│   ├── config/
+│   │   └── config.php                   # Database & application environment configuration
+│   ├── css/
+│   │   ├── style.css                    # Broadsheet editorial typography & responsive styles
+│   │   └── tokens.css                   # Design tokens (Racing Green, Amber Rust, Chalk, Paper)
+│   ├── js/
+│   │   ├── api.js                       # Stateless client API connector
+│   │   ├── app.js                       # Broadsheet client controller (filters, rendering, state)
+│   │   └── db.js                        # Client-side IndexedDB database (zero server tracking)
+│   ├── src/                             # Backend PHP helper classes
+│   │   ├── Auth.php                     # Authentication & role verification library
+│   │   └── Database.php                 # PDO database singleton connection manager
+│   ├── venues/
+│   │   └── index.html                   # Venue Self-Service Portal & Strategy Scanner
+│   ├── calendar.php                     # RFC 5545 iCalendar (.ics & webcal://) generator
+│   ├── dev_server.js                    # Local development server with live RSS/REST ingestion
+│   ├── feed.php                         # Dual RSS 2.0 + ev: Event module syndication generator
+│   ├── index.html                       # Broadsheet PWA web application (reader-facing)
+│   ├── manifest.webmanifest             # Progressive Web App manifest
+│   ├── sw.js                            # Offline-first Service Worker with network fallback
+│   ├── sync_sources.php                 # Background cron ingestor (Hostinger scheduled task)
+│   ├── widget-demo.html                 # Live preview demo for embeddable venue widgets
+│   └── widget.js                        # Zero-dependency embeddable venue calendar widget
+├── Docs/                                # Comprehensive technical documentation
+│   ├── API_Spec.md                      # Complete REST and syndication API contracts
+│   ├── Architecture.md                  # System topology, ingestion strategies, and protocols
+│   ├── Brand_Guidelines.md              # Editorial color palette, geometry, and typography
+│   ├── CHANGELOG.md                     # Version history and release notes
+│   ├── Database_Schema.md               # Hostinger MySQL 8.x schema documentation
+│   ├── Deployment_Hostinger.md          # Production deployment & Hostinger cron guide
+│   ├── Frontend_IndexedDB.md            # Client-side local storage and retention guide
+│   ├── Rules.md                         # Architecture constraints and design directives
+│   └── Schema.sql                       # Production MySQL DDL and Australian seed sources
+├── .antigravity/                        # Antigravity agent configuration & rules
+└── .gitignore                           # Git ignore rules
 ```
 
-## Core Principles
+---
 
-1. **Zero User Accounts:** Zero consumer login barriers, passwords, or tracking databases. All favorites, feeds, and reading lists live client-side in the browser's IndexedDB.
-2. **Stateless PHP Backend:** Pure PHP 8.x + MySQL (Hostinger MySQL 8.x) designed for shared hosting (Hostinger) with zero Node.js/npm dependencies on the server.
-3. **Open Standards:** Built on RSS 2.0 with the Event module (`ev:`), RFC 5545 iCalendar (`webcal://`), and `schema.org/Event` JSON-LD scraping.
-4. **Editorial Broadsheet Aesthetic:** Distinctive color palette (Amber Rust `#C85A32`, Sage Green `#4A5D4E`, Nightfall `#1B3B2B`, Chalk `#F7F5F0`, Oat `#E6E2D8`).
-5. **Decentralized & Direct:** 0% ticket fee cut, direct checkout links to venues, and embeddable venue widgets (`widget.js`).
+## 2. System Architecture & Component Interaction
 
-## Version Control & Documentation Policy
+```text
+                                [ LIVE CULTURAL WEB ]
+                                           │
+         ┌─────────────────────────────────┼─────────────────────────────────┐
+         │ (Public RSS/Atom Feeds)         │ (WordPress REST / JSON-LD)      │ (Venue Submissions)
+         ▼                                 ▼                                 ▼
+   [ Australian Media ]           [ Independent Venues ]            [ Venue Onboarding ]
+   • ABC News                     • Bar Oussou Brunswick            • venues/index.html
+   • SBS News                       (/wp-json/baroussou/v1/events)  • Auto-detect strategy
+   • The Guardian AU Culture      • Schema.org JSON-LD              • Subdomain verification
+   • The Conversation (AU)        • HTML Microdata & Tribe Events
+   • Trouble Magazine                      │
+         │                                 │
+         └────────────────┬────────────────┘
+                          ▼
+             [ INGESTION ENGINE (dev_server.js / sync_sources.php) ]
+              - Real live syndication (100% mock-free)
+              - Automatic ISO date normalization
+              - Tombstone blacklist (prevents re-scraping deleted items)
+                          │
+                          ▼
+            [ STORAGE LAYER (Hostinger MySQL 8.x) ]
+              - sources: Active feeds, poll frequency, health & strategy
+              - events:  Gigs, exhibitions, age restrictions, venue coords
+              - items:   News articles & cultural blogs with full text
+              - users:   Admin & Manager role-based credentials
+              - suggestions: Reader tips and venue feed submissions
+                          │
+         ┌────────────────┴───────────────────────────────┐
+         ▼                                               ▼
+  [ PUBLIC BROADCAST APIs ]                       [ CURATION & ADMIN PORTAL ]
+  • /api/events.php                               • /admin/index.html
+    - Multi-city (Melbourne, Sydney, etc.)         - Role hierarchy (Admin & Manager)
+    - Audience ratings (All, 18+, Kids/Family)     - Curated Subscriptions management
+  • /api/items.php (News & Blogs)                  - Published Events moderation
+  • /api/cities.php (Dynamic counters)             - Cascading deletion (removes from feed)
+  • /feed.php (RSS 2.0 + ev:)                      - On-demand "⚡ Run Sync Now"
+  • /calendar.php (RFC 5545 iCal export)           - Reader suggestions triage
+         │
+         ▼
+  [ CLIENT BROADSHEET PWA (index.html) ]
+  • Zero user accounts or tracking
+  • Centered editorial filter pills
+  • Hide seen cards toggle (eye icon)
+  • Client-side IndexedDB: saved gigs, reading queue, followed venues
+  • Embeddable venue widget integration (widget.js)
+```
 
-- **Application code** strictly belongs inside `Application/`.
-- **Documentation** strictly belongs inside `Docs/`.
-- Every feature or modification is version-controlled via Git.
-- When application code, data models, or endpoints change, corresponding documentation in `Docs/` must be updated concurrently in the same commit.
+---
+
+## 3. How Core Workflows Function
+
+### A. Real-Time Feed Ingestion (100% Mock-Free)
+1. **Boot / Cron Execution:** The ingestor connects to verified active sources.
+2. **Event Parsing:** Extracts dates, venues, titles, age restrictions (`18+`, `all_ages`, `kids_family`), and ticketing URLs via WordPress REST endpoints, Schema.org JSON-LD, or microdata.
+3. **News & Blog Aggregation:** Ingests dispatches from ABC, SBS, Guardian, Conversation, and Trouble Mag, storing full articles for in-app distraction-free reading.
+4. **Tombstone Verification:** Before adding any item, the engine checks `DELETED_EVENT_KEYS` and `DELETED_ITEM_LINKS` so previously moderated items are never re-ingested.
+
+### B. Admin Curation & Feed Deletion
+1. **Removing a Source:** Deleting a source in `/admin/` cascades immediately—all associated events, news items, and venue references are permanently purged from the public feeds.
+2. **Pausing a Source:** Toggling a source to inactive instantly hides all of its events and articles from `/api/events.php` and `/api/items.php` without losing configuration.
+3. **Removing Individual Gigs:** Curators can open the **`Published Events`** tab in the Admin portal to delete specific events directly from the live feed with a single click.
+
+### C. Reader Privacy & Broadsheet Experience
+1. **Zero Registration:** Readers never create accounts or submit personal data to the server.
+2. **Local Storage:** All bookmarks, followed venues, channel preferences, and seen-card states persist in the browser's local IndexedDB.
+3. **Offline Resilience:** The Service Worker (`sw.js`) employs a Network-First strategy with seamless offline cache fallback.
+
+---
+
+## 4. Local Development & Verification
+
+Run the local server:
+```bash
+node Application/dev_server.js
+```
+The server will bind to port `8001` (primary) and `8000` (mirror) and immediately perform an initial background sync of live Australian feeds.
+
+Access points:
+- **Broadsheet PWA:** `http://localhost:8001/index.html`
+- **Admin Portal:** `http://localhost:8001/admin/index.html` (Credentials: `admin@agendaweb.app` / `AgendaAdmin2026!`)
+- **Venue Portal:** `http://localhost:8001/venues/index.html`
+- **Widget Demo:** `http://localhost:8001/widget-demo.html`
+- **Events JSON API:** `http://localhost:8001/api/events.php?city=melbourne`
+- **News JSON API:** `http://localhost:8001/api/items.php?tab=news`
+

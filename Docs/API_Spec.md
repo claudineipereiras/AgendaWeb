@@ -25,8 +25,11 @@ Retrieves upcoming cultural events, gigs, and exhibitions sorted chronologically
 - **Query Parameters:**
   | Parameter | Type | Required | Default | Description |
   | :--- | :--- | :--- | :--- | :--- |
-  | `venue` | `string` | No | `all` | Filter by venue slug (e.g., `the-gasometer-hotel`), or `all`. |
+  | `city` | `string` | No | `all` | Filter by city slug (e.g. `melbourne`, `sydney`) or city name. |
   | `category` | `string` | No | `all` | Filter by category (e.g., `Live Music`, `Art`, `Community`, `all`). |
+  | `venue` | `string` | No | `all` | Filter by venue slug (e.g., `bar-oussou`), or `all`. |
+  | `age` | `string` | No | `all` | Audience policy filter (`18+`, `all_ages`, `kids_family`, or `all`). |
+  | `family` | `int/bool` | No | `0` | If `1` or `true`, restricts exclusively to family-friendly / kids events. |
   | `limit` | `int` | No | `50` | Maximum items to return (1–100). |
   | `offset` | `int` | No | `0` | Pagination offset. |
 
@@ -35,28 +38,42 @@ Retrieves upcoming cultural events, gigs, and exhibitions sorted chronologically
 {
   "status": "success",
   "count": 1,
-  "total": 42,
-  "categories": ["All", "Live Music", "Art", "Community", "Free"],
+  "total": 108,
+  "categories": ["All", "Live Music", "Community"],
+  "cities": [
+    { "id": 1, "slug": "melbourne", "name": "Melbourne", "state": "VIC", "event_count": 108 }
+  ],
+  "venues": [
+    { "id": 1, "slug": "bar-oussou", "name": "Bar Oussou", "suburb": "Brunswick" }
+  ],
   "data": [
     {
       "id": 1,
-      "venue_slug": "the-gasometer-hotel",
-      "venue_name": "The Gasometer Hotel",
-      "title": "The Echoes — Album Launch",
-      "description": "Melbourne indie rock outfit celebrating their debut LP release.",
+      "city_id": 1,
+      "city_slug": "melbourne",
+      "city_name": "Melbourne",
+      "venue_slug": "bar-oussou",
+      "venue_name": "Bar Oussou",
+      "title": "Joey & John",
+      "description": "Live gig at Bar Oussou",
       "category": "Live Music",
-      "start_time": "2026-10-24 20:00:00",
-      "end_time": "2026-10-24 23:30:00",
-      "address": "484 Smith St, Collingwood VIC 3066",
-      "ticket_url": "https://oztix.com.au/event/12345",
-      "image_url": "https://example.com/posters/echoes.jpg",
+      "age_restriction": "18+",
+      "min_age": 18,
+      "is_family_friendly": 0,
+      "start_time": "2026-10-22 18:30:00",
+      "end_time": null,
+      "address": "659 Sydney Rd, Brunswick VIC 3056",
+      "suburb": "Brunswick",
+      "ticket_url": "https://events.baroussou.com.au/joey-john-2026-10-22",
+      "image_url": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=700&q=80",
       "origin": "scraped",
       "is_verified": 1,
-      "calendar_url": "https://agendaweb.app/calendar.php?id=1"
+      "calendar_url": "calendar.php?id=1"
     }
   ]
 }
 ```
+
 
 ---
 
@@ -98,7 +115,44 @@ Retrieves articles, news headlines, and independent blog posts ingested from Aus
 
 ---
 
-### 2.3 Personal Feed CORS Proxy
+### 2.3 Australian Cultural Hubs Directory (`/api/cities.php`)
+Returns the active network of supported Australian cultural cities, including coordinates and live active event tallies.
+
+- **Endpoint:** `GET /api/cities.php`
+- **Cache Policy:** `Cache-Control: public, max-age=300`
+- **Success Response (200 OK):**
+```json
+{
+  "status": "success",
+  "count": 6,
+  "data": [
+    {
+      "id": 1,
+      "slug": "melbourne",
+      "name": "Melbourne",
+      "state": "VIC",
+      "country": "AU",
+      "latitude": -37.8136,
+      "longitude": 144.9631,
+      "event_count": 108
+    },
+    {
+      "id": 2,
+      "slug": "sydney",
+      "name": "Sydney",
+      "state": "NSW",
+      "country": "AU",
+      "latitude": -33.8688,
+      "longitude": 151.2093,
+      "event_count": 0
+    }
+  ]
+}
+```
+
+---
+
+### 2.4 Personal Feed CORS Proxy
 Safely proxies external user-added RSS/Atom feeds to bypass browser CORS restrictions for local IndexedDB personal feeds.
 
 - **Endpoint:** `GET /api/proxy_feed.php`
@@ -130,7 +184,7 @@ Safely proxies external user-added RSS/Atom feeds to bypass browser CORS restric
 
 ---
 
-### 2.4 OpenGraph "Read Later" Extractor
+### 2.5 OpenGraph "Read Later" Extractor
 Scrapes public URL metadata so the client can save bookmark preview cards into local IndexedDB.
 
 - **Endpoint:** `GET /api/extract.php`
@@ -157,7 +211,7 @@ Scrapes public URL metadata so the client can save bookmark preview cards into l
 
 ---
 
-### 2.5 Reader Suggestion Box (`/api/suggestions.php`)
+### 2.6 Reader Suggestion Box (`/api/suggestions.php`)
 Allows readers to submit recommendations, venue tips, and feed nominations via the in-app Help & Suggestion modal. Suggestions are stored directly in the Hostinger MySQL `suggestions` table.
 
 - **Endpoint:** `POST /api/suggestions.php`
@@ -182,21 +236,36 @@ Allows readers to submit recommendations, venue tips, and feed nominations via t
 
 ---
 
-### 2.6 Curator Admin Management API (`/api/admin.php`)
-Dedicated administration endpoint enabling the curator to manage curated sources, monitor ingestion stats, triage suggestions, and trigger sync. Protected by passkey (`X-Admin-Key` header or `?key=` query param).
+### 2.7 Curator Admin Management API (`/api/admin.php`)
+Dedicated administration endpoint enabling curators to manage source feeds, moderate published events and dispatches, triage suggestions, and trigger sync passes. Protected by Bearer token session auth (`Authorization: Bearer <token>`) or legacy passkey (`X-Admin-Key` header / `?key=`).
 
 - **Endpoint:** `GET|POST /api/admin.php`
-- **Authentication:** `X-Admin-Key: <admin_key>`
+- **Authentication:** `Authorization: Bearer <token>` or `X-Admin-Key: <admin_key>`
 - **Actions:**
-  - `GET /api/admin.php?action=stats`: Returns platform metrics (active sources, total events, dispatches, pending suggestions).
-  - `GET /api/admin.php?action=sources&channel=all`: Lists curated sources with filters (`events`, `news`, `blogs`).
-  - `POST /api/admin.php?action=add_source`: Adds a new curated source feed (`name`, `channel_tab`, `feed_url`, `site_url`, `subcategories`).
-  - `POST /api/admin.php?action=toggle_source`: Pauses or activates a curated feed (`id`, `is_active`).
-  - `POST /api/admin.php?action=delete_source`: Removes a feed source.
+  - `GET /api/admin.php?action=stats`: Returns platform metrics (active sources, total published events, dispatches, pending suggestions).
+  - `GET /api/admin.php?action=sources&channel=all`: Lists curated sources with channel filtering (`all`, `events`, `news`, `blogs`).
+  - `POST /api/admin.php?action=add_source`: Adds a new curated source feed (`name`, `channel_tab`, `feed_url`, `site_url`, `ingestion_strategy`, `subcategories`).
+  - `POST /api/admin.php?action=toggle_source`: Pauses or activates a curated feed (`id`, `is_active`). Automatically cascades to hide or reveal all associated events and dispatches from the public feed.
+  - `POST /api/admin.php?action=delete_source`: Permanently removes a source, cascading to purge its events and items, and registers tombstones against future scraper runs.
+  - `GET /api/admin.php?action=events&search=jazz`: Lists currently published live events with optional search query.
+  - `POST /api/admin.php?action=delete_event`: Removes a specific event by `id` (or `ticket_url`), immediately purging it from `/api/events.php` and adding it to the tombstone registry.
+  - `POST /api/admin.php?action=delete_item`: Removes a specific news/blog article by `id` (or `link`), instantly hiding it from `/api/items.php` and recording a tombstone.
   - `GET /api/admin.php?action=suggestions&status=new`: Retrieves reader suggestions filtered by status (`new`, `read`, `archived`).
   - `POST /api/admin.php?action=update_suggestion`: Changes suggestion status (`id`, `status`).
   - `POST /api/admin.php?action=delete_suggestion`: Deletes a suggestion item.
-  - `POST /api/admin.php?action=sync_now`: Manually initiates `sync_sources.php` ingestion pass.
+  - `POST /api/admin.php?action=sync_now`: Manually triggers an immediate ingestion pass across active sources.
+
+---
+
+### 2.8 Authentication & Session Management (`/api/auth.php`)
+Provides role-based access control (RBAC) and bearer token authentication for editorial curators and administrators.
+
+- **Endpoints:**
+  - `POST /api/auth.php?action=login`: Authenticates with email and password, returning a 64-character bearer token.
+    - Request: `{"email": "admin@agendaweb.app", "password": "..."}`
+    - Response (200 OK): `{"status": "success", "token": "...", "user": {"id": 1, "name": "Curator", "role": "admin"}}`
+  - `GET /api/auth.php?action=me`: Verifies the active `Authorization: Bearer <token>` and returns user profile details.
+  - `POST /api/auth.php?action=logout`: Revokes the current session token.
 
 ---
 
