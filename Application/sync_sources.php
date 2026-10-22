@@ -187,16 +187,6 @@ function resolveAgeRestriction(?string $ageRange, string $title, string $descrip
 
 function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): int {
     $ctx = stream_context_create(['http' => ['timeout' => 12, 'user_agent' => $userAgent]]);
-    $html = @file_get_contents($source['url'], false, $ctx);
-    if (!$html) return 0;
-
-    libxml_use_internal_errors(true);
-    $dom = new DOMDocument();
-    @$dom->loadHTML($html);
-    libxml_clear_errors();
-
-    $xpath = new DOMXPath($dom);
-    $scripts = $xpath->query('//script[@type="application/ld+json"]');
 
     $stmt = $pdo->prepare("
         INSERT INTO events (city_id, venue_slug, title, description, category, age_restriction, min_age, is_family_friendly, start_time, end_time, venue_name, address, suburb, ticket_url, image_url, origin)
@@ -211,6 +201,64 @@ function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): int {
     ");
 
     $count = 0;
+
+    // Direct Bar Oussou WordPress REST Events API
+    if (str_contains($source['url'], 'baroussou.com.au') || str_contains($source['slug'], 'bar-oussou')) {
+        $apiData = @file_get_contents('https://www.baroussou.com.au/wp-json/baroussou/v1/events', false, $ctx);
+        if ($apiData) {
+            $json = json_decode($apiData, true);
+            $items = $json['items'] ?? [];
+            foreach ($items as $item) {
+                if (empty($item['eventDate'])) continue;
+                $parts = explode('/', $item['eventDate']);
+                if (count($parts) !== 3) continue;
+                $time = !empty($item['eventTime']) ? $item['eventTime'] : '20:00';
+                $start = "{$parts[2]}-{$parts[1]}-{$parts[0]} {$time}:00";
+                if (strtotime($start) < time() - 86400) continue;
+
+                $title = trim($item['artistName'] ?? 'Live Music at Bar Oussou');
+                $isKoorie = str_contains(strtolower($title), 'koorie');
+                $ageInfo = [
+                    'age' => $isKoorie ? 'all_ages' : '18+',
+                    'min_age' => $isKoorie ? 0 : 18,
+                    'family' => $isKoorie ? 1 : 0
+                ];
+                $ticketUrl = !empty($item['slug']) ? "https://events.baroussou.com.au/{$item['slug']}" : $source['url'];
+
+                $stmt->execute([
+                    'city_id'     => 1,
+                    'slug'        => 'bar-oussou',
+                    'title'       => $title,
+                    'description' => "Live performance at Bar Oussou, Brunswick.",
+                    'cat'         => ($item['eventCategory'] ?? '') === 'recurring' ? 'Community' : 'Live Music',
+                    'age'         => $ageInfo['age'],
+                    'min_age'     => $ageInfo['min_age'],
+                    'family'      => $ageInfo['family'],
+                    'start'       => $start,
+                    'end'         => null,
+                    'vname'       => 'Bar Oussou',
+                    'addr'        => '659 Sydney Rd, Brunswick VIC 3056',
+                    'suburb'      => 'Brunswick',
+                    'turl'        => $ticketUrl,
+                    'image'       => $item['posterImage'] ?? null
+                ]);
+                $count++;
+            }
+            return $count;
+        }
+    }
+
+    $html = @file_get_contents($source['url'], false, $ctx);
+    if (!$html) return 0;
+
+    libxml_use_internal_errors(true);
+    $dom = new DOMDocument();
+    @$dom->loadHTML($html);
+    libxml_clear_errors();
+
+    $xpath = new DOMXPath($dom);
+    $scripts = $xpath->query('//script[@type="application/ld+json"]');
+
     foreach ($scripts as $s) {
         $data = json_decode(trim($s->nodeValue), true);
         if (!is_array($data)) continue;

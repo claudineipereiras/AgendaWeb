@@ -1302,7 +1302,7 @@
       detectBtn.disabled = true;
       detectBtn.textContent = '⏳ Scanning...';
       previewCard.style.display = 'block';
-      previewStatus.textContent = 'Scanning webpage for Schema.org/Event JSON-LD and RSS feeds...';
+      previewStatus.textContent = 'Scanning webpage for Schema.org JSON-LD, WordPress REST APIs, iframes, and RSS feeds...';
       previewList.innerHTML = '';
       currentDetectedVenue = null;
 
@@ -1314,7 +1314,7 @@
           currentDetectedVenue = res.venue || null;
           
           if (res.events_count > 0) {
-            previewStatus.innerHTML = `✓ Found <strong>${res.events_count} upcoming events</strong> on page!
+            previewStatus.innerHTML = `✓ Found <strong>${res.events_count} upcoming events</strong>${res.detection_method ? ' via <em>' + escapeHtml(res.detection_method) + '</em>' : ''}!
               <div style="font-size:0.8rem; color:#2e7d32; margin-top:5px; font-weight:600;">
                 📍 Venue Database: Will register <strong>"${escapeHtml(res.venue?.name || res.suggested_name)}"</strong>${res.venue?.address ? ' at ' + escapeHtml(res.venue.address) : ''}
               </div>`;
@@ -1327,7 +1327,7 @@
           } else if (res.feed_url) {
             previewStatus.innerHTML = `✓ Found linked RSS feed: <code>${escapeHtml(res.feed_url)}</code>`;
           } else {
-            previewStatus.textContent = 'Webpage fetched (HTTP 200). Ready for periodic ingestion.';
+            previewStatus.innerHTML = `<span style="color:#b26a00;">ℹ No structured events detected automatically (0 events).</span><br><small style="color:var(--text-muted); display:inline-block; margin-top:4px;">This page may render events through a dynamic client app without Schema.org or REST APIs. You can still save this source or manually curate gigs.</small>`;
           }
 
           if (!document.getElementById('source-name').value) {

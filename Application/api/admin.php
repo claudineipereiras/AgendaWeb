@@ -157,6 +157,41 @@ try {
             }
         }
 
+        $detectionMethod = count($events) > 0 ? 'Schema.org JSON-LD' : null;
+
+        // Check Bar Oussou WordPress REST Events API
+        if (count($events) === 0 && (str_contains($targetUrl, 'baroussou.com.au') || str_contains($html, 'events.baroussou.com.au'))) {
+            $apiData = @file_get_contents('https://www.baroussou.com.au/wp-json/baroussou/v1/events', false, $ctx);
+            if ($apiData) {
+                $json = json_decode($apiData, true);
+                $items = $json['items'] ?? [];
+                foreach ($items as $item) {
+                    if (empty($item['eventDate'])) continue;
+                    $parts = explode('/', $item['eventDate']);
+                    if (count($parts) !== 3) continue;
+                    $time = !empty($item['eventTime']) ? $item['eventTime'] : '20:00';
+                    $start = "{$parts[2]}-{$parts[1]}-{$parts[0]} {$time}:00";
+                    if (strtotime($start) < time() - 86400) continue;
+
+                    $events[] = [
+                        'title'       => trim($item['artistName'] ?? 'Live Music at Bar Oussou'),
+                        'description' => 'Live performance at Bar Oussou, Brunswick.',
+                        'start_time'  => $start,
+                        'end_time'    => null,
+                        'category'    => ($item['eventCategory'] ?? '') === 'recurring' ? 'Community' : 'Live Music',
+                        'venue_name'  => 'Bar Oussou',
+                        'address'     => '659 Sydney Rd, Brunswick VIC 3056',
+                        'ticket_url'  => !empty($item['slug']) ? "https://events.baroussou.com.au/{$item['slug']}" : $targetUrl,
+                        'image_url'   => $item['posterImage'] ?? null
+                    ];
+                }
+                if (count($events) > 0) {
+                    $detectedVenue = 'Bar Oussou';
+                    $detectionMethod = 'WordPress REST API (Bar Oussou)';
+                }
+            }
+        }
+
         $detectedType = count($events) > 0 ? 'scrape_event' : ($discoveredFeed ? 'rss' : 'scrape_event');
         $suggestedName = $detectedVenue ?: preg_replace('/(\s*[-|–]\s*.*)$/i', '', $pageTitle);
         $suggestedName = trim($suggestedName) ?: parse_url($targetUrl, PHP_URL_HOST);
@@ -173,6 +208,7 @@ try {
             'url'            => $targetUrl,
             'http_code'      => $httpCode,
             'page_title'     => $pageTitle,
+            'detection_method' => $detectionMethod,
             'detected_type'  => $detectedType,
             'suggested_name' => $suggestedName,
             'suggested_tab'  => count($events) > 0 ? 'events' : ($discoveredFeed ? 'blogs' : 'events'),

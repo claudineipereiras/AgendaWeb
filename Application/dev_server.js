@@ -267,6 +267,190 @@ const MOCK_EVENTS = [
     origin: "manual",
     is_verified: 1,
     calendar_url: "calendar.php?id=10"
+  },
+  {
+    id: 11,
+    city_id: 1,
+    city_slug: "melbourne",
+    city_name: "Melbourne",
+    venue_slug: "bar-oussou",
+    venue_name: "Bar Oussou",
+    title: "Joey & John",
+    description: "Acoustic duo delivering soulful roots, melodic banter, and rhythmic world beats live on the Brunswick stage.",
+    category: "Live Music",
+    age_restriction: "18+",
+    min_age: 18,
+    is_family_friendly: 0,
+    start_time: "2026-10-22 18:30:00",
+    end_time: "2026-10-22 21:30:00",
+    address: "659 Sydney Rd, Brunswick VIC 3056",
+    suburb: "Brunswick",
+    ticket_url: "https://events.baroussou.com.au/joey-john-2026-10-22",
+    image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=700&q=80",
+    origin: "scraped",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=11"
+  },
+  {
+    id: 12,
+    city_id: 1,
+    city_slug: "melbourne",
+    city_name: "Melbourne",
+    venue_slug: "bar-oussou",
+    venue_name: "Bar Oussou",
+    title: "Orbit Resident",
+    description: "Revolving between jazzy inflections and d-floor beats, Orbit defines playing to the room. Deep pocket inspired & intrinsically wired, each performance is improvised to capture the cross-pollinated chemistry of Melbourne's finest.",
+    category: "Live Music",
+    age_restriction: "18+",
+    min_age: 18,
+    is_family_friendly: 0,
+    start_time: "2026-10-22 22:00:00",
+    end_time: "2026-10-23 01:00:00",
+    address: "659 Sydney Rd, Brunswick VIC 3056",
+    suburb: "Brunswick",
+    ticket_url: "https://events.baroussou.com.au/orbit-resident-1789612910811",
+    image_url: "https://pb.baroussou.uk/api/files/mediaLibrary/f338xf302s1d187/z_2_a2sniafg3l.jpeg",
+    origin: "scraped",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=12"
+  },
+  {
+    id: 13,
+    city_id: 1,
+    city_slug: "melbourne",
+    city_name: "Melbourne",
+    venue_slug: "bar-oussou",
+    venue_name: "Bar Oussou",
+    title: "Aidan Ryan",
+    description: "Intimate indie folk and intricate fingerpicking guitar session live at Bar Oussou.",
+    category: "Live Music",
+    age_restriction: "18+",
+    min_age: 18,
+    is_family_friendly: 0,
+    start_time: "2026-10-23 19:00:00",
+    end_time: "2026-10-23 21:30:00",
+    address: "659 Sydney Rd, Brunswick VIC 3056",
+    suburb: "Brunswick",
+    ticket_url: "https://events.baroussou.com.au/aidan-ryan-1792451895752",
+    image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=700&q=80",
+    origin: "scraped",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=13"
+  },
+  {
+    id: 14,
+    city_id: 1,
+    city_slug: "melbourne",
+    city_name: "Melbourne",
+    venue_slug: "bar-oussou",
+    venue_name: "Bar Oussou",
+    title: "Masikuna",
+    description: "Andean rhythm fusion, charango riffs, and global electronic grooves bringing vibrant energy to Brunswick.",
+    category: "Live Music",
+    age_restriction: "18+",
+    min_age: 18,
+    is_family_friendly: 0,
+    start_time: "2026-10-23 22:00:00",
+    end_time: "2026-10-24 01:00:00",
+    address: "659 Sydney Rd, Brunswick VIC 3056",
+    suburb: "Brunswick",
+    ticket_url: "https://events.baroussou.com.au/masikuna-1792451176731",
+    image_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=700&q=80",
+    origin: "scraped",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=14"
+  },
+  {
+    id: 15,
+    city_id: 1,
+    city_slug: "melbourne",
+    city_name: "Melbourne",
+    venue_slug: "bar-oussou",
+    venue_name: "Bar Oussou",
+    title: "ChichaBelly",
+    description: "Peruvian cumbia psychedelic explosion blending surf guitars and tropical syncopated rhythms.",
+    category: "Live Music",
+    age_restriction: "18+",
+    min_age: 18,
+    is_family_friendly: 0,
+    start_time: "2026-10-24 19:00:00",
+    end_time: "2026-10-24 21:30:00",
+    address: "659 Sydney Rd, Brunswick VIC 3056",
+    suburb: "Brunswick",
+    ticket_url: "https://events.baroussou.com.au/chichabelly-2026-10-24",
+    image_url: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=700&q=80",
+    origin: "scraped",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=15"
+  },
+  {
+    id: 16,
+    city_id: 1,
+    city_slug: "melbourne",
+    city_name: "Melbourne",
+    venue_slug: "bar-oussou",
+    venue_name: "Bar Oussou",
+    title: "The New Monos",
+    description: "Buenos Aires street ska, reggae, and Latin punk rock live on Sydney Road.",
+    category: "Live Music",
+    age_restriction: "18+",
+    min_age: 18,
+    is_family_friendly: 0,
+    start_time: "2026-10-24 22:00:00",
+    end_time: "2026-10-25 01:00:00",
+    address: "659 Sydney Rd, Brunswick VIC 3056",
+    suburb: "Brunswick",
+    ticket_url: "https://events.baroussou.com.au/the-new-monos-2026-10-24",
+    image_url: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=700&q=80",
+    origin: "scraped",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=16"
+  },
+  {
+    id: 17,
+    city_id: 1,
+    city_slug: "melbourne",
+    city_name: "Melbourne",
+    venue_slug: "bar-oussou",
+    venue_name: "Bar Oussou",
+    title: "Koorie Afternoon",
+    description: "Weekly cultural showcase of First Nations artists, storytelling, acoustic sets, and community gathering. Open to all ages.",
+    category: "Community",
+    age_restriction: "all_ages",
+    min_age: 0,
+    is_family_friendly: 1,
+    start_time: "2026-10-25 15:00:00",
+    end_time: "2026-10-25 18:30:00",
+    address: "659 Sydney Rd, Brunswick VIC 3056",
+    suburb: "Brunswick",
+    ticket_url: "https://events.baroussou.com.au/koorie-afternoon-2026-10-25",
+    image_url: "https://pb.baroussou.uk/api/files/mediaLibrary/d1a3ja1cr092dbm/koorie_afternoon_edit_a3_8wp0bkytz0.png",
+    origin: "scraped",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=17"
+  },
+  {
+    id: 18,
+    city_id: 1,
+    city_slug: "melbourne",
+    city_name: "Melbourne",
+    venue_slug: "bar-oussou",
+    venue_name: "Bar Oussou",
+    title: "The Seben Brothers",
+    description: "High-energy Congolese Soukous guitar grooves and infectious dance polyrhythms to close the weekend.",
+    category: "Live Music",
+    age_restriction: "18+",
+    min_age: 18,
+    is_family_friendly: 0,
+    start_time: "2026-10-25 20:00:00",
+    end_time: "2026-10-25 23:00:00",
+    address: "659 Sydney Rd, Brunswick VIC 3056",
+    suburb: "Brunswick",
+    ticket_url: "https://events.baroussou.com.au/the-seben-brothers-2026-10-25",
+    image_url: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=700&q=80",
+    origin: "scraped",
+    is_verified: 1,
+    calendar_url: "calendar.php?id=18"
   }
 ];
 
@@ -277,7 +461,8 @@ let MOCK_SOURCES = [
   { id: 4, slug: "the-conversation-au", name: "The Conversation (AU)", type: "rss", url: "https://theconversation.com/au/politics/articles.atom", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
   { id: 5, slug: "trouble-mag", name: "Trouble Magazine", type: "rss", url: "https://www.troublemag.com/feed/", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
   { id: 6, slug: "the-gasometer-hotel", name: "The Gasometer Hotel", type: "scrape_event", url: "https://www.thegasometerhotel.com.au/gigs", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 5, last_error: null, last_polled_at: "2026-10-19 08:45:00" },
-  { id: 7, slug: "the-corner-hotel", name: "The Corner Hotel", type: "scrape_event", url: "https://thecornerhotel.com/gigs", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 7, last_error: null, last_polled_at: "2026-10-19 08:30:00" }
+  { id: 7, slug: "the-corner-hotel", name: "The Corner Hotel", type: "scrape_event", url: "https://thecornerhotel.com/gigs", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 7, last_error: null, last_polled_at: "2026-10-19 08:30:00" },
+  { id: 8, slug: "bar-oussou", name: "Bar Oussou Brunswick", type: "scrape_event", url: "https://www.baroussou.com.au/gigs/", feed_url: "https://www.baroussou.com.au/wp-json/baroussou/v1/events", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 8, last_error: null, last_polled_at: "2026-10-22 14:00:00" }
 ];
 
 let MOCK_VENUES = [
@@ -354,6 +539,21 @@ let MOCK_VENUES = [
     website_url: "https://brisbanepowerhouse.org",
     feed_url: null,
     source_id: null,
+    is_active: 1
+  },
+  {
+    id: 6,
+    city_id: 1,
+    slug: "bar-oussou",
+    name: "Bar Oussou",
+    address: "659 Sydney Rd, Brunswick VIC 3056",
+    suburb: "Brunswick",
+    state: "VIC",
+    postcode: "3056",
+    default_age_policy: "18+",
+    website_url: "https://www.baroussou.com.au",
+    feed_url: "https://www.baroussou.com.au/wp-json/baroussou/v1/events",
+    source_id: 8,
     is_active: 1
   }
 ];
@@ -630,6 +830,319 @@ async function syncRssSource(source) {
   }
 }
 
+async function discoverEventsFromUrl(targetUrl) {
+  const result = {
+    targetUrl,
+    pageTitle: '',
+    discoveredFeed: null,
+    detectedEvents: [],
+    detectedVenueName: '',
+    detectedAddress: '',
+    detectedType: 'scrape_event',
+    method: 'none',
+    error: null
+  };
+
+  try {
+    // Strategy 1: Direct Bar Oussou WordPress REST Events API
+    if (targetUrl.includes('baroussou.com.au')) {
+      try {
+        const bRes = await fetch('https://www.baroussou.com.au/wp-json/baroussou/v1/events', {
+          headers: { 'User-Agent': 'AgendaWeb-Bot/1.0 (+https://agendaweb.app; Melbourne Broadsheet)' }
+        });
+        if (bRes.ok) {
+          const bData = await bRes.json();
+          const bItems = bData.items || [];
+          const nowMs = Date.now() - 24 * 3600 * 1000;
+          for (const item of bItems) {
+            if (!item.eventDate) continue;
+            const parts = item.eventDate.split('/');
+            if (parts.length !== 3) continue;
+            const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T${item.eventTime || '20:00'}:00`);
+            if (d.getTime() < nowMs) continue;
+
+            const isKoorie = (item.artistName || '').toLowerCase().includes('koorie');
+            result.detectedEvents.push({
+              title: item.artistName || 'Live Music at Bar Oussou',
+              start_time: `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')} ${item.eventTime || '20:00'}:00`,
+              end_time: null,
+              category: item.eventCategory === 'recurring' ? 'Community' : 'Live Music',
+              venue_name: 'Bar Oussou',
+              address: '659 Sydney Rd, Brunswick VIC 3056',
+              suburb: 'Brunswick',
+              age_restriction: isKoorie ? 'all_ages' : '18+',
+              min_age: isKoorie ? 0 : 18,
+              is_family_friendly: isKoorie ? 1 : 0,
+              ticket_url: item.slug ? `https://events.baroussou.com.au/${item.slug}` : targetUrl,
+              image_url: item.posterImage || ''
+            });
+          }
+          result.detectedEvents.sort((a,b) => a.start_time.localeCompare(b.start_time));
+          result.pageTitle = 'Bar Oussou Brunswick | Live Music & Culture';
+          result.detectedVenueName = 'Bar Oussou';
+          result.detectedAddress = '659 Sydney Rd, Brunswick VIC 3056';
+          result.method = 'WordPress REST API (Bar Oussou)';
+          return result;
+        }
+      } catch (be) {}
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const webRes = await fetch(targetUrl, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'AgendaWeb-Bot/1.0 (+https://agendaweb.app; Melbourne Broadsheet)' }
+    });
+    clearTimeout(timeout);
+
+    const html = await webRes.text();
+    const pageTitleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    result.pageTitle = pageTitleMatch ? stripHtml(pageTitleMatch[1]) : '';
+
+    // Check for alternate RSS/Atom links
+    const rssMatch = html.match(/<link\b[^>]*rel=["']alternate["'][^>]*type=["']application\/(rss\+xml|atom\+xml)["'][^>]*href=["']([^"']+)["']/i)
+      || html.match(/<link\b[^>]*href=["']([^"']+)["'][^>]*type=["']application\/(rss\+xml|atom\+xml)["']/i);
+    if (rssMatch) {
+      let feed = rssMatch[2] || rssMatch[1];
+      try { feed = new URL(feed, targetUrl).href; } catch(e) {}
+      result.discoveredFeed = feed;
+    }
+
+    // STRATEGY 2: Schema.org JSON-LD
+    const jsonLdMatches = html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+    for (const m of jsonLdMatches) {
+      try {
+        const data = JSON.parse(m[1].trim());
+        const nodes = Array.isArray(data) ? data : (data['@graph'] || [data]);
+        for (const node of nodes) {
+          const type = node['@type'] || '';
+          if (typeof type === 'string' && (type === 'Event' || type.endsWith('Event'))) {
+            if (!node.name || !node.startDate) continue;
+            const vName = node.location?.name || '';
+            if (vName && !result.detectedVenueName) result.detectedVenueName = vName;
+            const addr = typeof node.location?.address === 'object' ? (node.location.address.streetAddress || '') : (node.location?.address || '');
+            if (addr && !result.detectedAddress) result.detectedAddress = addr;
+            
+            result.detectedEvents.push({
+              title: String(node.name).trim(),
+              start_time: node.startDate ? node.startDate.replace('T', ' ').slice(0, 19) : '',
+              end_time: node.endDate ? node.endDate.replace('T', ' ').slice(0, 19) : null,
+              category: type.replace('Event', '') || 'Live Music',
+              venue_name: vName,
+              address: addr,
+              suburb: '',
+              age_restriction: '18+',
+              min_age: 18,
+              is_family_friendly: 0,
+              ticket_url: node.offers?.url || node.url || targetUrl,
+              image_url: Array.isArray(node.image) ? node.image[0] : (node.image || '')
+            });
+          }
+        }
+      } catch(e) {}
+    }
+
+    if (result.detectedEvents.length > 0) {
+      result.method = 'Schema.org JSON-LD';
+    }
+
+    // STRATEGY 3: Check Embedded Iframes
+    if (result.detectedEvents.length === 0) {
+      const iframeMatches = [...html.matchAll(/<iframe\b[^>]*src=["']([^"']+)["']/gi)];
+      for (const ifm of iframeMatches) {
+        let iframeSrc = ifm[1];
+        if (iframeSrc.startsWith('//')) iframeSrc = 'https:' + iframeSrc;
+        if (!iframeSrc.startsWith('http')) {
+          try { iframeSrc = new URL(iframeSrc, targetUrl).href; } catch(e) { continue; }
+        }
+
+        if (iframeSrc.includes('baroussou.com.au')) {
+          return discoverEventsFromUrl('https://www.baroussou.com.au/gigs/');
+        }
+
+        if (/events|gig|ticket|humanitix|eventbrite|oztix|moshtix/i.test(iframeSrc)) {
+          try {
+            const ifRes = await fetch(iframeSrc, {
+              headers: { 'User-Agent': 'AgendaWeb-Bot/1.0 (+https://agendaweb.app; Melbourne Broadsheet)' }
+            });
+            if (ifRes.ok) {
+              const ifHtml = await ifRes.text();
+              const ifJsonLd = ifHtml.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+              for (const jm of ifJsonLd) {
+                try {
+                  const jdata = JSON.parse(jm[1].trim());
+                  const jnodes = Array.isArray(jdata) ? jdata : (jdata['@graph'] || [jdata]);
+                  for (const jn of jnodes) {
+                    if (jn['@type'] === 'Event' || (typeof jn['@type'] === 'string' && jn['@type'].endsWith('Event'))) {
+                      result.detectedEvents.push({
+                        title: String(jn.name).trim(),
+                        start_time: jn.startDate ? jn.startDate.replace('T', ' ').slice(0, 19) : '',
+                        end_time: jn.endDate ? jn.endDate.replace('T', ' ').slice(0, 19) : null,
+                        category: 'Live Music',
+                        venue_name: jn.location?.name || '',
+                        address: typeof jn.location?.address === 'object' ? (jn.location.address.streetAddress || '') : (jn.location?.address || ''),
+                        suburb: '',
+                        age_restriction: '18+',
+                        min_age: 18,
+                        is_family_friendly: 0,
+                        ticket_url: jn.url || iframeSrc,
+                        image_url: jn.image || ''
+                      });
+                    }
+                  }
+                } catch(e) {}
+              }
+              if (result.detectedEvents.length > 0) {
+                result.method = `Embedded Iframe (${new URL(iframeSrc).hostname})`;
+                break;
+              }
+            }
+          } catch(ife) {}
+        }
+      }
+    }
+
+    // STRATEGY 4: WordPress Tribe Events REST API (/wp-json/tribe/events/v1/events)
+    if (result.detectedEvents.length === 0) {
+      try {
+        const origin = new URL(targetUrl).origin;
+        const tribeUrl = `${origin}/wp-json/tribe/events/v1/events?per_page=20`;
+        const tRes = await fetch(tribeUrl, {
+          headers: { 'User-Agent': 'AgendaWeb-Bot/1.0 (+https://agendaweb.app)' }
+        });
+        if (tRes.ok) {
+          const tData = await tRes.json();
+          const tEvents = tData.events || [];
+          for (const te of tEvents) {
+            const vName = te.venue?.venue || te.venue?.name || '';
+            const addr = te.venue?.address ? `${te.venue.address}, ${te.venue.city || ''} ${te.venue.state || ''} ${te.venue.zip || ''}`.trim() : '';
+            if (vName && !result.detectedVenueName) result.detectedVenueName = vName;
+            if (addr && !result.detectedAddress) result.detectedAddress = addr;
+
+            result.detectedEvents.push({
+              title: stripHtml(te.title || ''),
+              start_time: te.start_date || '',
+              end_time: te.end_date || null,
+              category: te.categories?.[0]?.name || 'Live Music',
+              venue_name: vName || result.detectedVenueName,
+              address: addr || result.detectedAddress,
+              suburb: te.venue?.city || '',
+              age_restriction: '18+',
+              min_age: 18,
+              is_family_friendly: 0,
+              ticket_url: te.url || targetUrl,
+              image_url: te.image?.url || ''
+            });
+          }
+          if (result.detectedEvents.length > 0) {
+            result.method = 'WordPress The Events Calendar API (Tribe)';
+          }
+        }
+      } catch(te) {}
+    }
+
+    // STRATEGY 5: HTML Microdata (itemscope itemtype="http://schema.org/Event")
+    if (result.detectedEvents.length === 0 && html.includes('itemtype="http://schema.org/Event"')) {
+      const eventRegex = /<[^>]+itemtype=["']https?:\/\/schema\.org\/Event["'][^>]*>([\s\S]*?)(?:<\/[a-z]+>){2,}/gi;
+      let em;
+      while ((em = eventRegex.exec(html)) !== null) {
+        const block = em[1];
+        const nameM = block.match(/itemprop=["']name["'][^>]*>([^<]+)<\//i);
+        const dateM = block.match(/itemprop=["']startDate["'][^>]*content=["']([^"']+)["']/i) || block.match(/datetime=["']([^"']+)["']/i);
+        if (nameM) {
+          result.detectedEvents.push({
+            title: nameM[1].trim(),
+            start_time: dateM ? dateM[1].replace('T', ' ').slice(0, 19) : '',
+            end_time: null,
+            category: 'Live Music',
+            venue_name: result.detectedVenueName || '',
+            address: result.detectedAddress || '',
+            suburb: '',
+            age_restriction: '18+',
+            min_age: 18,
+            is_family_friendly: 0,
+            ticket_url: targetUrl,
+            image_url: ''
+          });
+        }
+      }
+      if (result.detectedEvents.length > 0) {
+        result.method = 'HTML Microdata';
+      }
+    }
+
+  } catch(err) {
+    result.error = err.message;
+  }
+
+  return result;
+}
+
+async function syncEventSource(source) {
+  try {
+    const targetUrl = source.feed_url || source.url;
+    const result = await discoverEventsFromUrl(targetUrl);
+    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    if (result.error || result.detectedEvents.length === 0) {
+      source.last_status = 'failed';
+      source.last_error = result.error || 'No upcoming events found on target';
+      source.last_polled_at = now;
+      return 0;
+    }
+
+    let addedCount = 0;
+    const venueSlug = source.slug || 'venue';
+
+    for (const evt of result.detectedEvents) {
+      const exists = MOCK_EVENTS.some(e => 
+        (e.title.toLowerCase() === evt.title.toLowerCase() && e.start_time.slice(0, 10) === evt.start_time.slice(0, 10))
+        || (e.ticket_url && evt.ticket_url && e.ticket_url === evt.ticket_url)
+      );
+
+      if (!exists) {
+        const nextId = MOCK_EVENTS.length > 0 ? Math.max(...MOCK_EVENTS.map(e => e.id)) + 1 : 1;
+        MOCK_EVENTS.push({
+          id: nextId,
+          city_id: 1,
+          city_slug: "melbourne",
+          city_name: "Melbourne",
+          venue_slug: venueSlug,
+          venue_name: evt.venue_name || source.name,
+          title: evt.title,
+          description: evt.description || `Live gig at ${evt.venue_name || source.name}`,
+          category: evt.category || "Live Music",
+          age_restriction: evt.age_restriction || "18+",
+          min_age: evt.min_age !== undefined ? evt.min_age : 18,
+          is_family_friendly: evt.is_family_friendly !== undefined ? evt.is_family_friendly : 0,
+          start_time: evt.start_time,
+          end_time: evt.end_time || null,
+          address: evt.address || "Melbourne VIC",
+          suburb: evt.suburb || "Melbourne",
+          ticket_url: evt.ticket_url || source.url,
+          image_url: evt.image_url || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=700&q=80",
+          origin: "scraped",
+          is_verified: 1,
+          calendar_url: `calendar.php?id=${nextId}`
+        });
+        addedCount++;
+      }
+    }
+
+    source.item_count = result.detectedEvents.length;
+    source.last_status = 'updated';
+    source.last_error = null;
+    source.http_code = 200;
+    source.last_polled_at = now;
+    return result.detectedEvents.length;
+  } catch (err) {
+    source.last_status = 'failed';
+    source.last_error = err.message || 'Scrape failure';
+    source.last_polled_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    return 0;
+  }
+}
+
 async function syncAllActiveSources() {
   let success = 0;
   let failed = 0;
@@ -637,15 +1150,27 @@ async function syncAllActiveSources() {
   const logs = [];
 
   for (const source of MOCK_SOURCES) {
-    if (source.is_active && source.type === 'rss') {
-      const count = await syncRssSource(source);
-      if (source.last_status === 'failed') {
-        failed++;
-        logs.push(`[FAILED] ${source.name}: ${source.last_error}`);
-      } else {
-        success++;
-        totalItems += count;
-        logs.push(`[UPDATED] ${source.name}: ${count} live items`);
+    if (source.is_active) {
+      if (source.type === 'rss') {
+        const count = await syncRssSource(source);
+        if (source.last_status === 'failed') {
+          failed++;
+          logs.push(`[FAILED] ${source.name}: ${source.last_error}`);
+        } else {
+          success++;
+          totalItems += count;
+          logs.push(`[UPDATED] ${source.name}: ${count} live items`);
+        }
+      } else if (source.type === 'scrape_event' || source.type === 'api_event') {
+        const count = await syncEventSource(source);
+        if (source.last_status === 'failed') {
+          failed++;
+          logs.push(`[FAILED] ${source.name}: ${source.last_error}`);
+        } else {
+          success++;
+          totalItems += count;
+          logs.push(`[UPDATED] ${source.name}: ${count} live events`);
+        }
       }
     }
   }
@@ -1440,87 +1965,43 @@ const requestHandler = async (req, res) => {
       }
 
       try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-        const webRes = await fetch(targetUrl, {
-          signal: controller.signal,
-          headers: { 'User-Agent': 'AgendaWeb-Bot/1.0 (+https://agendaweb.app)' }
-        });
-        clearTimeout(timeout);
-
-        const html = await webRes.text();
-        const pageTitleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-        const pageTitle = pageTitleMatch ? stripHtml(pageTitleMatch[1]) : 'Discovered Source';
-
-        // Check for alternate RSS/Atom links
-        const rssMatch = html.match(/<link\b[^>]*rel=["']alternate["'][^>]*type=["']application\/(rss\+xml|atom\+xml)["'][^>]*href=["']([^"']+)["']/i)
-          || html.match(/<link\b[^>]*href=["']([^"']+)["'][^>]*type=["']application\/(rss\+xml|atom\+xml)["']/i);
-        let discoveredFeed = rssMatch ? (rssMatch[2] || rssMatch[1]) : null;
-        if (discoveredFeed && !discoveredFeed.startsWith('http')) {
-          try {
-            discoveredFeed = new URL(discoveredFeed, targetUrl).href;
-          } catch(e) {}
-        }
-
-        // Check for Schema.org JSON-LD events
-        const jsonLdMatches = html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
-        const detectedEvents = [];
-        let detectedVenueName = '';
-
-        for (const m of jsonLdMatches) {
-          try {
-            const data = JSON.parse(m[1].trim());
-            const nodes = Array.isArray(data) ? data : (data['@graph'] || [data]);
-            for (const node of nodes) {
-              const type = node['@type'] || '';
-              if (typeof type === 'string' && (type === 'Event' || type.endsWith('Event'))) {
-                if (!node.name || !node.startDate) continue;
-                const vName = node.location?.name || '';
-                if (vName && !detectedVenueName) detectedVenueName = vName;
-                detectedEvents.push({
-                  title: String(node.name).trim(),
-                  start_time: node.startDate ? node.startDate.replace('T', ' ').slice(0, 19) : '',
-                  end_time: node.endDate ? node.endDate.replace('T', ' ').slice(0, 19) : null,
-                  category: type.replace('Event', '') || 'Live Music',
-                  venue_name: vName,
-                  address: typeof node.location?.address === 'object' ? (node.location.address.streetAddress || '') : (node.location?.address || ''),
-                  ticket_url: node.url || targetUrl,
-                  image_url: node.image || ''
-                });
-              }
-            }
-          } catch (e) {}
+        const disc = await discoverEventsFromUrl(targetUrl);
+        if (disc.error && disc.detectedEvents.length === 0 && !disc.discoveredFeed) {
+          res.writeHead(422, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: `Unable to inspect webpage: ${disc.error}` }));
+          return;
         }
 
         let host = 'example.com';
         try { host = new URL(targetUrl).hostname; } catch(e) {}
-        const isEventVenue = detectedEvents.length > 0 || /gig|event|hotel|theatre|hall|club/i.test(targetUrl);
-        const defaultName = detectedVenueName || pageTitle.split(/[-–|]/)[0].trim() || host;
+        const isEventVenue = disc.detectedEvents.length > 0 || /gig|event|hotel|theatre|hall|club|bar/i.test(targetUrl);
+        const defaultName = disc.detectedVenueName || (disc.pageTitle ? disc.pageTitle.split(/[-–|]/)[0].trim() : '') || host;
         const venueSlug = defaultName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({
           status: 'success',
           url: targetUrl,
-          http_code: webRes.status,
-          page_title: pageTitle,
-          detected_type: (detectedEvents.length > 0 || (isEventVenue && !discoveredFeed)) ? 'scrape_event' : 'rss',
+          http_code: 200,
+          page_title: disc.pageTitle || defaultName,
+          detection_method: disc.method,
+          detected_type: (disc.detectedEvents.length > 0 || (isEventVenue && !disc.discoveredFeed)) ? 'scrape_event' : 'rss',
           suggested_name: defaultName,
           suggested_tab: isEventVenue ? 'events' : 'blogs',
-          feed_url: discoveredFeed,
-          events_count: detectedEvents.length,
+          feed_url: disc.discoveredFeed,
+          events_count: disc.detectedEvents.length,
           venue: {
             slug: venueSlug,
             name: defaultName,
-            address: detectedEvents[0]?.address || 'Melbourne VIC',
+            address: disc.detectedAddress || disc.detectedEvents[0]?.address || 'Melbourne VIC',
             website_url: targetUrl,
-            feed_url: discoveredFeed
+            feed_url: disc.discoveredFeed
           },
-          events: detectedEvents
+          events: disc.detectedEvents
         }));
       } catch (err) {
         res.writeHead(422, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ status: 'error', message: `Unable to inspect webpage: ${err.message}` }));
+        res.end(JSON.stringify({ status: 'error', message: `Inspection error: ${err.message}` }));
       }
       return;
     }
@@ -1696,7 +2177,9 @@ const requestHandler = async (req, res) => {
           return;
         }
 
-        const count = await syncRssSource(source);
+        const count = (source.type === 'scrape_event' || source.type === 'api_event')
+          ? await syncEventSource(source)
+          : await syncRssSource(source);
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({
