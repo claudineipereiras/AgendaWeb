@@ -138,19 +138,14 @@ INSERT INTO `sources` (`slug`, `name`, `type`, `url`, `category_tab`) VALUES
 ('the-conversation-au', 'The Conversation (AU)', 'rss', 'https://theconversation.com/au/politics/articles.atom', 'politics'),
 ('guardian-au-culture', 'The Guardian (AU Culture)', 'rss', 'https://www.theguardian.com/au/culture/rss', 'culture'),
 ('trouble-mag', 'Trouble Magazine', 'rss', 'https://www.troublemag.com/feed/', 'blogs'),
-('the-gasometer-hotel', 'The Gasometer Hotel', 'scrape_event', 'https://www.thegasometerhotel.com.au/gigs', 'events'),
 ('bar-oussou', 'Bar Oussou Brunswick', 'scrape_event', 'https://www.baroussou.com.au/gigs/', 'events')
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 
 -- Initial Seed: Curated Venues
 INSERT INTO `venues` (`slug`, `city_id`, `name`, `address`, `suburb`, `state`, `postcode`, `default_age_policy`, `website_url`, `feed_url`, `source_id`) VALUES
-('the-gasometer-hotel', 1, 'The Gasometer Hotel', '484 Smith St, Collingwood VIC 3066', 'Collingwood', 'VIC', '3066', '18+', 'https://www.thegasometerhotel.com.au', 'https://www.thegasometerhotel.com.au/gigs', 7),
-('the-corner-hotel', 1, 'The Corner Hotel', '57 Swan St, Richmond VIC 3121', 'Richmond', 'VIC', '3121', '18+', 'https://thecornerhotel.com', 'https://thecornerhotel.com/gigs', NULL),
-('fitzroy-community-arts', 1, 'Fitzroy Community Arts', '128 Gertrude St, Fitzroy VIC 3065', 'Fitzroy', 'VIC', '3065', 'all_ages', 'https://fitzroyarts.org.au', NULL, NULL),
-('the-enmore-theatre', 2, 'Enmore Theatre', '118-132 Enmore Rd, Newtown NSW 2042', 'Newtown', 'NSW', '2042', 'mixed', 'https://enmoretheatre.com.au', 'https://enmoretheatre.com.au/events', NULL),
-('brisbane-powerhouse', 3, 'Brisbane Powerhouse', '119 Lamington St, New Farm QLD 4005', 'New Farm', 'QLD', '4005', 'all_ages', 'https://brisbanepowerhouse.org', 'https://brisbanepowerhouse.org/whats-on', NULL),
-('bar-oussou', 1, 'Bar Oussou', '659 Sydney Rd, Brunswick VIC 3056', 'Brunswick', 'VIC', '3056', '18+', 'https://www.baroussou.com.au', 'https://www.baroussou.com.au/wp-json/baroussou/v1/events', 8)
+('bar-oussou', 1, 'Bar Oussou', '659 Sydney Rd, Brunswick VIC 3056', 'Brunswick', 'VIC', '3056', '18+', 'https://www.baroussou.com.au', 'https://www.baroussou.com.au/wp-json/baroussou/v1/events', 7)
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `address`=VALUES(`address`), `suburb`=VALUES(`suburb`), `website_url`=VALUES(`website_url`);
+
 
 -- Authentication & Role-Based Access Control (Admin & Manager)
 CREATE TABLE IF NOT EXISTS `users` (

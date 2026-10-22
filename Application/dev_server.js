@@ -36,423 +36,8 @@ const MOCK_CITIES = [
   { id: 6, slug: "hobart", name: "Hobart", state: "TAS", country: "Australia", postcode_prefix: "7", latitude: -42.8821, longitude: 147.3272, event_count: 1 }
 ];
 
-// Seed Mock Data with image support matching Docs/Schema.sql & Docs/API_Spec.md
-const MOCK_EVENTS = [
-  {
-    id: 1,
-    city_id: 1,
-    city_slug: "melbourne",
-    city_name: "Melbourne",
-    venue_slug: "the-gasometer-hotel",
-    venue_name: "The Gasometer Hotel",
-    title: "The Echoes — Album Launch",
-    description: "Melbourne indie rock outfit celebrating their debut LP release with special guests. Licensed 18+ event.",
-    category: "Live Music",
-    age_restriction: "18+",
-    min_age: 18,
-    is_family_friendly: 0,
-    start_time: "2026-10-24 20:00:00",
-    end_time: "2026-10-24 23:30:00",
-    address: "484 Smith St, Collingwood VIC 3066",
-    suburb: "Collingwood",
-    ticket_url: "https://oztix.com.au/event/12345",
-    image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=700&q=80",
-    origin: "scraped",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=1"
-  },
-  {
-    id: 2,
-    city_id: 1,
-    city_slug: "melbourne",
-    city_name: "Melbourne",
-    venue_slug: "fitzroy-community-arts",
-    venue_name: "Fitzroy Community Arts",
-    title: "Contemporary Printmaking Biennial",
-    description: "Showcasing emerging Australian printmakers, risograph posters, and indie zines. Open to all ages.",
-    category: "Art",
-    age_restriction: "all_ages",
-    min_age: 0,
-    is_family_friendly: 1,
-    start_time: "2026-10-25 10:00:00",
-    end_time: "2026-10-25 17:00:00",
-    address: "128 Gertrude St, Fitzroy VIC 3065",
-    suburb: "Fitzroy",
-    ticket_url: "",
-    image_url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=700&q=80",
-    origin: "manual",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=2"
-  },
-  {
-    id: 3,
-    city_id: 1,
-    city_slug: "melbourne",
-    city_name: "Melbourne",
-    venue_slug: "the-corner-hotel",
-    venue_name: "The Corner Hotel",
-    title: "Sunset Soundscapes: Ambient & Synth Showcase",
-    description: "An evening of analog synthesizers and ambient soundscapes featuring local producers. 18+ photo ID required.",
-    category: "Live Music",
-    age_restriction: "18+",
-    min_age: 18,
-    is_family_friendly: 0,
-    start_time: "2026-10-26 19:30:00",
-    end_time: "2026-10-26 23:00:00",
-    address: "57 Swan St, Richmond VIC 3121",
-    suburb: "Richmond",
-    ticket_url: "https://thecornerhotel.com",
-    image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=700&q=80",
-    origin: "scraped",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=3"
-  },
-  {
-    id: 4,
-    city_id: 1,
-    city_slug: "melbourne",
-    city_name: "Melbourne",
-    venue_slug: "collingwood-yards",
-    venue_name: "Collingwood Yards",
-    title: "Puppet Theatre & Shadow Craft Workshop",
-    description: "Hands-on creative workshop for children, kids, and families. Construct your own cardboard silhouette puppet with live storytelling.",
-    category: "Community",
-    age_restriction: "kids_family",
-    min_age: 0,
-    is_family_friendly: 1,
-    start_time: "2026-10-27 10:30:00",
-    end_time: "2026-10-27 14:00:00",
-    address: "35 Johnston St, Collingwood VIC 3066",
-    suburb: "Collingwood",
-    ticket_url: "",
-    image_url: "https://images.unsplash.com/photo-1526478806334-5fd488fcaabc?auto=format&fit=crop&w=700&q=80",
-    origin: "manual",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=4"
-  },
-  {
-    id: 5,
-    city_id: 2,
-    city_slug: "sydney",
-    city_name: "Sydney",
-    venue_slug: "enmore-theatre",
-    venue_name: "Enmore Theatre",
-    title: "Newtown Noise: Post-Punk Collective",
-    description: "Four Sydney underground acts take over the iconic Enmore stage for an electrifying night of live sound. 18+ licensed venue.",
-    category: "Live Music",
-    age_restriction: "18+",
-    min_age: 18,
-    is_family_friendly: 0,
-    start_time: "2026-10-28 20:00:00",
-    end_time: "2026-10-28 23:45:00",
-    address: "118-132 Enmore Rd, Newtown NSW 2042",
-    suburb: "Newtown",
-    ticket_url: "https://enmoretheatre.com.au",
-    image_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=700&q=80",
-    origin: "scraped",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=5"
-  },
-  {
-    id: 6,
-    city_id: 2,
-    city_slug: "sydney",
-    city_name: "Sydney",
-    venue_slug: "enmore-theatre",
-    venue_name: "Enmore Theatre",
-    title: "Saturday Morning Family Matinee & Story Symphony",
-    description: "An interactive musical tale designed for toddlers, kids, and parents with acoustic chamber instruments.",
-    category: "Community",
-    age_restriction: "kids_family",
-    min_age: 0,
-    is_family_friendly: 1,
-    start_time: "2026-10-31 10:00:00",
-    end_time: "2026-10-31 12:00:00",
-    address: "118-132 Enmore Rd, Newtown NSW 2042",
-    suburb: "Newtown",
-    ticket_url: "https://enmoretheatre.com.au",
-    image_url: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=700&q=80",
-    origin: "manual",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=6"
-  },
-  {
-    id: 7,
-    city_id: 3,
-    city_slug: "brisbane",
-    city_name: "Brisbane",
-    venue_slug: "brisbane-powerhouse",
-    venue_name: "Brisbane Powerhouse",
-    title: "Riverfront Jazz & Vinyl Fair",
-    description: "Riverside open-air live acoustic sets, vinyl stalls, and indie food pop-ups. All ages welcome.",
-    category: "Live Music",
-    age_restriction: "all_ages",
-    min_age: 0,
-    is_family_friendly: 1,
-    start_time: "2026-11-01 14:00:00",
-    end_time: "2026-11-01 20:00:00",
-    address: "119 Lamington St, New Farm QLD 4005",
-    suburb: "New Farm",
-    ticket_url: "https://brisbanepowerhouse.org",
-    image_url: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=700&q=80",
-    origin: "scraped",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=7"
-  },
-  {
-    id: 8,
-    city_id: 4,
-    city_slug: "perth",
-    city_name: "Perth",
-    venue_slug: "fremantle-arts-centre",
-    venue_name: "Fremantle Arts Centre",
-    title: "Maritime Sound Art Installation",
-    description: "Immersive field recordings and sonic frequencies inspired by the Indian Ocean. Free entry for all ages.",
-    category: "Art",
-    age_restriction: "all_ages",
-    min_age: 0,
-    is_family_friendly: 1,
-    start_time: "2026-11-02 11:00:00",
-    end_time: "2026-11-02 17:00:00",
-    address: "1 Finnerty St, Fremantle WA 6160",
-    suburb: "Fremantle",
-    ticket_url: "",
-    image_url: "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=700&q=80",
-    origin: "manual",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=8"
-  },
-  {
-    id: 9,
-    city_id: 5,
-    city_slug: "adelaide",
-    city_name: "Adelaide",
-    venue_slug: "lion-arts-factory",
-    venue_name: "Lion Arts Factory",
-    title: "West End Experimental Synth Lab",
-    description: "Underground modular synth performances, audio-visual experiments, and cider bar. 18+ strictly.",
-    category: "Live Music",
-    age_restriction: "18+",
-    min_age: 18,
-    is_family_friendly: 0,
-    start_time: "2026-11-05 20:30:00",
-    end_time: "2026-11-06 01:00:00",
-    address: "68 North Terrace, Adelaide SA 5000",
-    suburb: "Adelaide",
-    ticket_url: "",
-    image_url: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=700&q=80",
-    origin: "scraped",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=9"
-  },
-  {
-    id: 10,
-    city_id: 6,
-    city_slug: "hobart",
-    city_name: "Hobart",
-    venue_slug: "the-odeon-theatre",
-    venue_name: "The Odeon Theatre",
-    title: "Tasmanian Winter Light & Shadow Show",
-    description: "Large-scale projection mapping and live cello scores. All ages cultural gathering.",
-    category: "Art",
-    age_restriction: "all_ages",
-    min_age: 0,
-    is_family_friendly: 1,
-    start_time: "2026-11-07 19:00:00",
-    end_time: "2026-11-07 22:00:00",
-    address: "167 Liverpool St, Hobart TAS 7000",
-    suburb: "Hobart",
-    ticket_url: "",
-    image_url: "https://images.unsplash.com/photo-1499364615650-ec38552f4f34?auto=format&fit=crop&w=700&q=80",
-    origin: "manual",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=10"
-  },
-  {
-    id: 11,
-    city_id: 1,
-    city_slug: "melbourne",
-    city_name: "Melbourne",
-    venue_slug: "bar-oussou",
-    venue_name: "Bar Oussou",
-    title: "Joey & John",
-    description: "Acoustic duo delivering soulful roots, melodic banter, and rhythmic world beats live on the Brunswick stage.",
-    category: "Live Music",
-    age_restriction: "18+",
-    min_age: 18,
-    is_family_friendly: 0,
-    start_time: "2026-10-22 18:30:00",
-    end_time: "2026-10-22 21:30:00",
-    address: "659 Sydney Rd, Brunswick VIC 3056",
-    suburb: "Brunswick",
-    ticket_url: "https://events.baroussou.com.au/joey-john-2026-10-22",
-    image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=700&q=80",
-    origin: "scraped",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=11"
-  },
-  {
-    id: 12,
-    city_id: 1,
-    city_slug: "melbourne",
-    city_name: "Melbourne",
-    venue_slug: "bar-oussou",
-    venue_name: "Bar Oussou",
-    title: "Orbit Resident",
-    description: "Revolving between jazzy inflections and d-floor beats, Orbit defines playing to the room. Deep pocket inspired & intrinsically wired, each performance is improvised to capture the cross-pollinated chemistry of Melbourne's finest.",
-    category: "Live Music",
-    age_restriction: "18+",
-    min_age: 18,
-    is_family_friendly: 0,
-    start_time: "2026-10-22 22:00:00",
-    end_time: "2026-10-23 01:00:00",
-    address: "659 Sydney Rd, Brunswick VIC 3056",
-    suburb: "Brunswick",
-    ticket_url: "https://events.baroussou.com.au/orbit-resident-1789612910811",
-    image_url: "https://pb.baroussou.uk/api/files/mediaLibrary/f338xf302s1d187/z_2_a2sniafg3l.jpeg",
-    origin: "scraped",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=12"
-  },
-  {
-    id: 13,
-    city_id: 1,
-    city_slug: "melbourne",
-    city_name: "Melbourne",
-    venue_slug: "bar-oussou",
-    venue_name: "Bar Oussou",
-    title: "Aidan Ryan",
-    description: "Intimate indie folk and intricate fingerpicking guitar session live at Bar Oussou.",
-    category: "Live Music",
-    age_restriction: "18+",
-    min_age: 18,
-    is_family_friendly: 0,
-    start_time: "2026-10-23 19:00:00",
-    end_time: "2026-10-23 21:30:00",
-    address: "659 Sydney Rd, Brunswick VIC 3056",
-    suburb: "Brunswick",
-    ticket_url: "https://events.baroussou.com.au/aidan-ryan-1792451895752",
-    image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=700&q=80",
-    origin: "scraped",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=13"
-  },
-  {
-    id: 14,
-    city_id: 1,
-    city_slug: "melbourne",
-    city_name: "Melbourne",
-    venue_slug: "bar-oussou",
-    venue_name: "Bar Oussou",
-    title: "Masikuna",
-    description: "Andean rhythm fusion, charango riffs, and global electronic grooves bringing vibrant energy to Brunswick.",
-    category: "Live Music",
-    age_restriction: "18+",
-    min_age: 18,
-    is_family_friendly: 0,
-    start_time: "2026-10-23 22:00:00",
-    end_time: "2026-10-24 01:00:00",
-    address: "659 Sydney Rd, Brunswick VIC 3056",
-    suburb: "Brunswick",
-    ticket_url: "https://events.baroussou.com.au/masikuna-1792451176731",
-    image_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=700&q=80",
-    origin: "scraped",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=14"
-  },
-  {
-    id: 15,
-    city_id: 1,
-    city_slug: "melbourne",
-    city_name: "Melbourne",
-    venue_slug: "bar-oussou",
-    venue_name: "Bar Oussou",
-    title: "ChichaBelly",
-    description: "Peruvian cumbia psychedelic explosion blending surf guitars and tropical syncopated rhythms.",
-    category: "Live Music",
-    age_restriction: "18+",
-    min_age: 18,
-    is_family_friendly: 0,
-    start_time: "2026-10-24 19:00:00",
-    end_time: "2026-10-24 21:30:00",
-    address: "659 Sydney Rd, Brunswick VIC 3056",
-    suburb: "Brunswick",
-    ticket_url: "https://events.baroussou.com.au/chichabelly-2026-10-24",
-    image_url: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=700&q=80",
-    origin: "scraped",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=15"
-  },
-  {
-    id: 16,
-    city_id: 1,
-    city_slug: "melbourne",
-    city_name: "Melbourne",
-    venue_slug: "bar-oussou",
-    venue_name: "Bar Oussou",
-    title: "The New Monos",
-    description: "Buenos Aires street ska, reggae, and Latin punk rock live on Sydney Road.",
-    category: "Live Music",
-    age_restriction: "18+",
-    min_age: 18,
-    is_family_friendly: 0,
-    start_time: "2026-10-24 22:00:00",
-    end_time: "2026-10-25 01:00:00",
-    address: "659 Sydney Rd, Brunswick VIC 3056",
-    suburb: "Brunswick",
-    ticket_url: "https://events.baroussou.com.au/the-new-monos-2026-10-24",
-    image_url: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=700&q=80",
-    origin: "scraped",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=16"
-  },
-  {
-    id: 17,
-    city_id: 1,
-    city_slug: "melbourne",
-    city_name: "Melbourne",
-    venue_slug: "bar-oussou",
-    venue_name: "Bar Oussou",
-    title: "Koorie Afternoon",
-    description: "Weekly cultural showcase of First Nations artists, storytelling, acoustic sets, and community gathering. Open to all ages.",
-    category: "Community",
-    age_restriction: "all_ages",
-    min_age: 0,
-    is_family_friendly: 1,
-    start_time: "2026-10-25 15:00:00",
-    end_time: "2026-10-25 18:30:00",
-    address: "659 Sydney Rd, Brunswick VIC 3056",
-    suburb: "Brunswick",
-    ticket_url: "https://events.baroussou.com.au/koorie-afternoon-2026-10-25",
-    image_url: "https://pb.baroussou.uk/api/files/mediaLibrary/d1a3ja1cr092dbm/koorie_afternoon_edit_a3_8wp0bkytz0.png",
-    origin: "scraped",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=17"
-  },
-  {
-    id: 18,
-    city_id: 1,
-    city_slug: "melbourne",
-    city_name: "Melbourne",
-    venue_slug: "bar-oussou",
-    venue_name: "Bar Oussou",
-    title: "The Seben Brothers",
-    description: "High-energy Congolese Soukous guitar grooves and infectious dance polyrhythms to close the weekend.",
-    category: "Live Music",
-    age_restriction: "18+",
-    min_age: 18,
-    is_family_friendly: 0,
-    start_time: "2026-10-25 20:00:00",
-    end_time: "2026-10-25 23:00:00",
-    address: "659 Sydney Rd, Brunswick VIC 3056",
-    suburb: "Brunswick",
-    ticket_url: "https://events.baroussou.com.au/the-seben-brothers-2026-10-25",
-    image_url: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=700&q=80",
-    origin: "scraped",
-    is_verified: 1,
-    calendar_url: "calendar.php?id=18"
-  }
-];
+// Real Data Store - populated dynamically via live feeds and discoverEventsFromUrl
+let MOCK_EVENTS = [];
 
 let MOCK_SOURCES = [
   { id: 1, slug: "abc-just-in", name: "ABC News", type: "rss", url: "https://www.abc.net.au/news/feed/51120/rss.xml", category_tab: "news", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
@@ -460,89 +45,12 @@ let MOCK_SOURCES = [
   { id: 3, slug: "guardian-au-culture", name: "The Guardian AU Culture", type: "rss", url: "https://www.theguardian.com/au/culture/rss", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
   { id: 4, slug: "the-conversation-au", name: "The Conversation (AU)", type: "rss", url: "https://theconversation.com/au/politics/articles.atom", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
   { id: 5, slug: "trouble-mag", name: "Trouble Magazine", type: "rss", url: "https://www.troublemag.com/feed/", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
-  { id: 6, slug: "the-gasometer-hotel", name: "The Gasometer Hotel", type: "scrape_event", url: "https://www.thegasometerhotel.com.au/gigs", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 5, last_error: null, last_polled_at: "2026-10-19 08:45:00" },
-  { id: 7, slug: "the-corner-hotel", name: "The Corner Hotel", type: "scrape_event", url: "https://thecornerhotel.com/gigs", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 7, last_error: null, last_polled_at: "2026-10-19 08:30:00" },
-  { id: 8, slug: "bar-oussou", name: "Bar Oussou Brunswick", type: "scrape_event", url: "https://www.baroussou.com.au/gigs/", feed_url: "https://www.baroussou.com.au/wp-json/baroussou/v1/events", category_tab: "events", is_active: 1, last_status: "updated", http_code: 200, item_count: 8, last_error: null, last_polled_at: "2026-10-22 14:00:00" }
+  { id: 6, slug: "bar-oussou", name: "Bar Oussou Brunswick", type: "scrape_event", url: "https://www.baroussou.com.au/gigs/", feed_url: "https://www.baroussou.com.au/wp-json/baroussou/v1/events", category_tab: "events", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null }
 ];
 
 let MOCK_VENUES = [
   {
     id: 1,
-    city_id: 1,
-    slug: "the-gasometer-hotel",
-    name: "The Gasometer Hotel",
-    address: "484 Smith St, Collingwood VIC 3066",
-    suburb: "Collingwood",
-    state: "VIC",
-    postcode: "3066",
-    default_age_policy: "18+",
-    website_url: "https://www.thegasometerhotel.com.au",
-    feed_url: "https://www.thegasometerhotel.com.au/gigs",
-    source_id: 5,
-    is_active: 1
-  },
-  {
-    id: 2,
-    city_id: 1,
-    slug: "the-corner-hotel",
-    name: "The Corner Hotel",
-    address: "57 Swan St, Richmond VIC 3121",
-    suburb: "Richmond",
-    state: "VIC",
-    postcode: "3121",
-    default_age_policy: "18+",
-    website_url: "https://thecornerhotel.com",
-    feed_url: "https://thecornerhotel.com/gigs",
-    source_id: 6,
-    is_active: 1
-  },
-  {
-    id: 3,
-    city_id: 1,
-    slug: "fitzroy-community-arts",
-    name: "Fitzroy Community Arts",
-    address: "128 Gertrude St, Fitzroy VIC 3065",
-    suburb: "Fitzroy",
-    state: "VIC",
-    postcode: "3065",
-    default_age_policy: "all_ages",
-    website_url: "https://fitzroyarts.org.au",
-    feed_url: null,
-    source_id: null,
-    is_active: 1
-  },
-  {
-    id: 4,
-    city_id: 2,
-    slug: "enmore-theatre",
-    name: "Enmore Theatre",
-    address: "118-132 Enmore Rd, Newtown NSW 2042",
-    suburb: "Newtown",
-    state: "NSW",
-    postcode: "2042",
-    default_age_policy: "mixed",
-    website_url: "https://enmoretheatre.com.au",
-    feed_url: null,
-    source_id: null,
-    is_active: 1
-  },
-  {
-    id: 5,
-    city_id: 3,
-    slug: "brisbane-powerhouse",
-    name: "Brisbane Powerhouse",
-    address: "119 Lamington St, New Farm QLD 4005",
-    suburb: "New Farm",
-    state: "QLD",
-    postcode: "4005",
-    default_age_policy: "mixed",
-    website_url: "https://brisbanepowerhouse.org",
-    feed_url: null,
-    source_id: null,
-    is_active: 1
-  },
-  {
-    id: 6,
     city_id: 1,
     slug: "bar-oussou",
     name: "Bar Oussou",
@@ -553,15 +61,13 @@ let MOCK_VENUES = [
     default_age_policy: "18+",
     website_url: "https://www.baroussou.com.au",
     feed_url: "https://www.baroussou.com.au/wp-json/baroussou/v1/events",
-    source_id: 8,
+    source_id: 6,
     is_active: 1
   }
 ];
 
-let MOCK_SUGGESTIONS = [
-  { id: 1, name: "Liam K.", email: "liam@musicvic.com.au", category: "venue_feed", message: "Would love to see The Tote and Northcote Social Club gig feeds added to the live events calendar!", status: "new", created_at: "2026-10-18 14:22:10" },
-  { id: 2, name: "Chloe S.", email: "chloe@example.com", category: "feature", message: "The offline reading queue in IndexedDB is brilliant. Could we have an option to export selected reading lists?", status: "read", created_at: "2026-10-17 19:40:05" }
-];
+let MOCK_SUGGESTIONS = [];
+
 
 let MOCK_USERS = [
   {
@@ -629,59 +135,10 @@ function authenticateUser(req, parsedUrl) {
 }
 
 const MOCK_ITEMS = {
-  news: [
-    {
-      id: 101,
-      source_name: "ABC News",
-      category_tab: "news",
-      category: "Regional Arts",
-      title: "Grassroots Music Venues Receive New State Infrastructure Funding",
-      link: "https://www.abc.net.au/news",
-      summary: "Victoria’s live music and indie venues receive dedicated grants to preserve historic neighborhood stages.",
-      content: "<p>Victoria’s live music and indie venues are set to receive dedicated grants under a renewed state cultural infrastructure initiative designed to preserve historic neighborhood stages amidst rising inner-city commercial rents.</p><p>The package will support acoustic buffering, risograph event broadsheets, accessible stage ramps, and independent artist residencies across Collingwood, Fitzroy, and Ballarat.</p><p>Cultural advocates praised the grant framework for recognizing small grassroots gig rooms as essential public social infrastructure rather than mere commercial tenancies.</p>",
-      image_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=700&q=80",
-      published_at: "2026-10-18 08:30:00"
-    },
-    {
-      id: 102,
-      source_name: "SBS News",
-      category_tab: "news",
-      category: "Community",
-      title: "Multicultural Arts Festivals Expanded Across Regional Hubs",
-      link: "https://www.sbs.com.au/news",
-      summary: "New community initiatives bring multicultural storytelling and food traditions to regional towns.",
-      content: "<p>A series of regional cultural celebrations will expand across regional hubs over the coming summer, bringing together traditional and contemporary artists, indigenous song cycles, and neighborhood food collectives.</p><p>Organizers emphasized the open-web syndication model, allowing regional residents to subscribe directly to festival schedules via RSS and iCal feeds without proprietary app downloads.</p>",
-      image_url: "",
-      published_at: "2026-10-18 07:15:00"
-    }
-  ],
-  blogs: [
-    {
-      id: 201,
-      source_name: "Trouble Magazine",
-      category_tab: "blogs",
-      category: "Indie Culture",
-      title: "Australian Indie Music Resilience: Behind Collingwood's Gigs",
-      summary: "An in-depth look into independent venues maintaining live stages amidst urban development and noise complaints.",
-      content: "<p>Collingwood’s live circuit remains the lifeblood of Melbourne's independent music ecosystem. Walking down Johnston and Smith Streets on a Friday night, sound leaks from brick hotel basements, courtyard beer gardens, and second-floor print cooperatives.</p><p>In this long-form inquiry, venue owners reflect on sound attenuation engineering, community-backed leases, and why decentralized event syndication (like AgendaWeb) is breaking the algorithmic monopoly of social platforms.</p><p><em>'If people have to scroll an algorithm to find out who is playing down their street tonight, live culture loses,'</em> says one Fitzroy booker. <em>'Open feeds put the power back in the neighborhood.'</em></p>",
-      link: "https://www.troublemag.com",
-      image_url: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=700&q=80",
-      published_at: "2026-10-17 14:00:00"
-    },
-    {
-      id: 202,
-      source_name: "The Conversation (AU)",
-      category_tab: "blogs",
-      category: "Essays",
-      title: "Why Australia's Cultural Infrastructure Needs Decentralized Open Data",
-      link: "https://theconversation.com/au",
-      summary: "Public arts policy is shifting towards community-anchored hubs, open syndication, and digital sovereignty.",
-      content: "<p>For two decades, public cultural institutions and neighborhood arts collectives relied on proprietary American tech platforms to announce gatherings, exhibition openings, and civic debates. The cost has been high: surveillance tracking, algorithmic pay-to-reach barriers, and audience disenfranchisement.</p><p>By turning back to open web standards—RFC 5545 iCalendar, RSS 2.0 with the Event module, and local-first browser storage—cultural organizations regain their digital sovereignty.</p>",
-      image_url: "",
-      published_at: "2026-10-17 11:30:00"
-    }
-  ]
+  news: [],
+  blogs: []
 };
+
 
 // --- Live RSS & Atom Feed Ingestion Engine ---
 function cleanCdata(str) {
@@ -1195,11 +652,15 @@ const requestHandler = async (req, res) => {
 
   // 1. API: Cities Directory
   if (pathname === '/api/cities.php') {
+    const citiesWithCount = MOCK_CITIES.map(c => ({
+      ...c,
+      event_count: MOCK_EVENTS.filter(e => e.city_slug === c.slug).length
+    }));
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({
       status: 'success',
-      count: MOCK_CITIES.length,
-      data: MOCK_CITIES
+      count: citiesWithCount.length,
+      data: citiesWithCount
     }));
     return;
   }
@@ -1229,7 +690,11 @@ const requestHandler = async (req, res) => {
       filtered = filtered.filter(e => e.is_family_friendly === 1);
     }
 
-    const categories = ['All', ...new Set(MOCK_EVENTS.map(e => e.category))];
+    const categories = ['All', ...new Set(MOCK_EVENTS.map(e => e.category).filter(Boolean))];
+    const citiesWithCount = MOCK_CITIES.map(c => ({
+      ...c,
+      event_count: MOCK_EVENTS.filter(e => e.city_slug === c.slug).length
+    }));
 
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({
@@ -1237,12 +702,13 @@ const requestHandler = async (req, res) => {
       count: filtered.length,
       total: MOCK_EVENTS.length,
       categories: categories,
-      cities: MOCK_CITIES,
+      cities: citiesWithCount,
       venues: MOCK_VENUES,
       data: filtered
     }));
     return;
   }
+
 
   // 2. API: Items Feed (News, Blogs)
   if (pathname === '/api/items.php') {
@@ -1340,6 +806,15 @@ const requestHandler = async (req, res) => {
   if (pathname === '/calendar.php') {
     const id = parseInt(parsedUrl.query.id, 10);
     const event = MOCK_EVENTS.find(e => e.id === id) || MOCK_EVENTS[0];
+    if (!event) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('No upcoming events available for calendar export');
+      return;
+    }
+
+    const startClean = event.start_time ? event.start_time.replace(/[- :]/g, '').slice(0, 15) : '20261024T090000';
+    const dtStart = startClean.length === 8 ? `${startClean}T200000Z` : (startClean.includes('T') ? `${startClean}Z` : `${startClean.slice(0,8)}T${startClean.slice(8,14)}Z`);
+    const dtEnd = event.end_time ? `${event.end_time.replace(/[- :]/g, '').slice(0, 15)}Z` : '';
 
     const icsContent = [
       'BEGIN:VCALENDAR',
@@ -1349,11 +824,11 @@ const requestHandler = async (req, res) => {
       'BEGIN:VEVENT',
       `UID:agendaweb-${event.id}@agendaweb.app`,
       `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
-      `DTSTART:20261024T090000Z`,
-      `DTEND:20261024T123000Z`,
+      `DTSTART:${dtStart}`,
+      dtEnd ? `DTEND:${dtEnd}` : '',
       `SUMMARY:${event.title}`,
-      `LOCATION:${event.venue_name}, ${event.address}`,
-      `DESCRIPTION:${event.description}`,
+      `LOCATION:${event.venue_name || 'Melbourne'}, ${event.address || ''}`,
+      `DESCRIPTION:${event.description || ''}`,
       event.ticket_url ? `URL:${event.ticket_url}` : '',
       'END:VEVENT',
       'END:VCALENDAR'
@@ -1366,6 +841,7 @@ const requestHandler = async (req, res) => {
     res.end(icsContent);
     return;
   }
+
 
   // 6. Syndication: RSS 2.0 with ev: Event Module
   if (pathname === '/feed.php') {

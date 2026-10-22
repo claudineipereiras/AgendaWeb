@@ -11,91 +11,8 @@ let channelSettings = {
 };
 
 // Fallback seed events with image support for offline / local static preview
-const FALLBACK_EVENTS = [
-  {
-    id: 1,
-    title: "The Echoes — Album Launch",
-    venue_name: "The Gasometer Hotel",
-    address: "484 Smith St, Collingwood VIC",
-    category: "Live Music",
-    start_time: "2026-10-24 20:00:00",
-    description: "Indie rock outfit celebrating their debut LP release with special guests.",
-    ticket_url: "https://oztix.com.au",
-    image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=700&q=80",
-    calendar_url: "calendar.php?id=1"
-  },
-  {
-    id: 2,
-    title: "Contemporary Printmaking Biennial",
-    venue_name: "Fitzroy Community Arts",
-    address: "128 Gertrude St, Fitzroy VIC",
-    category: "Art",
-    start_time: "2026-10-25 10:00:00",
-    description: "Showcasing emerging Australian printmakers, risograph posters, and zines.",
-    ticket_url: "",
-    image_url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=700&q=80",
-    calendar_url: "calendar.php?id=2"
-  },
-  {
-    id: 3,
-    title: "Sunset Soundscapes: Ambient & Synth Showcase",
-    venue_name: "The Corner Hotel",
-    address: "57 Swan St, Richmond VIC",
-    category: "Live Music",
-    start_time: "2026-10-26 19:30:00",
-    description: "An evening of analog synthesizers and ambient soundscapes featuring local producers.",
-    ticket_url: "https://thecornerhotel.com",
-    image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=700&q=80",
-    calendar_url: "calendar.php?id=3"
-  }
-];
+// Real-feed mode: Fallback dummy items eliminated to ensure genuine live RSS/API syndication
 
-const FALLBACK_ITEMS = {
-  news: [
-    {
-      id: 101,
-      source_name: "ABC News",
-      category: "Regional Arts",
-      title: "Grassroots Music Venues Receive New State Infrastructure Funding",
-      summary: "Victoria’s live music and indie venues receive dedicated grants to preserve historic neighborhood stages.",
-      link: "https://www.abc.net.au/news",
-      image_url: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=700&q=80",
-      published_at: "2026-10-18 08:30:00"
-    },
-    {
-      id: 102,
-      source_name: "SBS News",
-      category: "Community",
-      title: "Multicultural Arts Festivals Expanded Across Regional Hubs",
-      summary: "New community initiatives bring multicultural storytelling and food traditions to regional towns.",
-      link: "https://www.sbs.com.au/news",
-      image_url: "",
-      published_at: "2026-10-18 07:15:00"
-    }
-  ],
-  blogs: [
-    {
-      id: 201,
-      source_name: "Trouble Magazine",
-      category: "Indie Culture",
-      title: "Australian Indie Music Resilience: Behind Collingwood's Gigs",
-      summary: "An in-depth look into independent venues maintaining live stages amidst urban development and noise complaints.",
-      link: "https://www.troublemag.com",
-      image_url: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=700&q=80",
-      published_at: "2026-10-17 14:00:00"
-    },
-    {
-      id: 202,
-      source_name: "The Conversation (AU)",
-      category: "Essays",
-      title: "Why Australia's Cultural Infrastructure Needs Decentralized Open Data",
-      summary: "Public arts policy is shifting towards community-anchored hubs, open syndication, and digital sovereignty.",
-      link: "https://theconversation.com/au",
-      image_url: "",
-      published_at: "2026-10-17 11:30:00"
-    }
-  ]
-};
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Load Channel Preferences (Default: Clean mode = News & Blogs OFF)
@@ -473,13 +390,7 @@ async function renderEvents(refreshPills = true) {
   if (res.venues && res.venues.length > 0) {
     window.agendaVenues = res.venues;
   }
-  let events = res.data;
-
-  if (!events || events.length === 0) {
-    events = (currentCategory === 'All')
-      ? FALLBACK_EVENTS
-      : FALLBACK_EVENTS.filter(e => e.category === currentCategory);
-  }
+  let events = res.data || [];
 
   if (refreshPills) {
     const categories = res.categories && res.categories.length > 1
@@ -615,10 +526,7 @@ async function renderFollowing(refreshPills = true) {
   if (res.venues && res.venues.length > 0) {
     window.agendaVenues = res.venues;
   }
-  let events = res.data;
-  if (!events || events.length === 0) {
-    events = FALLBACK_EVENTS;
-  }
+  let events = res.data || [];
 
   // Sub-filter pills: 'All Followed' + distinct followed venue names
   const venueOptions = ['All Followed', ...followedList.map(f => f.name)];
@@ -765,14 +673,7 @@ async function renderFollowing(refreshPills = true) {
 async function renderItems(tab, refreshPills = true) {
   const container = document.getElementById('feed');
   const res = await window.agendaAPI.getItems(tab, currentCategory);
-  let items = res.data;
-
-  if (!items || items.length === 0) {
-    const fallback = FALLBACK_ITEMS[tab] || [];
-    items = (currentCategory === 'All')
-      ? fallback
-      : fallback.filter(i => i.category === currentCategory);
-  }
+  let items = res.data || [];
 
   if (refreshPills) {
     const categories = res.categories && res.categories.length > 1
