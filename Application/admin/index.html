@@ -370,6 +370,9 @@
       <button class="nav-btn active" data-tab="sources" onclick="switchAdminTab('sources')">
         📡 Curated Subscriptions
       </button>
+      <button class="nav-btn" data-tab="events" onclick="switchAdminTab('events')">
+        🗓️ Published Events <span class="badge-count" id="events-badge" style="display:none;">0</span>
+      </button>
       <button class="nav-btn" data-tab="suggestions" onclick="switchAdminTab('suggestions')">
         📬 Suggestion Inbox <span class="badge-count" id="inbox-badge" style="display:none;">0</span>
       </button>
@@ -380,6 +383,7 @@
         ⚙️ Hostinger Ingestion & Cron
       </button>
     </nav>
+
 
     <!-- Tab 1: Sources Management -->
     <section id="tab-sources">
@@ -433,7 +437,38 @@
       </table>
     </section>
 
+    <!-- Tab 1.5: Published Feed Events -->
+    <section id="tab-events" style="display:none;">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Published Feed Events</h2>
+          <p style="font-size:0.85rem; color:var(--color-text-muted);">Browse and manage live cultural events currently active on the public broadsheet. Removing an event here immediately removes it from all readers' feeds.</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="event-search-input" placeholder="Search events or venues..." oninput="renderEventsTable(this.value)" style="padding:6px 12px; font-size:0.85rem; border:1px solid #ccc; border-radius:var(--radius-sm); min-width:240px;">
+          <button class="btn btn-outline" onclick="loadEvents()">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:50px;">Poster</th>
+            <th>Event Title & Link</th>
+            <th>Venue & Location</th>
+            <th>Date & Time</th>
+            <th>Tags</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="events-table-body">
+          <tr><td colspan="6" style="text-align:center; padding:24px;">Loading published events...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
     <!-- Tab 2: Suggestions Inbox -->
+
     <section id="tab-suggestions" style="display:none;">
       <div class="section-header">
         <div>
@@ -1124,6 +1159,12 @@
         inboxBadge.style.display = 'none';
       }
 
+      const eventsBadge = document.getElementById('events-badge');
+      if (eventsBadge && statsRes.data.total_events !== undefined) {
+        eventsBadge.textContent = statsRes.data.total_events;
+        eventsBadge.style.display = statsRes.data.total_events > 0 ? 'inline-block' : 'none';
+      }
+
       await loadSources();
       return true;
     }
@@ -1131,15 +1172,19 @@
     function switchAdminTab(tabName) {
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
       document.getElementById('tab-sources').style.display = tabName === 'sources' ? 'block' : 'none';
+      const tabEvents = document.getElementById('tab-events');
+      if (tabEvents) tabEvents.style.display = tabName === 'events' ? 'block' : 'none';
       document.getElementById('tab-suggestions').style.display = tabName === 'suggestions' ? 'block' : 'none';
       const tabUsers = document.getElementById('tab-users');
       if (tabUsers) tabUsers.style.display = tabName === 'users' ? 'block' : 'none';
       document.getElementById('tab-system').style.display = tabName === 'system' ? 'block' : 'none';
 
+      if (tabName === 'events') loadEvents();
       if (tabName === 'suggestions') loadSuggestions();
       if (tabName === 'sources') loadSources();
       if (tabName === 'users') loadUsers();
     }
+
 
     async function loadSources() {
       const res = await apiRequest('../api/admin.php?action=sources');
@@ -1266,15 +1311,102 @@
     async function toggleSource(id) {
       await apiRequest('../api/admin.php?action=toggle_source', { method: 'POST', body: { id } });
       await loadDashboard();
+      if (currentEvents && currentEvents.length > 0) await loadEvents();
     }
 
     async function deleteSource(id, name) {
-      if (!confirm(`Delete feed source "${name}" and all associated items?`)) return;
-      await apiRequest('../api/admin.php?action=delete_source', { method: 'POST', body: { id } });
+      if (!confirm(`Delete feed source "${name}"?\n\nWARNING: All upcoming events, news, and blog articles from "${name}" will be IMMEDIATELY REMOVED from the public feed.`)) return;
+      const res = await apiRequest('../api/admin.php?action=delete_source', { method: 'POST', body: { id } });
+      if (res && res.status === 'success') {
+        alert(`✓ ${res.message || `Source "${name}" and all associated items have been removed from the feed.`}`);
+      }
       await loadDashboard();
+      if (currentEvents && currentEvents.length > 0) await loadEvents();
+    }
+
+    // --- Published Feed Events Management ---
+    let currentEvents = [];
+    async function loadEvents() {
+      const tbody = document.getElementById('events-table-body');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px;">Loading published events from feed...</td></tr>';
+      const res = await apiRequest('../api/admin.php?action=events');
+      if (!res || res.status !== 'success') {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--color-crimson);">Failed to load published events.</td></tr>';
+        return;
+      }
+      currentEvents = res.data || [];
+      const badge = document.getElementById('events-badge');
+      if (badge) {
+        badge.textContent = currentEvents.length;
+        badge.style.display = currentEvents.length > 0 ? 'inline-block' : 'none';
+      }
+      renderEventsTable();
+    }
+
+    function renderEventsTable(filterText = '') {
+      const tbody = document.getElementById('events-table-body');
+      if (!tbody) return;
+      let events = currentEvents;
+      if (filterText) {
+        const q = filterText.toLowerCase();
+        events = events.filter(e => 
+          (e.title || '').toLowerCase().includes(q) ||
+          (e.venue_name || '').toLowerCase().includes(q) ||
+          (e.category || '').toLowerCase().includes(q)
+        );
+      }
+
+      if (events.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--color-text-muted);">No published events in the live feed.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = events.map(e => `
+        <tr>
+          <td>
+            ${e.image_url ? `<img src="${e.image_url}" alt="" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">` : `<div style="width:40px; height:40px; background:#eee; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:18px;">🎵</div>`}
+          </td>
+          <td>
+            <div style="font-weight:600; color:var(--color-nightfall);">${escapeHtml(e.title)}</div>
+            ${e.ticket_url ? `<a href="${e.ticket_url}" target="_blank" rel="noopener" style="font-size:0.75rem; color:var(--color-text-muted); text-decoration:none;">View Link ↗</a>` : ''}
+          </td>
+          <td>
+            <div style="font-size:0.85rem; font-weight:500;">${escapeHtml(e.venue_name || 'Melbourne')}</div>
+            <div style="font-size:0.75rem; color:var(--color-text-muted);">${escapeHtml(e.suburb || (e.city_name || 'Melbourne'))}</div>
+          </td>
+          <td style="font-size:0.82rem; white-space:nowrap;">
+            ${escapeHtml(e.start_time || '')}
+          </td>
+          <td>
+            <span class="badge" style="background:#e8f5e9; color:#1b5e20; font-size:0.75rem; padding:2px 6px; border-radius:4px;">${escapeHtml(e.category || 'Culture')}</span>
+            ${e.age_restriction ? `<span class="badge" style="background:#fff3e0; color:#e65100; font-size:0.75rem; padding:2px 6px; border-radius:4px; margin-left:3px;">${escapeHtml(e.age_restriction)}</span>` : ''}
+          </td>
+          <td>
+            <button class="btn btn-danger" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteEvent(${e.id}, '${escapeQuote(e.title)}')">
+              ✕ Remove from Feed
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function deleteEvent(id, title) {
+      if (!confirm(`Are you sure you want to remove "${title}" from the live public feed?\n\nThis event will immediately vanish from all readers' feeds and calendar exports.`)) return;
+      const res = await apiRequest('../api/admin.php?action=delete_event', {
+        method: 'POST',
+        body: { id }
+      });
+      if (res && res.status === 'success') {
+        alert(`✓ Event "${title}" has been removed from the public feed.`);
+        await loadEvents();
+        await loadDashboard();
+      } else {
+        alert('Failed to delete event: ' + (res ? res.message : 'Error'));
+      }
     }
 
     function openAddSourceModal() {
+
       document.getElementById('add-source-modal').style.display = 'flex';
     }
     function closeAddSourceModal() {

@@ -368,10 +368,94 @@ try {
             exit;
         }
 
+        // 1. Delete associated dispatches/articles
+        $pdo->prepare("DELETE FROM items WHERE source_id = :id")->execute(['id' => $id]);
+
+        // 2. Find and delete associated venues and their events
+        $stmt = $pdo->prepare("SELECT slug FROM venues WHERE source_id = :id");
+        $stmt->execute(['id' => $id]);
+        $venueSlugs = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        if (!empty($venueSlugs)) {
+            $in = str_repeat('?,', count($venueSlugs) - 1) . '?';
+            $pdo->prepare("DELETE FROM events WHERE venue_slug IN ($in)")->execute($venueSlugs);
+        }
+
+        $pdo->prepare("DELETE FROM venues WHERE source_id = :id")->execute(['id' => $id]);
+
+        // 3. Delete source record
         $pdo->prepare("DELETE FROM sources WHERE id = :id")->execute(['id' => $id]);
-        echo json_encode(['status' => 'success', 'message' => 'Source deleted']);
+
+        echo json_encode(['status' => 'success', 'message' => 'Source and all associated feed events/articles removed']);
         exit;
     }
+
+    // 5.1 Delete Single Event
+    if ($action === 'delete_event' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true) ?: $_POST;
+        $id = (int)($data['id'] ?? 0);
+
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Event ID required']);
+            exit;
+        }
+
+        $pdo->prepare("DELETE FROM events WHERE id = :id")->execute(['id' => $id]);
+        echo json_encode(['status' => 'success', 'message' => 'Event removed from feed']);
+        exit;
+    }
+
+    // 5.2 Delete Single Dispatch Item
+    if ($action === 'delete_item' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true) ?: $_POST;
+        $id = (int)($data['id'] ?? 0);
+
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Item ID required']);
+            exit;
+        }
+
+        $pdo->prepare("DELETE FROM items WHERE id = :id")->execute(['id' => $id]);
+        echo json_encode(['status' => 'success', 'message' => 'Dispatch removed from feed']);
+        exit;
+    }
+
+    // 5.3 Published Events Directory
+    if ($action === 'events') {
+        $city = filter_input(INPUT_GET, 'city', FILTER_DEFAULT) ?? 'all';
+        $where = [];
+        $params = [];
+
+        if ($city !== 'all') {
+            $where[] = "(c.slug = :city OR c.name = :city)";
+            $params['city'] = $city;
+        }
+        $whereSql = !empty($where) ? "WHERE " . implode(' AND ', $where) : "";
+
+        $stmt = $pdo->prepare("
+            SELECT e.id, e.title, e.venue_name, e.category, e.age_restriction, e.start_time, e.ticket_url, e.image_url,
+                   c.name as city_name, c.slug as city_slug
+            FROM events e
+            LEFT JOIN cities c ON e.city_id = c.id
+            {$whereSql}
+            ORDER BY e.start_time ASC
+            LIMIT 200
+        ");
+        $stmt->execute($params);
+        $events = $stmt->fetchAll();
+
+        echo json_encode([
+            'status' => 'success',
+            'count'  => count($events),
+            'data'   => $events
+        ]);
+        exit;
+    }
+
 
     // 6. Suggestions List
     if ($action === 'suggestions') {

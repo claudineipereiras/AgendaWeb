@@ -68,6 +68,10 @@ let MOCK_VENUES = [
 
 let MOCK_SUGGESTIONS = [];
 
+// Tombstones to prevent re-ingestion of items deleted via Admin
+const DELETED_EVENT_KEYS = new Set();
+const DELETED_ITEM_LINKS = new Set();
+const DELETED_SOURCE_URLS = new Set();
 
 let MOCK_USERS = [
   {
@@ -225,7 +229,7 @@ function parseFeedXml(xmlStr) {
 
 let nextItemId = 1000;
 async function syncRssSource(source) {
-  if (source.type !== 'rss') return source.item_count || 0;
+  if (source.type !== 'rss' || DELETED_SOURCE_URLS.has(source.url)) return source.item_count || 0;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
@@ -252,29 +256,32 @@ async function syncRssSource(source) {
       const tab = source.category_tab || 'blogs';
       if (!MOCK_ITEMS[tab]) MOCK_ITEMS[tab] = [];
 
-      // Avoid duplicating items by link
+      // Avoid duplicating items by link or re-ingesting items deleted by admin
       const existingLinks = new Set(MOCK_ITEMS[tab].map(i => i.link));
-      const formatted = parsed.items.map(item => ({
-        id: ++nextItemId,
-        source_name: source.name,
-        category_tab: tab,
-        category: item.category || 'General',
-        title: item.title,
-        link: item.link,
-        summary: item.summary,
-        content: item.content,
-        image_url: item.image_url || '',
-        published_at: item.published_at || now
-      }));
+      const formatted = parsed.items
+        .filter(item => !DELETED_ITEM_LINKS.has(item.link))
+        .map(item => ({
+          id: ++nextItemId,
+          source_id: source.id,
+          source_name: source.name,
+          category_tab: tab,
+          category: item.category || 'General',
+          title: item.title,
+          link: item.link,
+          summary: item.summary,
+          content: item.content,
+          image_url: item.image_url || '',
+          published_at: item.published_at || now
+        }));
 
       const toAdd = formatted.filter(item => !existingLinks.has(item.link));
       MOCK_ITEMS[tab] = [...toAdd, ...MOCK_ITEMS[tab]];
 
-      source.item_count = parsed.items.length;
+      source.item_count = MOCK_ITEMS[tab].filter(i => i.source_id === source.id).length;
       source.last_status = 'updated';
       source.last_error = null;
       source.last_polled_at = now;
-      return parsed.items.length;
+      return source.item_count;
     }
 
     source.last_status = 'active';
@@ -314,14 +321,21 @@ async function discoverEventsFromUrl(targetUrl) {
           for (const item of bItems) {
             if (!item.eventDate) continue;
             const parts = item.eventDate.split('/');
+
             if (parts.length !== 3) continue;
-            const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T${item.eventTime || '20:00'}:00`);
-            if (d.getTime() < nowMs) continue;
+            const day = parts[0].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            const year = parts[2];
+
+            const time = (item.eventTime && item.eventTime.trim().length >= 4) ? item.eventTime.trim() : '20:00';
+            const d = new Date(`${year}-${month}-${day}T${time.length === 5 ? time : '20:00'}:00`);
+            if (isNaN(d.getTime()) || d.getTime() < nowMs) continue;
 
             const isKoorie = (item.artistName || '').toLowerCase().includes('koorie');
             result.detectedEvents.push({
               title: item.artistName || 'Live Music at Bar Oussou',
-              start_time: `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')} ${item.eventTime || '20:00'}:00`,
+              start_time: `${year}-${month}-${day} ${time.length === 5 ? time : '20:00'}:00`,
+
               end_time: null,
               category: item.eventCategory === 'recurring' ? 'Community' : 'Live Music',
               venue_name: 'Bar Oussou',
@@ -536,6 +550,9 @@ async function discoverEventsFromUrl(targetUrl) {
 }
 
 async function syncEventSource(source) {
+  if (DELETED_SOURCE_URLS.has(source.url) || (source.feed_url && DELETED_SOURCE_URLS.has(source.feed_url))) {
+    return 0;
+  }
   try {
     const targetUrl = source.feed_url || source.url;
     const result = await discoverEventsFromUrl(targetUrl);
@@ -552,6 +569,12 @@ async function syncEventSource(source) {
     const venueSlug = source.slug || 'venue';
 
     for (const evt of result.detectedEvents) {
+      const eventKey1 = evt.ticket_url;
+      const eventKey2 = `${venueSlug}:::${(evt.title || '').toLowerCase()}`;
+      if ((eventKey1 && DELETED_EVENT_KEYS.has(eventKey1)) || DELETED_EVENT_KEYS.has(eventKey2)) {
+        continue;
+      }
+
       const exists = MOCK_EVENTS.some(e => 
         (e.title.toLowerCase() === evt.title.toLowerCase() && e.start_time.slice(0, 10) === evt.start_time.slice(0, 10))
         || (e.ticket_url && evt.ticket_url && e.ticket_url === evt.ticket_url)
@@ -561,6 +584,7 @@ async function syncEventSource(source) {
         const nextId = MOCK_EVENTS.length > 0 ? Math.max(...MOCK_EVENTS.map(e => e.id)) + 1 : 1;
         MOCK_EVENTS.push({
           id: nextId,
+          source_id: source.id,
           city_id: 1,
           city_slug: "melbourne",
           city_name: "Melbourne",
@@ -585,6 +609,7 @@ async function syncEventSource(source) {
         addedCount++;
       }
     }
+
 
     source.item_count = result.detectedEvents.length;
     source.last_status = 'updated';
@@ -673,7 +698,21 @@ const requestHandler = async (req, res) => {
     const age = parsedUrl.query.age || 'all';
     const family = parsedUrl.query.family;
 
-    let filtered = MOCK_EVENTS;
+    // Filter by active sources and venues:
+    // If a source was removed or toggled inactive in Admin, its events MUST NOT appear in the feed
+    const activeSources = MOCK_SOURCES.filter(s => s.is_active);
+    const activeSourceIds = new Set(activeSources.map(s => s.id));
+    const activeSourceSlugs = new Set(activeSources.map(s => s.slug));
+    const activeSourceNames = new Set(activeSources.map(s => (s.name || '').toLowerCase()));
+    const activeVenueSlugs = new Set(MOCK_VENUES.filter(v => v.is_active !== 0).map(v => v.slug));
+
+    let filtered = MOCK_EVENTS.filter(e => {
+      if (e.source_id && !activeSourceIds.has(e.source_id)) return false;
+      if (e.venue_slug && !activeSourceSlugs.has(e.venue_slug) && !activeVenueSlugs.has(e.venue_slug)) return false;
+      if (!e.source_id && !e.venue_slug && e.venue_name && !activeSourceNames.has(e.venue_name.toLowerCase())) return false;
+      return true;
+    });
+
     if (city && city !== 'all') {
       filtered = filtered.filter(e => e.city_slug === city || (e.city_name || '').toLowerCase() === city.toLowerCase());
     }
@@ -690,31 +729,40 @@ const requestHandler = async (req, res) => {
       filtered = filtered.filter(e => e.is_family_friendly === 1);
     }
 
-    const categories = ['All', ...new Set(MOCK_EVENTS.map(e => e.category).filter(Boolean))];
+    const categories = ['All', ...new Set(filtered.map(e => e.category).filter(Boolean))];
     const citiesWithCount = MOCK_CITIES.map(c => ({
       ...c,
-      event_count: MOCK_EVENTS.filter(e => e.city_slug === c.slug).length
+      event_count: filtered.filter(e => e.city_slug === c.slug).length
     }));
 
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({
       status: 'success',
       count: filtered.length,
-      total: MOCK_EVENTS.length,
+      total: filtered.length,
       categories: categories,
       cities: citiesWithCount,
-      venues: MOCK_VENUES,
+      venues: MOCK_VENUES.filter(v => v.is_active !== 0),
       data: filtered
     }));
     return;
   }
 
-
   // 2. API: Items Feed (News, Blogs)
   if (pathname === '/api/items.php') {
     const tab = parsedUrl.query.tab || 'news';
     const category = parsedUrl.query.category || 'all';
-    const rawItems = MOCK_ITEMS[tab] || [];
+
+    // Only return items from active sources
+    const activeSources = MOCK_SOURCES.filter(s => s.is_active);
+    const activeSourceIds = new Set(activeSources.map(s => s.id));
+    const activeSourceNames = new Set(activeSources.map(s => (s.name || '').toLowerCase()));
+
+    const rawItems = (MOCK_ITEMS[tab] || []).filter(i => {
+      if (i.source_id && !activeSourceIds.has(i.source_id)) return false;
+      if (i.source_name && !activeSourceNames.has(i.source_name.toLowerCase())) return false;
+      return true;
+    });
 
     let filtered = rawItems;
     if (category && category !== 'all' && category !== 'All') {
@@ -733,6 +781,7 @@ const requestHandler = async (req, res) => {
     }));
     return;
   }
+
 
   // 3. API: Personal Feed CORS Proxy (Live Remote Fetch)
   if (pathname === '/api/proxy_feed.php') {
@@ -1552,10 +1601,19 @@ const requestHandler = async (req, res) => {
       req.on('end', () => {
         let payload = {};
         try { payload = JSON.parse(body); } catch (e) {}
-        const source = MOCK_SOURCES.find(s => s.id === payload.id);
-        if (source) source.is_active = source.is_active ? 0 : 1;
+        const targetId = parseInt(payload.id, 10);
+        const source = MOCK_SOURCES.find(s => s.id === targetId);
+        if (source) {
+          source.is_active = source.is_active ? 0 : 1;
+          const v = MOCK_VENUES.find(v => v.source_id === targetId || v.slug === source.slug);
+          if (v) v.is_active = source.is_active;
+        }
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ status: 'success', message: 'Source status toggled' }));
+        res.end(JSON.stringify({ 
+          status: 'success', 
+          message: source ? `Source "${source.name}" is now ${source.is_active ? 'active on feed' : 'paused/hidden from feed'}` : 'Status toggled',
+          is_active: source ? source.is_active : 0
+        }));
       });
       return;
     }
@@ -1591,12 +1649,145 @@ const requestHandler = async (req, res) => {
       req.on('end', () => {
         let payload = {};
         try { payload = JSON.parse(body); } catch (e) {}
-        MOCK_SOURCES = MOCK_SOURCES.filter(s => s.id !== payload.id);
+        const targetId = parseInt(payload.id, 10);
+        const source = MOCK_SOURCES.find(s => s.id === targetId);
+
+        if (source) {
+          DELETED_SOURCE_URLS.add(source.url);
+          if (source.feed_url) DELETED_SOURCE_URLS.add(source.feed_url);
+
+          // 1. Remove all events belonging to this source / venue from the feed
+          const eventsBefore = MOCK_EVENTS.length;
+          MOCK_EVENTS = MOCK_EVENTS.filter(e => 
+            e.source_id !== targetId &&
+            e.venue_slug !== source.slug &&
+            (e.venue_name || '').toLowerCase() !== (source.name || '').toLowerCase()
+          );
+          const eventsRemoved = eventsBefore - MOCK_EVENTS.length;
+
+          // 2. Remove all news and blog items belonging to this source from the feed
+          const newsBefore = MOCK_ITEMS.news.length;
+          MOCK_ITEMS.news = MOCK_ITEMS.news.filter(i => 
+            i.source_id !== targetId &&
+            (i.source_name || '').toLowerCase() !== (source.name || '').toLowerCase()
+          );
+          const newsRemoved = newsBefore - MOCK_ITEMS.news.length;
+
+          const blogsBefore = MOCK_ITEMS.blogs.length;
+          MOCK_ITEMS.blogs = MOCK_ITEMS.blogs.filter(i => 
+            i.source_id !== targetId &&
+            (i.source_name || '').toLowerCase() !== (source.name || '').toLowerCase()
+          );
+          const blogsRemoved = blogsBefore - MOCK_ITEMS.blogs.length;
+
+          // 3. Remove venue
+          MOCK_VENUES = MOCK_VENUES.filter(v => v.source_id !== targetId && v.slug !== source.slug);
+
+          // 4. Remove from sources
+          MOCK_SOURCES = MOCK_SOURCES.filter(s => s.id !== targetId);
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ 
+            status: 'success', 
+            message: `Source "${source.name}" and all associated items removed from feed (${eventsRemoved} gigs, ${newsRemoved + blogsRemoved} articles removed).`,
+            events_removed: eventsRemoved,
+            items_removed: newsRemoved + blogsRemoved
+          }));
+          return;
+        }
+
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ status: 'success', message: 'Source deleted' }));
       });
       return;
     }
+
+    // Admin action: list published events
+    if (action === 'events') {
+      const city = parsedUrl.query.city || 'all';
+      let filtered = MOCK_EVENTS;
+      if (city !== 'all') {
+        filtered = filtered.filter(e => e.city_slug === city);
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        status: 'success',
+        count: filtered.length,
+        total: MOCK_EVENTS.length,
+        data: filtered
+      }));
+      return;
+    }
+
+    // Admin action: delete an individual event from the feed
+    if (action === 'delete_event' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const eventId = parseInt(payload.id, 10);
+        const ev = MOCK_EVENTS.find(e => e.id === eventId);
+        if (ev) {
+          if (ev.ticket_url) DELETED_EVENT_KEYS.add(ev.ticket_url);
+          DELETED_EVENT_KEYS.add(`${ev.venue_slug}:::${ev.title.toLowerCase()}`);
+          MOCK_EVENTS = MOCK_EVENTS.filter(e => e.id !== eventId);
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ 
+            status: 'success', 
+            message: `Event "${ev.title}" removed from the live feed.` 
+          }));
+          return;
+        }
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'error', message: 'Event not found' }));
+      });
+      return;
+    }
+
+    // Admin action: list dispatches
+    if (action === 'feed_items') {
+      const tab = parsedUrl.query.tab || 'all';
+      let allItems = [];
+      if (tab === 'news') allItems = MOCK_ITEMS.news;
+      else if (tab === 'blogs') allItems = MOCK_ITEMS.blogs;
+      else allItems = [...MOCK_ITEMS.news, ...MOCK_ITEMS.blogs];
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        status: 'success',
+        count: allItems.length,
+        data: allItems
+      }));
+      return;
+    }
+
+    // Admin action: delete an individual dispatch
+    if (action === 'delete_item' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const itemId = parseInt(payload.id, 10);
+        const allItems = [...MOCK_ITEMS.news, ...MOCK_ITEMS.blogs];
+        const item = allItems.find(i => i.id === itemId);
+        if (item) {
+          if (item.link) DELETED_ITEM_LINKS.add(item.link);
+          MOCK_ITEMS.news = MOCK_ITEMS.news.filter(i => i.id !== itemId);
+          MOCK_ITEMS.blogs = MOCK_ITEMS.blogs.filter(i => i.id !== itemId);
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ 
+            status: 'success', 
+            message: `Dispatch "${item.title}" removed from the live feed.` 
+          }));
+          return;
+        }
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'error', message: 'Dispatch not found' }));
+      });
+      return;
+    }
+
 
     if (action === 'suggestions') {
       const statusFilter = parsedUrl.query.status || 'all';
