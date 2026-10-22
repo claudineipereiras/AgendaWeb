@@ -559,8 +559,9 @@
         <div class="form-group">
           <label>Ingestion Strategy</label>
           <select id="source-type" class="form-control">
-            <option value="scrape_event">🌐 HTML Web Scraper (Schema.org / JSON-LD)</option>
+            <option value="scrape_event">🌐 Smart Web Scraper (Auto-detects Schema.org, WP REST APIs & Iframes)</option>
             <option value="rss">📡 RSS / Atom XML Feed</option>
+            <option value="api_event">⚡ Direct Venue REST API (JSON Endpoints)</option>
           </select>
         </div>
         <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
@@ -1201,7 +1202,8 @@
           healthHtml = `<span class="health-pill health-live">🟢 Live (${s.http_code || 200})</span>`;
         }
 
-        const typeLabel = s.type === 'scrape_event' ? 'Web Scraper' : 'RSS Feed';
+        const isApi = s.type === 'api_event' || (s.feed_url && (s.feed_url.includes('wp-json') || s.feed_url.includes('/api/')));
+        const typeLabel = isApi ? 'REST API' : (s.type === 'scrape_event' ? 'Web Scraper' : 'RSS Feed');
         const itemCountLabel = `${s.item_count || 0} ${s.category_tab === 'events' ? 'gigs' : 'items'}`;
         const lastPolledLabel = s.last_polled_at ? escapeHtml(s.last_polled_at) : 'Never';
 
