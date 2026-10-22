@@ -605,6 +605,58 @@
         </div>
       </form>
     </div>
+  </div>
+
+  <!-- Edit Curated Source Modal -->
+  <div class="modal-overlay" id="edit-source-modal">
+    <div class="modal-content" style="max-width:580px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="font-size:1.15rem;">✏️ Edit Curated Source</h3>
+        <button class="btn btn-outline" style="padding:4px 8px;" onclick="closeEditSourceModal()">✕</button>
+      </div>
+
+      <form onsubmit="handleEditSourceSubmit(event)">
+        <input type="hidden" id="edit-source-id">
+        <div class="form-group">
+          <label>Source / Venue Display Name</label>
+          <input type="text" id="edit-source-name" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>Website or Feed URL</label>
+          <input type="url" id="edit-source-url" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>Channel Destination</label>
+          <select id="edit-source-channel" class="form-control">
+            <option value="events">⚡ Events (Live gigs & exhibitions)</option>
+            <option value="blogs">✍️ Blogs & Articles (Cultural reviews & essays)</option>
+            <option value="news">📰 News (Public broadcasters)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Ingestion Strategy</label>
+          <select id="edit-source-type" class="form-control">
+            <option value="scrape_event">🌐 Smart Web Scraper (Schema.org JSON-LD / HTML)</option>
+            <option value="rss">📡 RSS / Atom XML Feed</option>
+            <option value="api_event">⚡ Direct Venue REST API</option>
+          </select>
+        </div>
+        <div class="form-group" id="edit-venue-address-group">
+          <label>Venue Address (for gig guides)</label>
+          <input type="text" id="edit-source-address" class="form-control" placeholder="e.g. 271 Sydney Rd, Brunswick VIC">
+        </div>
+        <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="edit-source-active" style="width:18px; height:18px;">
+          <label for="edit-source-active" style="margin-bottom:0; cursor:pointer;">Active on public broadsheet feed</label>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="closeEditSourceModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-update-source">💾 Update Source</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Change Password Modal -->
   <div class="modal-overlay" id="modal-change-password">
     <div class="modal-content" style="max-width:440px;">
@@ -1279,6 +1331,7 @@
                   </button>
                   <button class="btn btn-danger" style="padding:2px 7px; font-size:0.75rem;" onclick="deleteSource(${s.id}, '${escapeQuote(s.name)}')">✕ Reject</button>
                 ` : `
+                  <button class="btn btn-outline" style="padding:2px 7px; font-size:0.75rem;" onclick="openEditSourceModal(${s.id})">✏️ Edit</button>
                   <button class="btn btn-outline" style="padding:2px 7px; font-size:0.75rem;" onclick="syncSingleSource(${s.id}, '${escapeQuote(s.name)}')">🔄 Sync</button>
                   <button class="btn btn-outline" style="padding:2px 7px; font-size:0.75rem;" onclick="toggleSource(${s.id})">
                     ${s.is_active ? '⏸' : '▶'}
@@ -1527,6 +1580,56 @@
         alert('Curated source and venue database updated successfully!');
       } else {
         alert('Failed to add source: ' + (res ? res.message : 'Network error'));
+      }
+    }
+
+    function openEditSourceModal(id) {
+      const source = (currentSources || []).find(s => s.id === id);
+      if (!source) return;
+
+      document.getElementById('edit-source-id').value = source.id;
+      document.getElementById('edit-source-name').value = source.name || '';
+      document.getElementById('edit-source-url').value = source.url || '';
+      document.getElementById('edit-source-channel').value = source.category_tab || 'events';
+      document.getElementById('edit-source-type').value = source.type || 'scrape_event';
+      document.getElementById('edit-source-address').value = source.address || '';
+      document.getElementById('edit-source-active').checked = source.is_active === 1;
+
+      document.getElementById('edit-source-modal').style.display = 'flex';
+    }
+
+    function closeEditSourceModal() {
+      document.getElementById('edit-source-modal').style.display = 'none';
+    }
+
+    async function handleEditSourceSubmit(e) {
+      e.preventDefault();
+      const id = parseInt(document.getElementById('edit-source-id').value, 10);
+      const name = document.getElementById('edit-source-name').value.trim();
+      const url = document.getElementById('edit-source-url').value.trim();
+      const tab = document.getElementById('edit-source-channel').value;
+      const type = document.getElementById('edit-source-type').value;
+      const address = document.getElementById('edit-source-address').value.trim();
+      const is_active = document.getElementById('edit-source-active').checked ? 1 : 0;
+
+      const btn = document.getElementById('btn-update-source');
+      btn.disabled = true;
+      btn.textContent = 'Updating...';
+
+      const res = await apiRequest('../api/admin.php?action=update_source', {
+        method: 'POST',
+        body: { id, name, url, category_tab: tab, type, address, is_active }
+      });
+
+      btn.disabled = false;
+      btn.textContent = '💾 Update Source';
+
+      if (res && res.status === 'success') {
+        closeEditSourceModal();
+        await loadDashboard();
+        alert(`✓ Source "${name}" updated successfully.`);
+      } else {
+        alert('Failed to update source: ' + (res ? res.message : 'Error'));
       }
     }
 

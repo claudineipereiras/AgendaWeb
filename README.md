@@ -119,21 +119,23 @@ AgendaWeb/
 
 ## 3. How Core Workflows Function
 
-### A. Real-Time Feed Ingestion (100% Mock-Free)
-1. **Boot / Cron Execution:** The ingestor connects to verified active sources.
-2. **Event Parsing:** Extracts dates, venues, titles, age restrictions (`18+`, `all_ages`, `kids_family`), and ticketing URLs via WordPress REST endpoints, Schema.org JSON-LD, or microdata.
-3. **News & Blog Aggregation:** Ingests dispatches from ABC, SBS, Guardian, Conversation, and Trouble Mag, storing full articles for in-app distraction-free reading.
-4. **Tombstone Verification:** Before adding any item, the engine checks `DELETED_EVENT_KEYS` and `DELETED_ITEM_LINKS` so previously moderated items are never re-ingested.
+### A. Manual Curation & Venue Onboarding Review Gate
+1. **Manual Curator Additions:** Curators manually register public RSS/Atom feeds, WordPress REST APIs, or Schema.org event pages directly in the Admin Portal ([`/admin/`](http://localhost:8001/admin/index.html)). These sources are active immediately.
+2. **Venue Onboarding Review Gate:** Independent venues and organizers submit their websites via `/venues/index.html`. The engine auto-detects the extraction strategy (Schema.org JSON-LD, WordPress REST, or RSS) and checks domain verification. Submissions are staged in the **"⏳ Pending Approval"** queue and are **never ingested** until a curator approves them.
+3. **Full Source Management:** Curators can **Add**, **Edit/Update** (name, URL, category, strategy, address), **Pause/Resume**, or **Delete** any source at any time.
 
-### B. Admin Curation & Feed Deletion
-1. **Removing a Source:** Deleting a source in `/admin/` cascades immediately—all associated events, news items, and venue references are permanently purged from the public feeds.
-2. **Pausing a Source:** Toggling a source to inactive instantly hides all of its events and articles from `/api/events.php` and `/api/items.php` without losing configuration.
-3. **Removing Individual Gigs:** Curators can open the **`Published Events`** tab in the Admin portal to delete specific events directly from the live feed with a single click.
+### B. Strict Ingestion Engine
+1. **Approved-Only Ingestion:** The ingestion worker (`sync_sources.php`) queries exclusively:
+   ```sql
+   SELECT * FROM sources WHERE is_active = 1 AND (last_status != 'pending' OR last_status IS NULL);
+   ```
+2. **Cascading Removal & Tombstones:** Deleting a source or event immediately purges it from the live public feeds (`/api/events.php` and `/api/items.php`) and registers tombstone keys (`DELETED_EVENT_KEYS`, `DELETED_ITEM_LINKS`, `DELETED_SOURCE_URLS`) so deleted content is never resurrected on future scraper passes.
 
-### C. Reader Privacy & Broadsheet Experience
-1. **Zero Registration:** Readers never create accounts or submit personal data to the server.
-2. **Local Storage:** All bookmarks, followed venues, channel preferences, and seen-card states persist in the browser's local IndexedDB.
-3. **Offline Resilience:** The Service Worker (`sw.js`) employs a Network-First strategy with seamless offline cache fallback.
+### C. Clean Reader Broadsheet Experience
+1. **Top 5 Category Bubbles:** To keep the broadsheet uncluttered, category bubbles beneath the search bar display only the top 5 primary categories without number counts. A 6th **"More ▾"** bubble expands all categories on demand, toggling to **"Less ▴"** to collapse.
+2. **Zero Registration:** Readers never create accounts or submit personal data to the server.
+3. **Local Storage:** All bookmarks, followed venues, channel preferences, and seen-card states persist in the browser's local IndexedDB.
+4. **Offline Resilience:** The Service Worker (`sw.js`) employs a Network-First strategy with offline cache fallback.
 
 ---
 

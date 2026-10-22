@@ -292,6 +292,68 @@ try {
         exit;
     }
 
+    // 3.1 Update Curated Source
+    if ($action === 'update_source' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true) ?: $_POST;
+
+        $id   = (int)($data['id'] ?? 0);
+        $name = trim((string)($data['name'] ?? ''));
+        $url  = trim((string)($data['url'] ?? ''));
+        $tab  = trim((string)($data['category_tab'] ?? 'blogs'));
+        $type = trim((string)($data['type'] ?? 'rss'));
+        $isActive = isset($data['is_active']) ? (int)$data['is_active'] : 1;
+
+        if (!$id || !$name || !$url) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Source ID, Name, and URL are required']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("
+            UPDATE sources 
+            SET name = :name, url = :url, type = :type, category_tab = :tab, is_active = :active
+            WHERE id = :id
+        ");
+        $stmt->execute([
+            'id'     => $id,
+            'name'   => $name,
+            'url'    => $url,
+            'type'   => $type,
+            'tab'    => $tab,
+            'active' => $isActive
+        ]);
+
+        // If it is an event venue source, update venue details
+        if ($tab === 'events' || $type === 'scrape_event' || !empty($data['venue_name']) || !empty($data['address'])) {
+            try {
+                $vname = !empty($data['venue_name']) ? trim((string)$data['venue_name']) : $name;
+                $addr  = trim((string)($data['address'] ?? ''));
+                $feedUrl = !empty($data['feed_url']) ? trim((string)$data['feed_url']) : null;
+                $vstmt = $pdo->prepare("
+                    UPDATE venues 
+                    SET name = :name, address = IF(:addr != '', :addr, address), website_url = :web, feed_url = IF(:feed IS NOT NULL, :feed, feed_url), is_active = :active
+                    WHERE source_id = :sid
+                ");
+                $vstmt->execute([
+                    'name'   => $vname,
+                    'addr'   => $addr,
+                    'web'    => $url,
+                    'feed'   => $feedUrl,
+                    'active' => $isActive,
+                    'sid'    => $id
+                ]);
+            } catch (\Throwable $ve) {}
+        }
+
+        echo json_encode([
+            'status'  => 'success',
+            'message' => "Source '$name' updated successfully",
+            'id'      => $id
+        ]);
+        exit;
+    }
+
     // 4. Toggle Source Active
     if ($action === 'toggle_source' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $raw = file_get_contents('php://input');

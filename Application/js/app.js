@@ -340,23 +340,81 @@ async function renderCurrentTab() {
   }
 }
 
-// Subcategory Filter Rendering (Dynamic Auto-Grouping)
-function renderSubFilterPills(categories) {
+// Subcategory Filter Rendering (Dynamic Auto-Grouping with Top 5 + More Expander)
+let isCategoriesExpanded = false;
+let currentCategoriesList = [];
+
+function toggleExpandCategories() {
+  isCategoriesExpanded = !isCategoriesExpanded;
+  renderSubFilterPills(currentCategoriesList, false);
+}
+
+function renderSubFilterPills(categories, updateStoredList = true) {
   const subFilter = document.getElementById('sub-filter');
   if (!subFilter) return;
 
-  if (!categories || categories.length <= 1) {
+  if (updateStoredList) {
+    currentCategoriesList = categories || [];
+    // Ensure active category is not hidden on initial load
+    const activeIndex = currentCategoriesList.findIndex(c => c === currentCategory);
+    if (activeIndex >= 5) {
+      isCategoriesExpanded = true;
+    }
+  }
+
+  // Strip any numbers/counts from category names for a clean aesthetic
+  const cleanCategories = (currentCategoriesList || [])
+    .map(c => typeof c === 'string' ? c.replace(/\s*\(\d+\)$/, '').trim() : c)
+    .filter(Boolean);
+
+  if (!cleanCategories || cleanCategories.length <= 1) {
     subFilter.style.display = 'none';
     return;
   }
 
   subFilter.style.display = 'flex';
-  subFilter.innerHTML = categories.map(cat => `
-    <button class="filter-pill ${cat === currentCategory ? 'active' : ''}" 
-            onclick="setFilter('${escapeQuote(cat)}', this)">
-      ${escapeHtml(cat)}
-    </button>
-  `).join('');
+
+  // 1. If 5 or fewer categories, show all without 'More' button
+  if (cleanCategories.length <= 5) {
+    subFilter.innerHTML = cleanCategories.map(cat => `
+      <button class="filter-pill ${cat === currentCategory ? 'active' : ''}" 
+              onclick="setFilter('${escapeQuote(cat)}', this)">
+        ${escapeHtml(cat)}
+      </button>
+    `).join('');
+    return;
+  }
+
+  // 2. More than 5 categories: Collapsed state (Top 5 + 'More ▾')
+  if (!isCategoriesExpanded) {
+    const top5 = cleanCategories.slice(0, 5);
+    const pillsHtml = top5.map(cat => `
+      <button class="filter-pill ${cat === currentCategory ? 'active' : ''}" 
+              onclick="setFilter('${escapeQuote(cat)}', this)">
+        ${escapeHtml(cat)}
+      </button>
+    `).join('');
+    const moreBtnHtml = `
+      <button class="filter-pill more-pill" onclick="toggleExpandCategories()" title="Show all categories">
+        More ▾
+      </button>
+    `;
+    subFilter.innerHTML = pillsHtml + moreBtnHtml;
+  } else {
+    // 3. Expanded state (All categories + 'Less ▴')
+    const pillsHtml = cleanCategories.map(cat => `
+      <button class="filter-pill ${cat === currentCategory ? 'active' : ''}" 
+              onclick="setFilter('${escapeQuote(cat)}', this)">
+        ${escapeHtml(cat)}
+      </button>
+    `).join('');
+    const lessBtnHtml = `
+      <button class="filter-pill more-pill active" onclick="toggleExpandCategories()" title="Show fewer categories">
+        Less ▴
+      </button>
+    `;
+    subFilter.innerHTML = pillsHtml + lessBtnHtml;
+  }
 }
 
 function hideSubFilter() {

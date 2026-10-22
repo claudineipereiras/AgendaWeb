@@ -13,49 +13,97 @@ Unlike commercial platforms (Eventbrite, Humanitix, Meetup, Ticketmaster) that i
 
 ---
 
-## System Topology & Data Flow
+---
+
+## System Topology & Architecture
 
 ```text
-               [ Australian Media & Venue Web ]
-                │                             │
-                │ (Public RSS/Atom)           │ (HTML with Schema.org JSON-LD / .ics)
-                ▼                             ▼
-       [ ABC, SBS, The Conversation, ]    [ Venue Websites, Gig Guides, ]
-       [ Guardian AU Culture         ]    [ The Gasometer, Corner Hotel ]
-                │                             │
-                └──────────────┬──────────────┘
+               [ Public Web Feeds & Venue Websites ]
+               (RSS / Atom / WordPress REST / Schema.org JSON-LD / iCal)
                                │
+               ┌───────────────┴───────────────┐
+               │                               │
+    [ Manual Admin Onboarding ]    [ Venue Self-Service Onboarding ]
+     (Curator Admin Portal)         (/venues/ & /api/onboard_venue.php)
+               │                               │
+               │                    (Strategy Auto-Detect & Subdomain Check)
+               │                               │
+               │                               ▼
+               │                  [ Pending Approval Gate ]
+               │                  (Curator Review & Verification)
+               │                               │
+               └───────────────┬───────────────┘
+                               │ (Only Approved & Active Sources)
                                ▼
-               [ cron/sync_sources.php Scraper ]
-                  (Runs every 30m via Hostinger Cron)
+               [ Automated Ingestion Engine ]
+                (sync_sources.php / Hostinger Cron / Manual Sync)
+                - Ingests only approved sources (is_active = 1, approved)
+                - Respects tombstone registry (DELETED_KEYS)
                                │
                                ▼
                ┌────────────────────────────────┐
                │  Hostinger MySQL 8.x Database │
-               │  - sources (Feeds & Registry)  │
-               │  - events  (Gigs, Exhibitions) │
-               │  - items   (News, Articles)    │
+               │  - cities  (Australian Hubs)   │
+               │  - sources (Approved Feeds)    │
+               │  - venues  (Cultural Spaces)   │
+               │  - events  (Verified Gigs)     │
+               │  - items   (News & Essays)     │
+               │  - users   (Curators & Admins) │
                └───────────────┬────────────────┘
                                │
-         ┌─────────────────────┼─────────────────────┐
-         ▼                     ▼                     ▼
-  [ feed.php ]          [ calendar.php ]       [ widget.js ]
-  (RSS 2.0 + ev:        (RFC 5545 .ics &       (Embeddable venue
-   & .ics enclosure)     live webcal://)        calendar script)
-         │                     │                     │
-         │                     │                     ▼
-         │                     │             [ Venue Websites ]
-         ▼                     ▼            (Live auto-synced dates)
-  [ Client PWA ]        [ Native Cal Apps ]
-  (Broadsheet Reader)   (Apple, Google, Outlook)
-         │
-         ├──► [ IndexedDB Storage ] (Zero server accounts)
-         │      - Starred Gigs & Custom Feeds
-         │      - "Read Later" Queue (via api/extract.php)
-         │      - Focus Profile ("Clean Mode" toggle)
-         │
-         └──► [ Direct Ticketing / Tip Jars ] (0% platform cut)
+          ┌────────────────────┼────────────────────┐
+          ▼                    ▼                    ▼
+   [ /api/events.php ]  [ /feed.php ]       [ /calendar.php ]
+   [ /api/items.php  ]  (RSS 2.0 + ev:      (RFC 5545 .ics &
+   [ /api/cities.php ]   enclosures)         live webcal://)
+          │                    │                    │
+          └────────────────────┼────────────────────┘
+                               │
+                               ▼
+                [ Reader Broadsheet PWA ]
+                - Clean Masthead & Geographic City Switcher
+                - Audience Chips (All, 18+, AA, Kids/Family)
+                - Clean Top 5 Category Bubbles + "More ▾" Expander
+                - Seen-Card Eye Toggle & Broadsheet Reader
+                - Zero tracking / IndexedDB Personal Stores
 ```
+
+---
+
+## Architectural Pillars
+
+### 1. Curation & Admin Management Portal
+The Curator Admin Portal (`/admin/` & `/api/admin.php`) acts as the editorial and operational control center:
+* **Manual Feed Registration:** Curators can manually input public RSS/Atom feeds, WordPress REST API endpoints, and Schema.org JSON-LD sites with instant auto-detection and venue linkage.
+* **Full CRUD Operations:** Curators have complete capability to **Add**, **Edit/Update** (`update_source`), **Pause/Toggle**, or **Delete** sources.
+* **Immediate Cascading Feed Moderation:** Pausing or deleting a source instantly purges all associated events and dispatches from the public broadcast feeds.
+* **Published Events Manager:** Direct per-event inspection, search, and immediate removal from live feeds.
+* **Tombstone Registry:** Deleted entities receive in-memory and persistent tombstone markers (`DELETED_EVENT_KEYS`, `DELETED_ITEM_LINKS`, `DELETED_SOURCE_URLS`) guaranteeing that deleted content will never be resurrected on subsequent ingestion passes.
+
+### 2. Venue Onboarding & Review Gate
+* **Self-Service Verification:** Organizers can submit their venue website via `/venues/` and `/api/onboard_venue.php`.
+* **Automated Strategy & Subdomain Detection:** The engine automatically inspects the target website, determines the optimal extraction strategy (Schema.org JSON-LD, WordPress REST, RSS, or iCal), and performs domain/subdomain verification.
+* **Mandatory Review Gate:** All incoming venue submissions are staged with `is_active = 0` and `last_status = 'pending'`. They appear in the Admin Portal under **"⏳ Pending Approval"** and are **strictly barred from ingestion** until an editorial curator inspects and approves them.
+
+### 3. Strict Ingestion Engine
+* **Approved-Only Ingestion:** The ingestion worker (`sync_sources.php`) executes queries with strict constraints (`WHERE is_active = 1 AND (last_status != 'pending' OR last_status IS NULL)`).
+* Only manually added and formally approved sources are processed.
+* Prevents unvetted or low-quality scraped events from ever entering the database or public feed.
+
+### 4. Unchanged Storage Layer
+Maintains the existing normalized MySQL 8.x schema across `cities`, `sources`, `venues`, `events`, `items`, `suggestions`, `users`, and `user_sessions`.
+
+### 5. Unchanged Public Broadcast APIs
+* `/api/events.php`: Public events feed with city, category, age restriction, and text search filters.
+* `/api/items.php`: Curated journalism and cultural essays.
+* `/api/cities.php`: Supported Australian cultural cities directory.
+* `/feed.php`: Dual-mode RSS 2.0 with `<ev:startdate>` and `.ics` enclosures.
+* `/calendar.php`: RFC 5545 iCalendar (`.ics` and `webcal://`).
+
+### 6. Clean Broadsheet UI (Client PWA)
+* **Top 5 Category Bubbles:** To keep the visual presentation clean and clutter-free, category pills directly beneath the search bar display only the top 5 primary categories (e.g. `All`, `Live Music`, `Art`, `Community`, `Theatre`).
+* **No Number Badges:** Bubbles do not show cluttering count numbers.
+* **6th "More ▾" Bubble:** A dedicated 6th pill expands all available categories on demand, toggling to "Less ▴" to collapse back.
 
 ---
 

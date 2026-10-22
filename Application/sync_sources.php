@@ -20,7 +20,7 @@ try {
 }
 
 function runAllSync(PDO $pdo, string $botUserAgent): array {
-    $sources = $pdo->query("SELECT * FROM sources WHERE is_active = 1")->fetchAll();
+    $sources = $pdo->query("SELECT * FROM sources WHERE is_active = 1 AND (last_status != 'pending' OR last_status IS NULL)")->fetchAll();
     $report = ['total' => count($sources), 'success' => 0, 'failed' => 0, 'details' => []];
 
     foreach ($sources as $source) {

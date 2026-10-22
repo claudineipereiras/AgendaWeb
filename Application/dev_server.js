@@ -632,7 +632,7 @@ async function syncAllActiveSources() {
   const logs = [];
 
   for (const source of MOCK_SOURCES) {
-    if (source.is_active) {
+    if (source.is_active && source.last_status !== 'pending') {
       if (source.type === 'rss') {
         const count = await syncRssSource(source);
         if (source.last_status === 'failed') {
@@ -1595,6 +1595,48 @@ const requestHandler = async (req, res) => {
       return;
     }
 
+    if (action === 'update_source' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', async () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const targetId = parseInt(payload.id, 10);
+        const source = MOCK_SOURCES.find(s => s.id === targetId);
+        if (!source) {
+          res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'Source not found' }));
+          return;
+        }
+
+        source.name = payload.name || source.name;
+        source.url = payload.url || source.url;
+        source.category_tab = payload.category_tab || source.category_tab;
+        source.type = payload.type || source.type;
+        if (payload.is_active !== undefined) {
+          source.is_active = payload.is_active ? 1 : 0;
+        }
+
+        // Update corresponding venue if exists
+        const v = MOCK_VENUES.find(v => v.source_id === targetId || v.slug === source.slug);
+        if (v) {
+          v.name = payload.venue_name || payload.name || v.name;
+          if (payload.address) v.address = payload.address;
+          v.website_url = payload.url || v.website_url;
+          if (payload.feed_url) v.feed_url = payload.feed_url;
+          v.is_active = source.is_active;
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ 
+          status: 'success', 
+          message: `Source "${source.name}" updated successfully`,
+          id: source.id 
+        }));
+      });
+      return;
+    }
+
     if (action === 'toggle_source' && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
@@ -1945,9 +1987,9 @@ function startServer(port, isPrimary = false) {
 // Bind both primary port 8001 and port 8000 so all clients remain 100% updated
 PORTS_TO_SERVE.forEach((p, idx) => startServer(p, idx === 0));
 
-// Perform initial live RSS feed fetch in background so local development immediately has fresh real dispatches
+// Perform initial live source & feed fetch in background so local development immediately has fresh real dispatches and gigs
 syncAllActiveSources().then(res => {
-  console.log(`[sync] Initial RSS live sync complete: ${res.success} feeds updated (${res.totalItems} real articles loaded).`);
+  console.log(`[sync] Initial live ingestion complete: ${res.success} sources/venues updated (${res.totalItems} real items/gigs loaded).`);
 }).catch(e => {
-  console.warn('[sync] Initial RSS live sync background error:', e.message);
+  console.warn('[sync] Initial live sync background error:', e.message);
 });

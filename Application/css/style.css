@@ -393,6 +393,19 @@ header, .app-header {
   border-bottom: 2px solid var(--color-amber-rust);
 }
 
+.filter-pill.more-pill {
+  border: 1px dashed var(--color-oat);
+  background: rgba(0, 0, 0, 0.02);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.filter-pill.more-pill:hover {
+  border-color: var(--color-sage-green);
+  background: rgba(27, 59, 43, 0.06);
+}
+
 /* Feed Container */
 .feed-container {
   max-width: var(--max-content-width);
