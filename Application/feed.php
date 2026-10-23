@@ -20,23 +20,40 @@ try {
 
 $venue = filter_input(INPUT_GET, 'venue', FILTER_DEFAULT) ?? 'all';
 $category = filter_input(INPUT_GET, 'category', FILTER_DEFAULT);
+$city = filter_input(INPUT_GET, 'city', FILTER_DEFAULT) ?? 'all';
 
-$sql = "SELECT * FROM events WHERE start_time >= NOW()";
+$sql = "SELECT e.* FROM events e 
+        LEFT JOIN sources s ON e.source_id = s.id 
+        WHERE e.start_time >= NOW() AND (s.is_active = 1 OR e.source_id IS NULL)";
 $params = [];
 
 if ($venue !== 'all') {
-    $sql .= " AND venue_slug = :venue";
+    $sql .= " AND e.venue_slug = :venue";
     $params['venue'] = $venue;
 }
 if (!empty($category) && $category !== 'All') {
-    $sql .= " AND category = :cat";
+    $sql .= " AND e.category = :cat";
     $params['cat'] = $category;
 }
+if (!empty($city) && $city !== 'all') {
+    $sql .= " AND (e.city_slug = :city OR e.city_id IN (SELECT id FROM cities WHERE slug = :city))";
+    $params['city'] = $city;
+}
 
-$sql .= " ORDER BY start_time ASC LIMIT 60";
+$sql .= " ORDER BY e.start_time ASC LIMIT 60";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $events = $stmt->fetchAll();
+
+$feedTitle = 'AgendaWeb — Cultural Feed';
+if ($venue !== 'all') {
+    $feedTitle .= ' · ' . ucfirst($venue);
+} elseif ($city !== 'all') {
+    $feedTitle .= ' · ' . ucfirst($city);
+}
+if (!empty($category) && $category !== 'All') {
+    $feedTitle .= ' (' . $category . ')';
+}
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
 ?>
@@ -44,7 +61,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
      xmlns:ev="http://purl.org/rss/1.0/modules/event/" 
      xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>AgendaWeb — <?= htmlspecialchars(ucfirst($venue)) ?></title>
+    <title><?= htmlspecialchars($feedTitle) ?></title>
     <link><?= htmlspecialchars($appUrl) ?></link>
     <description>YOUR CULTURAL WEB FEED</description>
     <language>en-AU</language>

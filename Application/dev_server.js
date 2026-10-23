@@ -143,6 +143,51 @@ const MOCK_ITEMS = {
   blogs: []
 };
 
+// Robust IPv4-safe HTTP/HTTPS fetch helper
+function fetchUrl(targetUrl, options = {}) {
+  return new Promise((resolve, reject) => {
+    try {
+      const isHttps = targetUrl.startsWith('https:');
+      const client = isHttps ? require('https') : require('http');
+      const u = new URL(targetUrl);
+      const req = client.request({
+        protocol: u.protocol,
+        hostname: u.hostname,
+        port: u.port || (isHttps ? 443 : 80),
+        path: u.pathname + u.search,
+        method: options.method || 'GET',
+        family: 4,
+        headers: {
+          'User-Agent': options.headers?.['User-Agent'] || 'Mozilla/5.0 (compatible; AgendaWeb-Bot/1.0; +https://agendaweb.app; Melbourne Broadsheet)',
+          'Accept': options.headers?.['Accept'] || '*/*',
+          ...(options.headers || {})
+        },
+        timeout: 10000
+      }, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          const nextUrl = new URL(res.headers.location, targetUrl).toString();
+          return fetchUrl(nextUrl, options).then(resolve).catch(reject);
+        }
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+          resolve({
+            ok: res.statusCode >= 200 && res.statusCode < 300,
+            status: res.statusCode,
+            statusText: res.statusMessage,
+            text: async () => body,
+            json: async () => JSON.parse(body)
+          });
+        });
+      });
+      req.on('timeout', () => { req.destroy(); reject(new Error('Request timed out')); });
+      req.on('error', reject);
+      req.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
 
 // --- Live RSS & Atom Feed Ingestion Engine ---
 function cleanCdata(str) {
@@ -163,6 +208,20 @@ function stripHtml(html) {
     .replace(/&#39;/g, "'")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function escapeXml(unsafe) {
+  if (!unsafe) return "";
+  return String(unsafe).replace(/[<>&'"]/g, c => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
 }
 
 function parseFeedXml(xmlStr) {
@@ -231,15 +290,11 @@ let nextItemId = 1000;
 async function syncRssSource(source) {
   if (source.type !== 'rss' || DELETED_SOURCE_URLS.has(source.url)) return source.item_count || 0;
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    const res = await fetch(source.url, {
-      signal: controller.signal,
+    const res = await fetchUrl(source.url, {
       headers: {
         'User-Agent': 'AgendaWeb-Bot/1.0 (+https://agendaweb.app)'
       }
     });
-    clearTimeout(timeout);
 
     source.http_code = res.status;
     if (!res.ok) {
@@ -311,7 +366,7 @@ async function discoverEventsFromUrl(targetUrl) {
     // Strategy 1: Direct Bar Oussou WordPress REST Events API
     if (targetUrl.includes('baroussou.com.au')) {
       try {
-        const bRes = await fetch('https://www.baroussou.com.au/wp-json/baroussou/v1/events', {
+        const bRes = await fetchUrl('https://www.baroussou.com.au/wp-json/baroussou/v1/events', {
           headers: { 'User-Agent': 'AgendaWeb-Bot/1.0 (+https://agendaweb.app; Melbourne Broadsheet)' }
         });
         if (bRes.ok) {
@@ -358,13 +413,9 @@ async function discoverEventsFromUrl(targetUrl) {
       } catch (be) {}
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    const webRes = await fetch(targetUrl, {
-      signal: controller.signal,
+    const webRes = await fetchUrl(targetUrl, {
       headers: { 'User-Agent': 'AgendaWeb-Bot/1.0 (+https://agendaweb.app; Melbourne Broadsheet)' }
     });
-    clearTimeout(timeout);
 
     const html = await webRes.text();
     const pageTitleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
@@ -433,7 +484,7 @@ async function discoverEventsFromUrl(targetUrl) {
 
         if (/events|gig|ticket|humanitix|eventbrite|oztix|moshtix/i.test(iframeSrc)) {
           try {
-            const ifRes = await fetch(iframeSrc, {
+            const ifRes = await fetchUrl(iframeSrc, {
               headers: { 'User-Agent': 'AgendaWeb-Bot/1.0 (+https://agendaweb.app; Melbourne Broadsheet)' }
             });
             if (ifRes.ok) {
@@ -478,7 +529,7 @@ async function discoverEventsFromUrl(targetUrl) {
       try {
         const origin = new URL(targetUrl).origin;
         const tribeUrl = `${origin}/wp-json/tribe/events/v1/events?per_page=20`;
-        const tRes = await fetch(tribeUrl, {
+        const tRes = await fetchUrl(tribeUrl, {
           headers: { 'User-Agent': 'AgendaWeb-Bot/1.0 (+https://agendaweb.app)' }
         });
         if (tRes.ok) {
@@ -793,13 +844,9 @@ const requestHandler = async (req, res) => {
     }
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      const feedRes = await fetch(targetUrl, {
-        signal: controller.signal,
+      const feedRes = await fetchUrl(targetUrl, {
         headers: { 'User-Agent': 'AgendaWeb-Proxy/1.0 (+https://agendaweb.app)' }
       });
-      clearTimeout(timeout);
 
       if (!feedRes.ok) {
         res.writeHead(422, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -894,25 +941,53 @@ const requestHandler = async (req, res) => {
 
   // 6. Syndication: RSS 2.0 with ev: Event Module
   if (pathname === '/feed.php') {
-    const rssItems = MOCK_EVENTS.map(e => `
+    const venueFilter = parsedUrl.query.venue || 'all';
+    const categoryFilter = parsedUrl.query.category || 'all';
+    const cityFilter = parsedUrl.query.city || 'all';
+
+    // Only broadcast events from active sources
+    const activeSourceIds = new Set(MOCK_SOURCES.filter(s => s.is_active && s.last_status !== 'pending').map(s => s.id));
+
+    let events = MOCK_EVENTS.filter(e => {
+      if (e.source_id && !activeSourceIds.has(e.source_id)) return false;
+      const eventKey1 = e.ticket_url;
+      const eventKey2 = `${e.venue_slug}:::${(e.title || '').toLowerCase()}`;
+      if ((eventKey1 && DELETED_EVENT_KEYS.has(eventKey1)) || DELETED_EVENT_KEYS.has(eventKey2)) return false;
+      return true;
+    });
+
+    if (venueFilter !== 'all') {
+      events = events.filter(e => (e.venue_slug || '').toLowerCase() === venueFilter.toLowerCase());
+    }
+    if (categoryFilter !== 'all') {
+      events = events.filter(e => (e.category || '').toLowerCase() === categoryFilter.toLowerCase());
+    }
+    if (cityFilter !== 'all') {
+      events = events.filter(e => (e.city_slug || 'melbourne').toLowerCase() === cityFilter.toLowerCase());
+    }
+
+    const feedTitle = `AgendaWeb — ${cityFilter !== 'all' ? cityFilter.toUpperCase() : 'Cultural'} Feed${venueFilter !== 'all' ? ' · ' + venueFilter : ''}${categoryFilter !== 'all' ? ' (' + categoryFilter + ')' : ''}`;
+
+    const rssItems = events.map(e => `
     <item>
-      <title>${e.title}</title>
-      <link>${e.ticket_url || 'https://agendaweb.app'}</link>
+      <title>${escapeXml(e.title)}</title>
+      <link>${escapeXml(e.ticket_url || 'https://agendaweb.app')}</link>
       <pubDate>${new Date().toUTCString()}</pubDate>
-      <category>${e.category}</category>
-      <description><![CDATA[${e.description}]]></description>
-      <ev:startdate>${e.start_time.replace(' ', 'T')}+11:00</ev:startdate>
-      <ev:location>${e.venue_name} · ${e.address}</ev:location>
+      <category>${escapeXml(e.category || 'Culture')}</category>
+      <description><![CDATA[${e.description || ''}]]></description>
+      <ev:startdate>${(e.start_time || '').replace(' ', 'T')}+11:00</ev:startdate>
+      <ev:location>${escapeXml(e.venue_name || '')} · ${escapeXml(e.address || '')}</ev:location>
       <enclosure url="https://agendaweb.app/calendar.php?id=${e.id}" type="text/calendar" />
     </item>`).join('');
 
     const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:ev="http://purl.org/rss/1.0/modules/event/" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>AgendaWeb — Melbourne Cultural Feed</title>
+    <title>${escapeXml(feedTitle)}</title>
     <link>https://agendaweb.app</link>
     <description>YOUR CULTURAL WEB FEED</description>
     <language>en-AU</language>
+    <atom:link href="https://agendaweb.app/feed.php" rel="self" type="application/rss+xml" />
     ${rssItems}
   </channel>
 </rss>`;
