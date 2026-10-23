@@ -17,3 +17,7 @@ Thumbs.db
 # Temporary, Logs and Scratch
 *.log
 scratch/
+
+# Local Dev Database
+Application/data/*.json
+!Application/data/.gitkeep
