@@ -1564,7 +1564,6 @@
         alert('Failed to perform bulk action: ' + (res ? res.message : 'Error'));
       }
     }
-    }
 
     async function deleteEvent(id, title) {
       if (!confirm(`Are you sure you want to remove "${title}" from the live public feed?\n\nThis event will immediately vanish from all readers' feeds and calendar exports.`)) return;
