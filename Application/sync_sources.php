@@ -129,11 +129,31 @@ function syncRss(PDO $pdo, array $source, string $userAgent): int {
                 }
             }
         }
-        if (!$imageUrl && preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $fullContent ?: $rawDesc, $match)) {
-            $imageUrl = $match[1];
+        // Custom tags like <imagem-destaque>
+        if (!$imageUrl) {
+            foreach (['imagem-destaque', 'imagem_destaque', 'featured_image', 'image'] as $customTag) {
+                if (isset($item->$customTag)) {
+                    $u = trim((string)$item->$customTag);
+                    if (str_starts_with($u, 'http')) {
+                        $imageUrl = $u;
+                        break;
+                    }
+                }
+            }
+        }
+        if (!$imageUrl && preg_match_all('/<img[^>]+src=["\']([^"\']+)["\']/i', html_entity_decode($fullContent ?: $rawDesc, ENT_QUOTES | ENT_HTML5), $matches)) {
+            foreach ($matches[1] as $imgCandidate) {
+                if (str_contains($imgCandidate, 'logo') || str_contains($imgCandidate, 'pixel') || str_contains($imgCandidate, '.svg') || str_contains($imgCandidate, '1x1')) {
+                    continue;
+                }
+                $imageUrl = $imgCandidate;
+                break;
+            }
         }
 
-        $desc = strip_tags($rawDesc);
+        $desc = html_entity_decode($rawDesc, ENT_QUOTES | ENT_HTML5);
+        $desc = strip_tags($desc);
+        $desc = preg_replace('/\s+/', ' ', trim($desc));
 
         $stmt->execute([
             'sid'      => $source['id'],

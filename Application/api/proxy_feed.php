@@ -107,12 +107,33 @@ foreach ($xmlItems as $item) {
         }
     }
 
-    // Fallback: check <img> tag in HTML description
-    if (!$imageUrl && preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $fullContent ?: $rawDesc, $match)) {
-        $imageUrl = $match[1];
+    // Custom tags like <imagem-destaque>
+    if (!$imageUrl) {
+        foreach (['imagem-destaque', 'imagem_destaque', 'featured_image', 'image'] as $customTag) {
+            if (isset($item->$customTag)) {
+                $u = trim((string)$item->$customTag);
+                if (str_starts_with($u, 'http')) {
+                    $imageUrl = $u;
+                    break;
+                }
+            }
+        }
     }
 
-    $summary = strip_tags($rawDesc);
+    // Fallback: check <img> tag in HTML description (filtering logos and tracking pixels)
+    if (!$imageUrl && preg_match_all('/<img[^>]+src=["\']([^"\']+)["\']/i', html_entity_decode($fullContent ?: $rawDesc, ENT_QUOTES | ENT_HTML5), $matches)) {
+        foreach ($matches[1] as $imgCandidate) {
+            if (str_contains($imgCandidate, 'logo') || str_contains($imgCandidate, 'pixel') || str_contains($imgCandidate, '.svg') || str_contains($imgCandidate, '1x1')) {
+                continue;
+            }
+            $imageUrl = $imgCandidate;
+            break;
+        }
+    }
+
+    $summary = html_entity_decode($rawDesc, ENT_QUOTES | ENT_HTML5);
+    $summary = strip_tags($summary);
+    $summary = preg_replace('/\s+/', ' ', trim($summary));
     if (mb_strlen($summary) > 300) {
         $summary = mb_substr($summary, 0, 300) . '...';
     }

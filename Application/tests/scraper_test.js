@@ -123,4 +123,38 @@ console.log('--- Running AgendaWeb Scraper & Regression Suite ---');
   console.log(`✓ Test 4 Passed: MD5 ETag generation matches HTTP RFC 7232 (${etag}).`);
 }
 
-console.log('\nAll 4 Regression Tests PASSED successfully! 🚀');
+// Test 5: Double-Encoded HTML Entity & Publisher Logo Stripper (Agência Brasil EBC Test)
+{
+  function decodeHtmlEntities(str) {
+    if (!str) return "";
+    return str
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, "\"")
+      .replace(/&#039;|&apos;|&#39;/g, "'")
+      .replace(/&amp;/g, "&");
+  }
+
+  function stripHtml(html) {
+    if (!html) return "";
+    let text = html.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim();
+    text = decodeHtmlEntities(text);
+    text = text.replace(/<style[^>]*>.*?<\/style>/gis, "")
+               .replace(/<script[^>]*>.*?<\/script>/gis, "");
+    text = text.replace(/<[^>]+>/g, " ");
+    text = text.replace(/&nbsp;/g, " ")
+               .replace(/&[a-z0-9#]+;/gi, " ");
+    return text.replace(/\s+/g, " ").trim();
+  }
+
+  const rawDesc = "  &lt;p&gt;&lt;p style=&quot;text-align:center;&quot;&gt;&lt;a class=&quot;&quot; href=&quot;https://agenciabrasil.ebc.com.br/politica/noticia/2026-10/lula-participa-de-live-do-exercito-e-estimula-ida-de-idosos-urnas&quot;&gt; &lt;img src=&quot;https://cdn.jsdelivr.net/gh/sergiosdlima/assets-ebc@1.0.0/abr/assets/images/logo-agenciabrasil.svg&quot; alt=&quot;Logo Agência Brasil&quot; style=&quot;height: 54px;&quot;&gt; &lt;/a&gt;&lt;/p&gt;&lt;strong&gt;As instituições financeiras terão cinco dias úteis para informar ao governo as dívidas.&lt;/strong&gt;";
+
+  const cleaned = stripHtml(rawDesc);
+  assert.ok(!cleaned.includes('<p'), 'Cleaned text must not contain raw <p tags');
+  assert.ok(!cleaned.includes('&lt;'), 'Cleaned text must not contain &lt; entities');
+  assert.ok(!cleaned.includes('logo-agenciabrasil.svg'), 'Cleaned text must not contain logo image URLs');
+  assert.strictEqual(cleaned, 'As instituições financeiras terão cinco dias úteis para informar ao governo as dívidas.');
+  console.log('✓ Test 5 Passed: Double-encoded HTML entities stripped cleanly without exposing raw tags or publisher logo wrappers.');
+}
+
+console.log('\nAll 5 Regression Tests PASSED successfully! 🚀');

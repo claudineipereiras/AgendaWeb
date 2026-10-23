@@ -206,19 +206,36 @@ function cleanCdata(str) {
   return str.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim();
 }
 
-function stripHtml(html) {
-  if (!html) return "";
-  return cleanCdata(html)
-    .replace(/<style[^>]*>.*?<\/style>/gis, "")
-    .replace(/<script[^>]*>.*?<\/script>/gis, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
+function decodeHtmlEntities(str) {
+  if (!str) return "";
+  return str
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, "\"")
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/&#039;|&apos;|&#39;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+function stripHtml(html) {
+  if (!html) return "";
+  // 1. Clean CDATA wrappers
+  let text = cleanCdata(html);
+  // 2. Decode HTML entities that were masquerading as tags (e.g. &lt;p&gt; -> <p>)
+  text = decodeHtmlEntities(text);
+  // 3. Remove inline style and script tags
+  text = text.replace(/<style[^>]*>.*?<\/style>/gis, "")
+             .replace(/<script[^>]*>.*?<\/script>/gis, "");
+  // 4. Strip all HTML tags
+  text = text.replace(/<[^>]+>/g, " ");
+  // 5. Decode remaining text entities
+  text = text.replace(/&nbsp;/g, " ")
+             .replace(/&mdash;/g, "—")
+             .replace(/&ndash;/g, "–")
+             .replace(/&hellip;/g, "...")
+             .replace(/&bull;/g, "•")
+             .replace(/&[a-z0-9#]+;/gi, " ");
+  // 6. Normalize whitespace
+  return text.replace(/\s+/g, " ").trim();
 }
 
 function escapeXml(unsafe) {
@@ -262,7 +279,15 @@ function parseFeedXml(xmlStr) {
     const summary = stripHtml(rawDesc).slice(0, 320);
 
     const contentMatch = raw.match(/<content:encoded\b[^>]*>([\s\S]*?)<\/content:encoded>/i) || raw.match(/<content\b[^>]*>([\s\S]*?)<\/content>/i);
-    const fullContent = contentMatch ? cleanCdata(contentMatch[1]) : (rawDesc || `<p>${summary}</p>`);
+    let fullContent = contentMatch ? cleanCdata(contentMatch[1]) : rawDesc;
+    if (fullContent) {
+      fullContent = decodeHtmlEntities(fullContent);
+      // Remove publisher logo if it sits alone at top of article
+      fullContent = fullContent.replace(/<p[^>]*>\s*<a[^>]*>\s*<img[^>]*logo[^>]*>\s*<\/a>\s*<\/p>/gis, "");
+    }
+    if (!fullContent) {
+      fullContent = `<p>${summary}</p>`;
+    }
 
     const dateMatch = raw.match(/<pubDate\b[^>]*>([\s\S]*?)<\/pubDate>/i) || raw.match(/<updated\b[^>]*>([\s\S]*?)<\/updated>/i) || raw.match(/<published\b[^>]*>([\s\S]*?)<\/published>/i);
     let pubDate = new Date().toISOString();
@@ -277,11 +302,32 @@ function parseFeedXml(xmlStr) {
     let imageUrl = "";
     const enclosureImg = raw.match(/<enclosure\b[^>]*url=["']([^"']+)["'][^>]*type=["']image\//i) || raw.match(/<enclosure\b[^>]*type=["']image\/[^"']*["'][^>]*url=["']([^"']+)["']/i);
     const mediaImg = raw.match(/<media:content\b[^>]*url=["']([^"']+)["']/i) || raw.match(/<media:thumbnail\b[^>]*url=["']([^"']+)["']/i);
-    const imgTag = raw.match(/<img\b[^>]*src=["']([^"']+)["']/i);
+    const customImgMatch = raw.match(/<(?:imagem-destaque|imagem_destaque|featured_image|post-thumbnail|image)\b[^>]*>([\s\S]*?)<\/(?:imagem-destaque|imagem_destaque|featured_image|post-thumbnail|image)>/i);
 
-    if (enclosureImg) imageUrl = enclosureImg[1];
-    else if (mediaImg) imageUrl = mediaImg[1];
-    else if (imgTag) imageUrl = imgTag[1];
+    if (enclosureImg) {
+      imageUrl = enclosureImg[1];
+    } else if (mediaImg) {
+      imageUrl = mediaImg[1];
+    } else if (customImgMatch) {
+      const cleanUrl = cleanCdata(customImgMatch[1]);
+      if (cleanUrl.startsWith('http')) imageUrl = cleanUrl;
+    }
+
+    if (!imageUrl) {
+      // Fallback: check <img> tags in HTML or decoded description (filtering out logos and 1x1 pixels)
+      const allImgs = [
+        ...raw.matchAll(/<img\b[^>]*src=["']([^"']+)["']/gi),
+        ...raw.matchAll(/&lt;img\b[^&]*src=(?:&quot;|["'])([^&"'\s]+)(?:&quot;|["'])/gi)
+      ];
+      for (const imgMatch of allImgs) {
+        const u = imgMatch[1];
+        if (u.includes("logo") || u.includes("pixel") || u.includes(".svg") || u.includes("tracking") || u.includes("1x1")) {
+          continue;
+        }
+        imageUrl = u;
+        break;
+      }
+    }
 
     items.push({
       title,

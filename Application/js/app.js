@@ -916,7 +916,7 @@ async function renderItems(tab, refreshPills = true) {
         <h2 class="card-title">
           <a href="${item.link}" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">${escapeHtml(item.title)}</a>
         </h2>
-        <p class="card-summary">${escapeHtml(item.summary || '')}</p>
+        <p class="card-summary">${escapeHtml(cleanCardSummary(item.summary || ''))}</p>
         <div class="card-actions">
           <div class="card-actions-left">
             <button class="btn btn-primary" onclick="openReaderModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
@@ -1020,7 +1020,7 @@ async function renderPersonalFeeds(refreshPills = true) {
         <h2 class="card-title">
           <a href="${item.link}" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">${escapeHtml(item.title)}</a>
         </h2>
-        <p class="card-summary">${escapeHtml(item.summary || '')}</p>
+        <p class="card-summary">${escapeHtml(cleanCardSummary(item.summary || ''))}</p>
         <div class="card-actions">
           <div class="card-actions-left">
             <button class="btn btn-primary" onclick="openReaderModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
@@ -1174,7 +1174,7 @@ async function renderReads() {
           <h2 class="card-title">
             <a href="${item.url}" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">${escapeHtml(item.title)}</a>
           </h2>
-          <p class="card-summary">${escapeHtml(item.description || '')}</p>
+          <p class="card-summary">${escapeHtml(cleanCardSummary(item.description || ''))}</p>
           <div class="card-actions">
             <div class="card-actions-left">
               <a href="${item.url}" class="btn btn-primary" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Open Link ↗</a>
@@ -1485,6 +1485,17 @@ function escapeHtml(str) {
   return String(str || '').replace(/[&<>"']/g, m => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[m]);
+}
+
+function cleanCardSummary(text) {
+  if (!text) return '';
+  let clean = String(text);
+  // Strip raw HTML tags if present
+  clean = clean.replace(/<[^>]+>/g, ' ');
+  // Decode entities that might be unescaped tags
+  clean = clean.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&amp;/g, '&');
+  clean = clean.replace(/<[^>]+>/g, ' ');
+  return clean.replace(/\s+/g, ' ').trim();
 }
 
 function escapeQuote(str) {
