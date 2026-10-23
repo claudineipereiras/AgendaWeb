@@ -145,7 +145,7 @@ Run the local server:
 ```bash
 node Application/dev_server.js
 ```
-The server will bind to port `8001` (primary) and `8000` (mirror) and immediately perform an initial background sync of live Australian feeds.
+The server binds to port `8001` (primary) and `8000` (mirror), persisting all curated sources, venues, events, and articles in `Application/data/*.json`. It starts with a clean-slate database ready for your manually curated sources.
 
 Access points:
 - **Broadsheet PWA:** `http://localhost:8001/index.html`
@@ -153,5 +153,7 @@ Access points:
 - **Venue Portal:** `http://localhost:8001/venues/index.html`
 - **Widget Demo:** `http://localhost:8001/widget-demo.html`
 - **Events JSON API:** `http://localhost:8001/api/events.php?city=melbourne`
+- **Syndication RSS/Atom:** `http://localhost:8001/feed.php?city=melbourne`
+- **iCalendar Export:** `http://localhost:8001/calendar.php?venue=all`
 - **News JSON API:** `http://localhost:8001/api/items.php?tab=news`
 

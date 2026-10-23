@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.1] - 2026-10-23
+
+### Added
+- **Local Disk Database Persistence (`Application/data/*.json`):**
+  - Dev server (`dev_server.js`) now persists all curated sources, venues, events, items, and tombstones directly to disk in `Application/data/`.
+  - Ensures manually added feeds and edits survive server restarts and process reloads without relying on mock data.
+- **Admin Source Edit Modal (`update_source`):**
+  - Added "✏️ Edit" button and modal on source cards in `/admin/index.html`.
+  - Enabled live editing of source name, category tab, and target URL via `api/admin.php?action=update_source`.
+- **Syndication Query Parameter Filters (`feed.php`):**
+  - RSS 2.0 / `ev:` syndication generator now supports `?city=`, `?venue=`, and `?category=` URL parameters.
+  - Generates custom, targeted RSS feeds for any third-party RSS reader (e.g., NetNewsWire, Feedly, Inoreader).
+  - Implemented IPv4 fallback for Node.js fetch to ensure reliable connectivity to Cloudflare-protected endpoints.
+
+### Changed
+- **Purge of Hardcoded Test Seeds:**
+  - Removed all hardcoded test feeds from `Docs/Schema.sql` and `dev_server.js`.
+  - Clean-slate architecture: application starts empty (`count: 0`), ingesting only authentic feeds manually added or approved by curators.
+- **UI Category Pills Refinement:**
+  - Streamlined category filter chips in `Application/index.html` and `app.js` to show top 5 categories without count badges.
+  - Added a 6th "More ▾" expander chip that reveals all categories when tapped and toggles back to "Less ▴".
+- **Documentation Overhaul:**
+  - Updated `Docs/Deployment_Hostinger.md`, `Docs/Database_Schema.md`, `Docs/Rules.md`, `Docs/Architecture.md`, and `README.md` to reflect the 5-tier architecture, Hostinger directory mapping, and local persistence.
+
+---
+
 ## [0.7.0] - 2026-10-22
 
 ### Added

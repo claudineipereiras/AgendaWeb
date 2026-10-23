@@ -1,6 +1,6 @@
 # AgendaWeb Database Schema & Data Dictionary
 
-This document specifies the Hostinger MySQL (8.x) relational database design for AgendaWeb.
+This document specifies the Hostinger MySQL (8.x) relational database design for AgendaWeb, along with the development server's file-backed local persistence layer.
 
 ---
 
@@ -8,10 +8,22 @@ This document specifies the Hostinger MySQL (8.x) relational database design for
 
 ```mermaid
 erDiagram
+    CITIES ||--o{ VENUES : "contains"
+    CITIES ||--o{ EVENTS : "locates"
     SOURCES ||--o{ ITEMS : "syndicates"
     SOURCES ||--o{ EVENTS : "originates"
     SOURCES ||--o| VENUES : "links"
     VENUES ||--o{ EVENTS : "hosts"
+    USERS ||--o{ USER_SESSIONS : "authenticates"
+
+    CITIES {
+        int id PK
+        string slug UK
+        string name
+        string state
+        string postcode_prefix
+        boolean is_active
+    }
 
     SOURCES {
         int id PK
@@ -21,12 +33,14 @@ erDiagram
         string url
         enum category_tab
         boolean is_active
+        enum last_status
         datetime last_polled_at
     }
 
     VENUES {
         int id PK
         string slug UK
+        int city_id FK
         string name
         string address
         string website_url
@@ -38,10 +52,13 @@ erDiagram
 
     EVENTS {
         int id PK
+        int city_id FK
         string venue_slug
         string title
         text description
         string category
+        enum age_restriction
+        boolean is_family_friendly
         datetime start_time
         datetime end_time
         string venue_name
@@ -61,9 +78,36 @@ erDiagram
         string title
         string link UK
         text summary
+        mediumtext content
         string image_url
         datetime published_at
         timestamp created_at
+    }
+
+    SUGGESTIONS {
+        int id PK
+        string name
+        string email
+        string category
+        text message
+        enum status
+        datetime created_at
+    }
+
+    USERS {
+        int id PK
+        string name
+        string email UK
+        string password_hash
+        enum role
+        boolean is_active
+    }
+
+    USER_SESSIONS {
+        int id PK
+        int user_id FK
+        string token UK
+        datetime expires_at
     }
 ```
 
@@ -94,19 +138,21 @@ Maintains Australian cultural hub metropolitan areas and states for multi-city f
 ---
 
 ### 2.2 `sources`
-Maintains the registry of all external ingestion targets (RSS feeds and scrape targets).
+Maintains the registry of all external ingestion targets (RSS feeds, WordPress REST endpoints, and scrape targets).
+
+> **Clean-Slate Principle:** The database starts with zero feed seeds. Curators add feeds manually via `/admin/index.html` or review venue submissions from `/venues/index.html`.
 
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | `INT` | `AUTO_INCREMENT`, `PRIMARY KEY` | Unique source identifier. |
-| `slug` | `VARCHAR(60)` | `UNIQUE`, `NOT NULL` | Human-readable identifier (e.g., `abc-news`, `trouble-mag`, `gasometer-hotel`). |
+| `slug` | `VARCHAR(60)` | `UNIQUE`, `NOT NULL` | Human-readable identifier (e.g., `the-tote`, `trouble-mag`, `bar-oussou`). |
 | `name` | `VARCHAR(120)` | `NOT NULL` | Display name of the publisher or venue. |
 | `type` | `ENUM` | `'rss', 'scrape_event'` | Ingestion strategy: standard XML feed vs HTML JSON-LD scraping. |
 | `url` | `VARCHAR(255)` | `NOT NULL` | Ingestion target endpoint (feed URL or venue gigs page). |
 | `category_tab` | `ENUM` | `'events', 'news', 'politics', 'culture', 'blogs'` | Target magazine channel destination. |
 | `is_active` | `TINYINT(1)` | `DEFAULT 1` | Soft toggle to pause polling without deletion. |
 | `last_polled_at` | `DATETIME` | `NULL` | Timestamp of last ingestion check. |
-| `last_status` | `ENUM` | `'active', 'updated', 'failed', 'stale', 'pending'` | Real-time scraper health state. |
+| `last_status` | `ENUM` | `'active', 'updated', 'failed', 'stale', 'pending'` | Real-time scraper health state. `pending` indicates an unapproved venue submission. |
 | `http_code` | `SMALLINT` | `NULL` | Last HTTP response code from target site (e.g. 200, 404). |
 | `last_error` | `VARCHAR(255)` | `NULL` | Diagnostic error message if ingestion failed. |
 | `item_count` | `INT` | `DEFAULT 0` | Total events or articles extracted during last poll. |
@@ -121,7 +167,7 @@ Maintains the registry of all external ingestion targets (RSS feeds and scrape t
 ---
 
 ### 2.3 `venues`
-Stores physical and cultural venues with their addresses, official websites, and syndication/feed links. Automatically populated/updated when event websites are auto-detected and scraped.
+Stores physical and cultural venues with their addresses, official websites, and syndication/feed links.
 
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
@@ -130,7 +176,7 @@ Stores physical and cultural venues with their addresses, official websites, and
 | `city_id` | `INT` | `NULL`, `FK (cities.id)` | Associated city reference (`ON DELETE SET NULL`). |
 | `name` | `VARCHAR(150)` | `NOT NULL` | Full display name of the venue or organizer. |
 | `address` | `VARCHAR(255)` | `NULL` | Street address and postcode (e.g. `484 Smith St, Collingwood VIC 3066`). |
-| `suburb` | `VARCHAR(100)` | `NULL` | Neighborhood/suburb for hyper-local filtering (e.g. `Collingwood`, `Newtown`). |
+| `suburb` | `VARCHAR(100)` | `NULL` | Neighborhood/suburb for hyper-local filtering. |
 | `state` | `VARCHAR(10)` | `DEFAULT 'VIC'` | Australian state. |
 | `postcode` | `VARCHAR(10)` | `NULL` | Postal code for spatial proximity. |
 | `latitude` | `DECIMAL(10, 7)` | `NULL` | Latitude for client distance calculation. |
@@ -183,7 +229,7 @@ Stores parsed and verified cultural listings (music gigs, art exhibitions, scree
 
 ---
 
-### 2.3 `items`
+### 2.5 `items`
 Stores news, commentary, and editorial dispatches from syndicated public media sources and independent cultural blogs.
 
 | Column | Type | Constraints | Description |
@@ -207,7 +253,7 @@ Stores news, commentary, and editorial dispatches from syndicated public media s
 
 ---
 
-### 2.4 `suggestions`
+### 2.6 `suggestions`
 Stores reader suggestions, feedback, and venue recommendations submitted via the Help modal.
 
 | Column | Type | Constraints | Description |
@@ -226,7 +272,7 @@ Stores reader suggestions, feedback, and venue recommendations submitted via the
 
 ---
 
-### 2.5 `users`
+### 2.7 `users`
 Stores authenticated users and managers for the Admin and Curator Portal with role-based access control (RBAC).
 
 | Column | Type | Constraints | Description |
@@ -248,7 +294,7 @@ Stores authenticated users and managers for the Admin and Curator Portal with ro
 
 ---
 
-### 2.6 `user_sessions`
+### 2.8 `user_sessions`
 Stores active authentication tokens (Bearer tokens) issued upon email/password verification.
 
 | Column | Type | Constraints | Description |
@@ -265,3 +311,21 @@ Stores active authentication tokens (Bearer tokens) issued upon email/password v
 - `INDEX (token)`: O(1) Bearer token lookup for API authentication.
 - `INDEX (expires_at)`: Fast session expiration cleanup.
 
+---
+
+## 3. Dual Persistence Architecture & Dev Storage
+
+AgendaWeb employs a dual persistence model:
+1. **Production (Hostinger MySQL 8.x):** Uses relational tables defined in `Docs/Schema.sql` with full foreign keys, cascading deletions, and ACID transactions.
+2. **Local Development Server (`Application/dev_server.js`):** Uses an asynchronous, file-backed JSON database located in `Application/data/`:
+   - `sources.json`: External feed and scraper registry.
+   - `venues.json`: Venue profiles and subdomains.
+   - `events.json`: Gigs and cultural listings.
+   - `items.json`: Syndicated articles and dispatches.
+   - `tombstones.json`: Blacklist of deleted item links, event keys, and source URLs.
+
+### Tombstone Architecture
+When an administrator deletes an event, article, or feed from the feed manager:
+- The record is purged from active tables (`events`, `items`, `sources`).
+- A cryptographic signature or canonical key (`link` or `venue_slug:title:start_time`) is recorded into the tombstone registry.
+- Subsequent scraper cycles check incoming entries against the tombstone store, guaranteeing deleted items are never accidentally resurrected.
