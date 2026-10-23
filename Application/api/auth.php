@@ -43,7 +43,7 @@ try {
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
-        if (!$user || !password_verify($password, $user['password_hash'])) {
+        if (!$user || (!password_verify($password, $user['password_hash']) && !password_verify(trim($password), $user['password_hash']))) {
             http_response_code(401);
             echo json_encode(['status' => 'error', 'message' => 'Invalid email or password.']);
             exit;

@@ -1284,15 +1284,19 @@ const requestHandler = async (req, res) => {
         let payload = {};
         try { payload = JSON.parse(body); } catch (e) {}
         const email = (payload.email || '').trim().toLowerCase();
-        const password = payload.password || '';
+        const rawPassword = payload.password || '';
+        const trimmedPassword = rawPassword.trim();
 
-        if (!email || !password) {
+        if (!email || !rawPassword) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ status: 'error', message: 'Email and password are required.' }));
           return;
         }
 
-        const user = MOCK_USERS.find(u => u.email.toLowerCase() === email && u.password === password);
+        const user = MOCK_USERS.find(u => 
+          u.email.toLowerCase() === email && 
+          (u.password === rawPassword || u.password === trimmedPassword)
+        );
         if (!user) {
           res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ status: 'error', message: 'Invalid email or password.' }));

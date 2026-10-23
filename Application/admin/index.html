@@ -294,7 +294,7 @@
 
       <div id="login-error" style="display:none; color:#991b1b; background:#fee2e2; border:1px solid #fecaca; padding:10px 12px; border-radius:var(--radius-sm); font-size:0.82rem; margin-bottom:14px; line-height:1.4;"></div>
 
-      <form onsubmit="handleLogin(event)">
+      <form id="login-form" onsubmit="handleLogin(event)">
         <div class="form-group">
           <label for="login-email">Email Address</label>
           <input type="email" id="login-email" class="form-control" placeholder="admin@agendaweb.app" required autofocus autocomplete="username">
@@ -788,8 +788,17 @@
     let currentSources = [];
     let currentSourceFilter = 'all';
     let currentUsers = [];
+    let isLoggingOut = false;
 
     document.addEventListener('DOMContentLoaded', async () => {
+      if (window.location.protocol === 'file:') {
+        const errBox = document.getElementById('login-error');
+        if (errBox) {
+          errBox.innerHTML = '⚠️ <strong>Local File Notice:</strong> This page is opened via <code>file://</code> protocol. Browser security blocks API requests from raw files.<br>Please open via the local server: <a href="http://localhost:8001/admin/index.html" style="color:var(--color-nightfall); font-weight:700; text-decoration:underline;">http://localhost:8001/admin/index.html</a>';
+          errBox.style.display = 'block';
+        }
+      }
+
       if (authToken) {
         const valid = await restoreSession();
         if (valid) {
@@ -817,6 +826,14 @@
       document.getElementById('login-email').value = email;
       document.getElementById('login-password').value = password;
       document.getElementById('login-error').style.display = 'none';
+      const form = document.getElementById('login-form');
+      if (form) {
+        if (typeof form.requestSubmit === 'function') {
+          form.requestSubmit();
+        } else {
+          form.dispatchEvent(new Event('submit', { cancelable: true }));
+        }
+      }
     }
 
     async function handleLogin(e) {
@@ -826,7 +843,7 @@
       errBox.style.display = 'none';
 
       const email = document.getElementById('login-email').value.trim();
-      const password = document.getElementById('login-password').value;
+      const password = document.getElementById('login-password').value.trim();
       if (!email || !password) return;
 
       submitBtn.disabled = true;
@@ -900,9 +917,18 @@
     }
 
     async function logout() {
+      if (isLoggingOut) return;
+      isLoggingOut = true;
       try {
         if (authToken) {
-          await apiRequest('../api/auth.php?action=logout', { method: 'POST' });
+          await fetch('../api/auth.php?action=logout', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + authToken,
+              'X-Admin-Token': authToken
+            }
+          });
         }
       } catch (e) {}
       localStorage.removeItem('agendaweb_token');

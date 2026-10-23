@@ -163,6 +163,6 @@ CREATE TABLE IF NOT EXISTS `user_sessions` (
 -- Admin:   admin@agendaweb.app   / AgendaAdmin2026!
 -- Manager: curator@agendaweb.app / CuratorPass2026!
 INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `is_active`) VALUES
-(1, 'Claudinei Sousa', 'admin@agendaweb.app', '$2y$10$wE/kG3Vv6tF4XnL2x3h3seA.j9sT.G2hD3O9i5lqU1e9O2b4c6e8y', 'admin', 1),
-(2, 'Curation Manager', 'curator@agendaweb.app', '$2y$10$rP/kG3Vv6tF4XnL2x3h3seA.j9sT.G2hD3O9i5lqU1e9O2b4c6e8y', 'manager', 1)
-ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `role`=VALUES(`role`);
+(1, 'Claudinei Sousa', 'admin@agendaweb.app', '$2y$10$sb9wf8j.iv3V1NafAV/dY.Xnd87ceUnqnrpMj/YFFUGaLqPmqcuZi', 'admin', 1),
+(2, 'Curation Manager', 'curator@agendaweb.app', '$2y$10$VESMqZ7dTeU5OombW6PGcuPUAfZAAiHkOttXGdYj4UrcPQdgQGlPq', 'manager', 1)
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `role`=VALUES(`role`), `password_hash`=VALUES(`password_hash`);
