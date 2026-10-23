@@ -486,6 +486,54 @@ try {
         exit;
     }
 
+    // 5.2B Bulk Operations
+    if ($action === 'bulk_action' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true) ?: $_POST;
+        $type = $data['type'] ?? 'sources';
+        $operation = $data['operation'] ?? '';
+        $ids = array_filter(array_map('intval', (array)($data['ids'] ?? [])));
+
+        if (empty($ids) || empty($operation)) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Valid IDs and operation required']);
+            exit;
+        }
+
+        $in = str_repeat('?,', count($ids) - 1) . '?';
+
+        if ($type === 'sources') {
+            if ($operation === 'approve') {
+                $stmt = $pdo->prepare("UPDATE sources SET last_status = 'active', is_active = 1 WHERE id IN ($in)");
+                $stmt->execute($ids);
+            } elseif ($operation === 'pause') {
+                $stmt = $pdo->prepare("UPDATE sources SET is_active = 0 WHERE id IN ($in)");
+                $stmt->execute($ids);
+            } elseif ($operation === 'resume') {
+                $stmt = $pdo->prepare("UPDATE sources SET is_active = 1 WHERE id IN ($in)");
+                $stmt->execute($ids);
+            } elseif ($operation === 'delete') {
+                $pdo->prepare("DELETE FROM items WHERE source_id IN ($in)")->execute($ids);
+                $stmt = $pdo->prepare("SELECT slug FROM venues WHERE source_id IN ($in)");
+                $stmt->execute($ids);
+                $venueSlugs = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                if (!empty($venueSlugs)) {
+                    $vIn = str_repeat('?,', count($venueSlugs) - 1) . '?';
+                    $pdo->prepare("DELETE FROM events WHERE venue_slug IN ($vIn)")->execute($venueSlugs);
+                }
+                $pdo->prepare("DELETE FROM venues WHERE source_id IN ($in)")->execute($ids);
+                $pdo->prepare("DELETE FROM sources WHERE id IN ($in)")->execute($ids);
+            }
+        } elseif ($type === 'events') {
+            if ($operation === 'delete') {
+                $pdo->prepare("DELETE FROM events WHERE id IN ($in)")->execute($ids);
+            }
+        }
+
+        echo json_encode(['status' => 'success', 'message' => "Bulk {$operation} completed for " . count($ids) . " items"]);
+        exit;
+    }
+
     // 5.3 Published Events Directory
     if ($action === 'events') {
         $city = filter_input(INPUT_GET, 'city', FILTER_DEFAULT) ?? 'all';

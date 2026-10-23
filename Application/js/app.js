@@ -14,7 +14,40 @@ let channelSettings = {
 // Real-feed mode: Fallback dummy items eliminated to ensure genuine live RSS/API syndication
 
 
+function initTheme() {
+  const saved = localStorage.getItem('agendaweb_theme');
+  if (saved === 'dark' || saved === 'light') {
+    document.documentElement.setAttribute('data-theme', saved);
+  }
+  updateThemeIcon();
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const isDark = current === 'dark' || (!current && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const next = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('agendaweb_theme', next);
+  updateThemeIcon();
+}
+
+function updateThemeIcon() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const isDark = current === 'dark' || (!current && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const icon = document.getElementById('theme-toggle-icon');
+  const label = document.getElementById('theme-toggle-label');
+  if (icon) {
+    icon.innerHTML = isDark 
+      ? `<svg class="m3-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`
+      : `<svg class="m3-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+  }
+  if (label) {
+    label.textContent = isDark ? 'Day' : 'Night';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+  initTheme();
   // Load Channel Preferences (Default: Clean mode = News & Blogs OFF)
   channelSettings = await window.agendaDB.getSetting('channel_settings', {
     show_news: false,
@@ -438,6 +471,76 @@ async function setFilter(category, btnElement) {
   }
 }
 
+// Date Parser for Editorial Date Tile
+function parseEventDateParts(startTimeStr) {
+  if (!startTimeStr) return { month: 'TBA', day: '--', dayName: '', time: '' };
+  try {
+    const d = new Date(startTimeStr.replace(' ', 'T'));
+    if (isNaN(d.getTime())) return { month: 'TBA', day: '--', dayName: '', time: '' };
+    const month = d.toLocaleDateString('en-AU', { month: 'short' }).toUpperCase();
+    const day = d.getDate();
+    const dayName = d.toLocaleDateString('en-AU', { weekday: 'short' }).toUpperCase();
+    const time = d.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
+    return { month, day, dayName, time };
+  } catch (e) {
+    return { month: 'TBA', day: '--', dayName: '', time: '' };
+  }
+}
+
+// Distance calculation (Haversine formula in KM)
+function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return Math.round(R * c * 10) / 10;
+}
+
+window.userLocation = null;
+window.nearMeActive = false;
+
+async function toggleNearMe(btnElement) {
+  if (window.nearMeActive) {
+    window.nearMeActive = false;
+    if (btnElement) {
+      btnElement.classList.remove('active');
+      const label = document.getElementById('proximity-chip-label');
+      if (label) label.textContent = 'Near Me';
+    }
+    renderEvents(false);
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    alert('Geolocation is not supported by your browser.');
+    return;
+  }
+
+  const label = document.getElementById('proximity-chip-label');
+  if (label) label.textContent = 'Locating...';
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      window.userLocation = {
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude
+      };
+      window.nearMeActive = true;
+      if (btnElement) btnElement.classList.add('active');
+      if (label) label.textContent = 'Near Me (10km)';
+      renderEvents(false);
+    },
+    (err) => {
+      if (label) label.textContent = 'Near Me';
+      alert('Location access denied or unavailable: ' + err.message);
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+}
+
 // Render Events Tab
 async function renderEvents(refreshPills = true) {
   const container = document.getElementById('feed');
@@ -449,6 +552,22 @@ async function renderEvents(refreshPills = true) {
     window.agendaVenues = res.venues;
   }
   let events = res.data || [];
+
+  // Filter or sort by proximity if Near Me is active
+  if (window.nearMeActive && window.userLocation) {
+    events = events.map(ev => {
+      // Find venue coordinates
+      const v = window.agendaVenues?.find(x => x.slug === ev.venue_slug);
+      const vLat = ev.latitude || v?.latitude || (selectedCity === 'melbourne' ? -37.8136 : null);
+      const vLon = ev.longitude || v?.longitude || (selectedCity === 'melbourne' ? 144.9631 : null);
+      let dist = null;
+      if (vLat && vLon) {
+        dist = calculateDistanceKm(window.userLocation.lat, window.userLocation.lon, vLat, vLon);
+      }
+      return { ...ev, distance_km: dist };
+    }).filter(ev => ev.distance_km === null || ev.distance_km <= 15)
+      .sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999));
+  }
 
   if (refreshPills) {
     const categories = res.categories && res.categories.length > 1
@@ -462,11 +581,11 @@ async function renderEvents(refreshPills = true) {
     return;
   }
 
-  const html = await Promise.all(events.map(async (ev) => {
+  const html = await Promise.all(events.map(async (ev, idx) => {
     const isStarred = await window.agendaDB.isEventStarred(ev.id);
     const isRead = await window.agendaDB.isCardRead(ev.id);
     const isFollowed = await window.agendaDB.isEntityFollowed(ev.venue_name);
-    const dateStr = formatDate(ev.start_time);
+    const dateParts = parseEventDateParts(ev.start_time);
     const starBtnClass = isStarred ? 'btn-secondary starred' : 'btn-secondary';
     const starBtnText = isStarred ? 'Saved' : 'Save';
 
@@ -483,59 +602,86 @@ async function renderEvents(refreshPills = true) {
     // Suburb / City badge
     const suburbName = ev.suburb || (ev.city_name ? ev.city_name : '');
     const suburbBadgeHtml = suburbName ? `<span class="badge-suburb"><svg class="badge-icon" viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> ${escapeHtml(suburbName)}</span>` : '';
+    const distanceBadgeHtml = ev.distance_km !== undefined && ev.distance_km !== null ? `<span class="badge-distance">📍 ${ev.distance_km} km</span>` : '';
+
+    // Modern Image Loading Priority: Top 2 images get fetchpriority="high", rest use loading="lazy"
+    const imgPriorityAttr = idx < 2 ? 'fetchpriority="high"' : 'loading="lazy"';
 
     return `
       <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${ev.id}">
         ${ev.image_url ? `
           <div class="card-image-wrapper">
-            <img src="${ev.image_url}" class="card-image" alt="${escapeHtml(ev.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
+            <img src="${ev.image_url}" class="card-image" alt="${escapeHtml(ev.title)}" ${imgPriorityAttr} onerror="this.parentElement.style.display='none'">
           </div>` : ''}
-        <div class="card-meta">
-          <div class="card-meta-left">
-            <span>${dateStr}</span>
-            <span class="card-meta-source">${escapeHtml(ev.category || 'Culture')}</span>
-            ${suburbBadgeHtml}
-            ${ageBadgeHtml}
+
+        <div class="card-header-row">
+          <div class="card-date-tile" title="${dateParts.dayName} ${dateParts.day} ${dateParts.month}">
+            <span class="date-month">${dateParts.month}</span>
+            <span class="date-day">${dateParts.day}</span>
+            <span class="date-dayname">${dateParts.dayName}</span>
           </div>
-          <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
-                  onclick="toggleCardCheck('${ev.id}', event, this)" 
-                  title="${isRead ? 'Mark as unread' : 'Mark as read'}">
-            ${renderCheckCircleSvg(isRead)}
-          </button>
+
+          <div class="card-header-content">
+            <div class="card-meta">
+              <div class="card-meta-left">
+                <span class="card-meta-source">${escapeHtml(ev.category || 'Culture')}</span>
+                ${suburbBadgeHtml}
+                ${distanceBadgeHtml}
+                ${ageBadgeHtml}
+              </div>
+              <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
+                      onclick="toggleCardCheck('${ev.id}', event, this)" 
+                      title="${isRead ? 'Mark as unread' : 'Mark as read'}">
+                ${renderCheckCircleSvg(isRead)}
+              </button>
+            </div>
+
+            <h2 class="card-title">
+              <a href="#" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')}); return false;">${escapeHtml(ev.title)}</a>
+            </h2>
+
+            <div class="card-location">
+              <svg class="loc-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="vertical-align:-2px; margin-right:3px; color:var(--color-racing-green);">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
+              ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || ev.suburb || '')}${dateParts.time ? ` · ${dateParts.time}` : ''}
+            </div>
+          </div>
         </div>
-        <h2 class="card-title">
-          <a href="#" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')}); return false;">${escapeHtml(ev.title)}</a>
-        </h2>
-        <div class="card-location">
-          <svg class="loc-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="vertical-align:-2px; margin-right:3px; color:var(--color-racing-green);">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-          </svg>
-          ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || ev.suburb || '')}
-        </div>
+
         ${ev.description ? `<p class="card-summary">${escapeHtml(ev.description)}</p>` : ''}
+
         <div class="card-actions">
           <div class="card-actions-left">
-            <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-              </svg>
-              <span>Read in Full</span>
-            </button>
-            <a href="calendar.php?id=${ev.id}" class="btn btn-outline" target="_blank" onclick="handleCardOpen('${ev.id}')">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-              <span>Calendar</span>
-            </a>
+            ${ev.ticket_url ? `
+              <a href="${ev.ticket_url}" class="btn btn-primary" target="_blank" rel="noopener" onclick="handleCardOpen('${ev.id}')">
+                <span>Tickets ↗</span>
+              </a>
+              <button class="btn btn-outline" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">
+                <span>Details</span>
+              </button>
+            ` : `
+              <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                </svg>
+                <span>Read in Full</span>
+              </button>
+            `}
             <button class="btn ${starBtnClass}" onclick="toggleStar(${JSON.stringify(ev).replace(/"/g, '&quot;')}, this)">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="${isStarred ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
               </svg>
               <span>${starBtnText}</span>
             </button>
-            ${ev.ticket_url ? `<a href="${ev.ticket_url}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${ev.id}')">Tickets</a>` : ''}
           </div>
+
           <div class="card-actions-right">
+            <a href="calendar.php?id=${ev.id}" class="btn-icon-action" target="_blank" title="Add to Calendar (.ics)" onclick="handleCardOpen('${ev.id}')">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </a>
             <button class="btn btn-follow ${isFollowed ? 'is-following' : ''}" 
                     onclick="toggleFollow('${escapeQuote(ev.venue_name)}', 'venue', this)" 
                     title="${isFollowed ? 'Unfollow ' + escapeHtml(ev.venue_name) : 'Follow ' + escapeHtml(ev.venue_name)}">

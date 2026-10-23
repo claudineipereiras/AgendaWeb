@@ -45,6 +45,30 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $events = $stmt->fetchAll();
 
+// Calculate ETag & Last-Modified for HTTP 304 caching
+$lastModifiedTime = 0;
+$etagParts = [];
+foreach ($events as $ev) {
+    $etagParts[] = $ev['id'] . ':' . ($ev['start_time'] ?? '');
+    $itemTime = strtotime($ev['created_at'] ?? $ev['start_time'] ?? '');
+    if ($itemTime > $lastModifiedTime) {
+        $lastModifiedTime = $itemTime;
+    }
+}
+$etag = '"' . md5(implode('|', $etagParts) . ':' . count($events)) . '"';
+$lastModified = $lastModifiedTime > 0 ? gmdate('D, d M Y H:i:s', $lastModifiedTime) . ' GMT' : gmdate('D, d M Y H:i:s') . ' GMT';
+
+header('ETag: ' . $etag);
+header('Last-Modified: ' . $lastModified);
+
+if (
+    (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim($_SERVER['HTTP_IF_NONE_MATCH']) === $etag) ||
+    (isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) && strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) >= $lastModifiedTime && $lastModifiedTime > 0)
+) {
+    http_response_code(304);
+    exit;
+}
+
 $feedTitle = 'AgendaWeb — Cultural Feed';
 if ($venue !== 'all') {
     $feedTitle .= ' · ' . ucfirst($venue);

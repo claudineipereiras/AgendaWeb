@@ -6,18 +6,19 @@
 }
 
 body {
-  background-color: var(--color-chalk);
-  color: var(--color-nightfall);
+  background-color: var(--bg-page);
+  color: var(--text-primary);
   font-family: var(--font-sans);
   line-height: 1.45;
   padding-bottom: 80px;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Header */
 header, .app-header {
-  background: var(--color-white);
-  border-bottom: 1px solid var(--color-oat);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
   padding: 10px 24px;
   position: sticky;
   top: 0;
@@ -406,39 +407,64 @@ header, .app-header {
   background: rgba(27, 59, 43, 0.06);
 }
 
-/* Feed Container */
+/* Feed Container (Responsive Broadsheet Grid) */
 .feed-container {
   max-width: var(--max-content-width);
   margin: 16px auto;
   padding: 0 16px;
 }
 
-/* Cards with Responsive Image Support */
+@media (min-width: 1024px) {
+  .feed-container {
+    max-width: var(--max-desktop-width);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(460px, 1fr));
+    gap: 20px;
+    align-items: stretch;
+  }
+  .feed-container > .state-message,
+  .feed-container > .following-header {
+    grid-column: 1 / -1;
+  }
+  .feed-container > .card {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .feed-container > .card .card-summary {
+    flex: 1;
+  }
+}
+
+/* Cards with Responsive Image & Aspect Ratio Support (Zero CLS) */
 .card {
-  background: var(--color-white);
-  border: 1px solid var(--color-oat);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 18px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   box-shadow: var(--shadow-card);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   overflow: hidden;
 }
 
 .card:hover {
   box-shadow: var(--shadow-hover);
+  border-color: var(--border-strong);
 }
 
 .card-image-wrapper {
   margin: -18px -18px 14px -18px;
-  background: var(--color-oat);
+  background: var(--bg-surface-tonal);
   overflow: hidden;
-  max-height: 220px;
+  aspect-ratio: 16 / 9;
+  width: calc(100% + 36px);
+  position: relative;
 }
 
 .card-image {
   width: 100%;
-  height: 200px;
+  height: 100%;
   object-fit: cover;
   display: block;
   transition: transform 0.25s ease;
@@ -446,6 +472,58 @@ header, .app-header {
 
 .card:hover .card-image {
   transform: scale(1.02);
+}
+
+/* Card Header with Editorial Date Tile */
+.card-header-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.card-date-tile {
+  background: var(--bg-surface-tonal);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  text-align: center;
+  min-width: 52px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+}
+
+.card-date-tile .date-month {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--color-amber-rust);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-date-tile .date-day {
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-family: var(--font-serif);
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+
+.card-date-tile .date-dayname {
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.card-header-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .card-meta {
@@ -458,17 +536,30 @@ header, .app-header {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  margin-bottom: 4px;
 }
 
 .card-meta-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .card-meta-source {
   color: var(--color-sage-green);
+}
+
+.badge-distance {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(200, 90, 50, 0.10);
+  color: var(--color-amber-rust);
+  border-radius: 9999px;
+  padding: 2px 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 /* Circle Check Mark Button */
@@ -520,10 +611,10 @@ body.hide-seen-active .card.is-read {
 
 .card-title {
   font-family: var(--font-serif);
-  font-size: 1.15rem;
+  font-size: 1.18rem;
   font-weight: 700;
-  margin: 6px 0;
-  color: var(--color-nightfall);
+  margin: 3px 0 6px 0;
+  color: var(--text-primary);
   line-height: 1.35;
 }
 
@@ -537,14 +628,14 @@ body.hide-seen-active .card.is-read {
 
 .card-summary {
   font-size: 0.88rem;
-  color: var(--color-text-muted);
+  color: var(--text-secondary);
   margin-bottom: 12px;
   line-height: 1.45;
 }
 
 .card-location {
   font-size: 0.82rem;
-  color: var(--color-text-muted);
+  color: var(--text-secondary);
   margin-bottom: 12px;
   display: flex;
   align-items: center;
@@ -557,9 +648,9 @@ body.hide-seen-active .card.is-read {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--color-oat);
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-subtle);
 }
 
 .card-actions-left {
@@ -570,7 +661,31 @@ body.hide-seen-active .card.is-read {
 }
 
 .card-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-left: auto;
+}
+
+.btn-icon-action {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.btn-icon-action:hover {
+  background: var(--bg-surface-tonal);
+  border-color: var(--color-racing-green);
+  color: var(--color-racing-green);
 }
 
 /* Follow Button with RSS Icon */

@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.8.0] - 2026-10-23
+
+### Added
+- **Syndication HTTP 304 Caching (`feed.php` & `calendar.php`):**
+  - Implemented MD5 `ETag` and `Last-Modified` conditional HTTP headers.
+  - Returns `304 Not Modified` on matching `If-None-Match` / `If-Modified-Since` requests, preventing unnecessary database load when RSS readers poll every 15 minutes.
+- **Scraper Circuit Breaker & Backoff:**
+  - Added failure counter and backoff window in `sync_sources.php` and `dev_server.js`.
+  - Prevents slow or unreachable venue endpoints from blocking cron runs.
+- **Admin Batch Operations (`bulk_action`):**
+  - Added multi-select checkboxes and bulk action toolbars to the Admin Portal.
+  - Enabled "Bulk Approve", "Bulk Pause", "Bulk Resume", and "Bulk Delete" across curated sources and published events.
+- **Fuzzy Event Deduplication:**
+  - Ingestion engine normalizes titles (stripping tour, feat, w/ guests, presents, etc.) and compares overlapping date/venue slots to prevent duplicate listings.
+- **Location Proximity ("Near Me" 10km Filter):**
+  - Added `📍 Near Me` filter chip in `index.html` and `app.js`.
+  - Uses `navigator.geolocation` and Haversine formula to filter events within 10km and displays proximity badges (`📍 4.2 km`).
+- **Nightfall Theme (Dark Mode):**
+  - Implemented deep nightfall theme (`color-scheme: light dark`) in `tokens.css` and `style.css`.
+  - Added sun/moon ambient header toggle button with local preference persistence.
+- **Editorial Date Stamp & Visual Polish:**
+  - Added prominent stacked calendar date tiles (`OCT 24 / SAT`) to event cards for rapid scanning.
+  - Applied `aspect-ratio: 16 / 9;` on image wrappers to eliminate Cumulative Layout Shift (CLS).
+  - Applied `fetchpriority="high"` to Largest Contentful Paint (LCP) images.
+  - Responsive 2-column broadsheet layout on desktop viewports (`>= 1024px`).
+- **Scraper Regression Suite (`Application/tests/scraper_test.js`):**
+  - Zero-dependency automated test runner verifying Schema.org parsing, fuzzy deduplication, ETag generation, and distance calculation.
+
+---
+
 ## [0.7.1] - 2026-10-23
 
 ### Added

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AgendaWeb — Your Cultural Web Feed</title>
   <meta name="description" content="Open-web, decentralized cultural calendar and editorial magazine reader for Australia.">
+  <meta name="color-scheme" content="light dark">
   <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
   <link rel="apple-touch-icon" href="assets/icon.svg">
   <link rel="manifest" href="manifest.webmanifest">
@@ -62,6 +63,17 @@
         </svg>
         <span class="btn-text">Help</span>
       </button>
+
+      <!-- Theme Mode Toggle (Nightfall / Light) -->
+      <button class="m3-icon-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Nightfall Mode" aria-label="Toggle Nightfall Mode">
+        <span id="theme-toggle-icon">
+          <svg class="m3-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </span>
+        <span class="btn-text" id="theme-toggle-label">Night</span>
+      </button>
+
       <button class="m3-icon-btn" onclick="toggleSettingsModal()" title="Settings & Storage">
         <svg class="m3-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
@@ -149,6 +161,12 @@
         <path d="M16 11.5c-1.1 0-2 .9-2 2v2.5h1.2v5h1.6v-5H18v-2.5c0-1.1-.9-2-2-2z"/>
       </svg>
       <span>Kids & Family</span>
+    </button>
+    <button class="m3-chip" id="proximity-chip" data-audience="near_me" onclick="toggleNearMe(this)" title="Filter events within 10km radius of your current location">
+      <svg class="chip-icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+        <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+      </svg>
+      <span id="proximity-chip-label">Near Me</span>
     </button>
   </div>
 

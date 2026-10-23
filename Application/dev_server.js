@@ -638,10 +638,27 @@ async function syncEventSource(source) {
         continue;
       }
 
-      const exists = MOCK_EVENTS.some(e => 
-        (e.title.toLowerCase() === evt.title.toLowerCase() && e.start_time.slice(0, 10) === evt.start_time.slice(0, 10))
-        || (e.ticket_url && evt.ticket_url && e.ticket_url === evt.ticket_url)
-      );
+      function cleanTitle(str) {
+        return (str || '')
+          .toLowerCase()
+          .replace(/\b(presents|live at|live|feat\.?|featuring|w\/|with|tickets|doors|band|tour)\b/gi, '')
+          .replace(/[^a-z0-9]/g, '')
+          .trim();
+      }
+
+      const evtClean = cleanTitle(evt.title);
+      const exists = MOCK_EVENTS.some(e => {
+        if (e.ticket_url && evt.ticket_url && e.ticket_url === evt.ticket_url) return true;
+        if (e.start_time && evt.start_time && e.start_time.slice(0, 10) === evt.start_time.slice(0, 10)) {
+          const sameVenue = e.venue_slug === venueSlug || (e.venue_name || '').toLowerCase() === (source.name || '').toLowerCase();
+          if (sameVenue) {
+            const eClean = cleanTitle(e.title);
+            if (eClean === evtClean) return true;
+            if (eClean.length >= 6 && evtClean.length >= 6 && (eClean.includes(evtClean) || evtClean.includes(eClean))) return true;
+          }
+        }
+        return false;
+      });
 
       if (!exists) {
         const nextId = MOCK_EVENTS.length > 0 ? Math.max(...MOCK_EVENTS.map(e => e.id)) + 1 : 1;
@@ -697,13 +714,25 @@ async function syncAllActiveSources() {
 
   for (const source of MOCK_SOURCES) {
     if (source.is_active && source.last_status !== 'pending') {
+      // Circuit breaker: skip if source has backoff active
+      if (source.backoff_until && Date.now() < source.backoff_until) {
+        logs.push(`[SKIPPED - BACKOFF] ${source.name} paused until ${new Date(source.backoff_until).toLocaleTimeString()}`);
+        continue;
+      }
+
       if (source.type === 'rss') {
         const count = await syncRssSource(source);
         if (source.last_status === 'failed') {
           failed++;
+          source.fail_count = (source.fail_count || 0) + 1;
+          if (source.fail_count >= 3) {
+            source.backoff_until = Date.now() + 1800000; // 30 min backoff
+          }
           logs.push(`[FAILED] ${source.name}: ${source.last_error}`);
         } else {
           success++;
+          source.fail_count = 0;
+          source.backoff_until = null;
           totalItems += count;
           logs.push(`[UPDATED] ${source.name}: ${count} live items`);
         }
@@ -711,9 +740,15 @@ async function syncAllActiveSources() {
         const count = await syncEventSource(source);
         if (source.last_status === 'failed') {
           failed++;
+          source.fail_count = (source.fail_count || 0) + 1;
+          if (source.fail_count >= 3) {
+            source.backoff_until = Date.now() + 1800000; // 30 min backoff
+          }
           logs.push(`[FAILED] ${source.name}: ${source.last_error}`);
         } else {
           success++;
+          source.fail_count = 0;
+          source.backoff_until = null;
           totalItems += count;
           logs.push(`[UPDATED] ${source.name}: ${count} live events`);
         }
@@ -943,9 +978,19 @@ const requestHandler = async (req, res) => {
       'END:VCALENDAR'
     ].filter(Boolean).join('\r\n');
 
+    const icsEtag = `"${crypto.createHash('md5').update(icsContent).digest('hex')}"`;
+    const icsIfNoneMatch = req.headers['if-none-match'];
+    if (icsIfNoneMatch && icsIfNoneMatch.trim() === icsEtag) {
+      res.writeHead(304, { 'ETag': icsEtag, 'Cache-Control': 'public, max-age=300' });
+      res.end();
+      return;
+    }
+
     res.writeHead(200, {
       'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': `attachment; filename="agendaweb-event-${event.id}.ics"`
+      'Content-Disposition': `attachment; filename="agendaweb-event-${event.id}.ics"`,
+      'ETag': icsEtag,
+      'Cache-Control': 'public, max-age=300'
     });
     res.end(icsContent);
     return;
@@ -1005,7 +1050,19 @@ const requestHandler = async (req, res) => {
   </channel>
 </rss>`;
 
-    res.writeHead(200, { 'Content-Type': 'application/rss+xml; charset=utf-8' });
+    const feedEtag = `"${crypto.createHash('md5').update(rssXml).digest('hex')}"`;
+    const feedIfNoneMatch = req.headers['if-none-match'];
+    if (feedIfNoneMatch && feedIfNoneMatch.trim() === feedEtag) {
+      res.writeHead(304, { 'ETag': feedEtag, 'Cache-Control': 'public, max-age=300' });
+      res.end();
+      return;
+    }
+
+    res.writeHead(200, { 
+      'Content-Type': 'application/rss+xml; charset=utf-8',
+      'ETag': feedEtag,
+      'Cache-Control': 'public, max-age=300'
+    });
     res.end(rssXml);
     return;
   }
@@ -1884,6 +1941,75 @@ const requestHandler = async (req, res) => {
         }
         res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ status: 'error', message: 'Event not found' }));
+      });
+      return;
+    }
+
+    // Admin action: bulk operations on sources or events
+    if (action === 'bulk_action' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const type = payload.type || 'sources';
+        const operation = payload.operation || '';
+        const ids = (payload.ids || []).map(x => parseInt(x, 10)).filter(Boolean);
+
+        if (!ids.length || !operation) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ status: 'error', message: 'Valid IDs and operation required' }));
+          return;
+        }
+
+        const idSet = new Set(ids);
+        if (type === 'sources') {
+          if (operation === 'approve') {
+            MOCK_SOURCES.forEach(s => {
+              if (idSet.has(s.id)) {
+                s.last_status = 'active';
+                s.is_active = 1;
+              }
+            });
+          } else if (operation === 'pause') {
+            MOCK_SOURCES.forEach(s => {
+              if (idSet.has(s.id)) s.is_active = 0;
+            });
+          } else if (operation === 'resume') {
+            MOCK_SOURCES.forEach(s => {
+              if (idSet.has(s.id)) s.is_active = 1;
+            });
+          } else if (operation === 'delete') {
+            MOCK_SOURCES.forEach(s => {
+              if (idSet.has(s.id)) {
+                DELETED_SOURCE_URLS.add(s.url);
+                if (s.feed_url) DELETED_SOURCE_URLS.add(s.feed_url);
+              }
+            });
+            MOCK_EVENTS = MOCK_EVENTS.filter(e => !idSet.has(e.source_id));
+            MOCK_ITEMS.news = MOCK_ITEMS.news.filter(i => !idSet.has(i.source_id));
+            MOCK_ITEMS.blogs = MOCK_ITEMS.blogs.filter(i => !idSet.has(i.source_id));
+            MOCK_VENUES = MOCK_VENUES.filter(v => !idSet.has(v.source_id));
+            MOCK_SOURCES = MOCK_SOURCES.filter(s => !idSet.has(s.id));
+          }
+        } else if (type === 'events') {
+          if (operation === 'delete') {
+            MOCK_EVENTS.forEach(e => {
+              if (idSet.has(e.id)) {
+                if (e.ticket_url) DELETED_EVENT_KEYS.add(e.ticket_url);
+                DELETED_EVENT_KEYS.add(`${e.venue_slug}:::${e.title.toLowerCase()}`);
+              }
+            });
+            MOCK_EVENTS = MOCK_EVENTS.filter(e => !idSet.has(e.id));
+          }
+        }
+
+        persistDb();
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ 
+          status: 'success', 
+          message: `Bulk ${operation} completed successfully for ${ids.length} items.` 
+        }));
       });
       return;
     }

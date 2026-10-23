@@ -1,17 +1,31 @@
 /**
  * AgendaWeb Design Tokens
- * Defined in Docs/Brand_Guidelines.md
+ * Defined in Docs/Brand_Guidelines.md with Modern Dark Mode (Nightfall) support
  */
 
 :root {
   /* Brand Palette Tokens */
   --color-amber-rust: #C85A32;
+  --color-amber-rust-hover: #B24E2A;
   --color-sage-green: #4A5D4E;
   --color-nightfall:  #1B3B2B;
+  --color-racing-green: #1B3B2B; /* Brand forest racing green */
   --color-chalk:      #F7F5F0;
   --color-oat:        #E6E2D8;
   --color-white:      #FFFFFF;
-  --color-text-muted: #5C675E;
+  --color-text-muted: #3D4A3F;   /* Enhanced WCAG AAA contrast */
+
+  /* Semantic UI Tokens (Light Theme Default) */
+  --bg-page:          var(--color-chalk);
+  --bg-surface:       var(--color-white);
+  --bg-surface-tonal: rgba(27, 59, 43, 0.06);
+  --bg-surface-elevated: #FFFFFF;
+  --text-primary:     var(--color-nightfall);
+  --text-secondary:   var(--color-text-muted);
+  --border-subtle:    var(--color-oat);
+  --border-strong:    rgba(27, 59, 43, 0.22);
+  --accent:           var(--color-amber-rust);
+  --accent-contrast:  #FFFFFF;
 
   /* Typography */
   --font-serif: 'Playfair Display', 'Newsreader', Georgia, serif;
@@ -20,10 +34,76 @@
   /* Shadows & Radii */
   --radius-sm: 6px;
   --radius-md: 12px;
-  --radius-pill: 20px;
-  --shadow-card: 0 2px 8px rgba(27, 59, 43, 0.04);
-  --shadow-hover: 0 4px 12px rgba(27, 59, 43, 0.08);
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+  --shadow-card: 0 2px 8px rgba(27, 59, 43, 0.05);
+  --shadow-hover: 0 6px 18px rgba(27, 59, 43, 0.10);
+  --shadow-modal: 0 16px 36px rgba(10, 25, 18, 0.22);
 
   /* Layout */
   --max-content-width: 680px;
+  --max-desktop-width: 1200px;
+}
+
+/* Native Dark Theme / Nightfall Mode */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-page:          #0C1611;
+    --bg-surface:       #13221A;
+    --bg-surface-tonal: rgba(255, 255, 255, 0.06);
+    --bg-surface-elevated: #1A2D23;
+    --text-primary:     #F3EFE6;
+    --text-secondary:   #A2B2A8;
+    --border-subtle:    #22372C;
+    --border-strong:    #355243;
+    --color-nightfall:  #F3EFE6;
+    --color-racing-green: #68A57D;
+    --color-chalk:      #0C1611;
+    --color-white:      #13221A;
+    --color-oat:        #22372C;
+    --color-amber-rust: #DF6F45;
+    --color-text-muted: #A2B2A8;
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.35);
+    --shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.50);
+  }
+}
+
+/* Explicit User Dark Theme Override */
+:root[data-theme="dark"] {
+  --bg-page:          #0C1611;
+  --bg-surface:       #13221A;
+  --bg-surface-tonal: rgba(255, 255, 255, 0.06);
+  --bg-surface-elevated: #1A2D23;
+  --text-primary:     #F3EFE6;
+  --text-secondary:   #A2B2A8;
+  --border-subtle:    #22372C;
+  --border-strong:    #355243;
+  --color-nightfall:  #F3EFE6;
+  --color-racing-green: #68A57D;
+  --color-chalk:      #0C1611;
+  --color-white:      #13221A;
+  --color-oat:        #22372C;
+  --color-amber-rust: #DF6F45;
+  --color-text-muted: #A2B2A8;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.50);
+}
+
+/* Explicit User Light Theme Override */
+:root[data-theme="light"] {
+  --bg-page:          var(--color-chalk);
+  --bg-surface:       var(--color-white);
+  --bg-surface-tonal: rgba(27, 59, 43, 0.06);
+  --bg-surface-elevated: #FFFFFF;
+  --text-primary:     #1B3B2B;
+  --text-secondary:   #3D4A3F;
+  --border-subtle:    #E6E2D8;
+  --border-strong:    rgba(27, 59, 43, 0.22);
+  --color-nightfall:  #1B3B2B;
+  --color-racing-green: #1B3B2B;
+  --color-chalk:      #F7F5F0;
+  --color-white:      #FFFFFF;
+  --color-oat:        #E6E2D8;
+  --color-amber-rust: #C85A32;
+  --color-text-muted: #3D4A3F;
 }

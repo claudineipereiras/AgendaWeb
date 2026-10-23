@@ -25,6 +25,14 @@ function runAllSync(PDO $pdo, string $botUserAgent): array {
 
     foreach ($sources as $source) {
         $count = 0;
+        // Circuit breaker: skip if source failed within the last 30 minutes
+        if ($source['last_status'] === 'failed' && !empty($source['last_polled_at'])) {
+            $lastPolled = strtotime($source['last_polled_at']);
+            if (time() - $lastPolled < 1800) {
+                $report['details'][] = ['id' => $source['id'], 'name' => $source['name'], 'status' => 'skipped_backoff'];
+                continue;
+            }
+        }
         try {
             if ($source['type'] === 'rss') {
                 $count = syncRss($pdo, $source, $botUserAgent);
