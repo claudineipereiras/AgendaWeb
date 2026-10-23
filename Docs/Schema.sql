@@ -130,23 +130,6 @@ INSERT INTO `cities` (`slug`, `name`, `state`, `country`, `postcode_prefix`, `la
 ('hobart', 'Hobart', 'TAS', 'AU', '7', -42.8821, 147.3272)
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `postcode_prefix`=VALUES(`postcode_prefix`);
 
--- Initial Seed: Public Australian RSS & Event Targets
-INSERT INTO `sources` (`slug`, `name`, `type`, `url`, `category_tab`) VALUES
-('abc-just-in', 'ABC News', 'rss', 'https://www.abc.net.au/news/feed/51120/rss.xml', 'news'),
-('sbs-top-stories', 'SBS News', 'rss', 'https://www.sbs.com.au/news/feed', 'news'),
-('abc-politics', 'ABC Politics', 'rss', 'https://www.abc.net.au/news/feed/45910/rss.xml', 'politics'),
-('the-conversation-au', 'The Conversation (AU)', 'rss', 'https://theconversation.com/au/politics/articles.atom', 'politics'),
-('guardian-au-culture', 'The Guardian (AU Culture)', 'rss', 'https://www.theguardian.com/au/culture/rss', 'culture'),
-('trouble-mag', 'Trouble Magazine', 'rss', 'https://www.troublemag.com/feed/', 'blogs'),
-('bar-oussou', 'Bar Oussou Brunswick', 'scrape_event', 'https://www.baroussou.com.au/gigs/', 'events')
-ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
-
--- Initial Seed: Curated Venues
-INSERT INTO `venues` (`slug`, `city_id`, `name`, `address`, `suburb`, `state`, `postcode`, `default_age_policy`, `website_url`, `feed_url`, `source_id`) VALUES
-('bar-oussou', 1, 'Bar Oussou', '659 Sydney Rd, Brunswick VIC 3056', 'Brunswick', 'VIC', '3056', '18+', 'https://www.baroussou.com.au', 'https://www.baroussou.com.au/wp-json/baroussou/v1/events', 7)
-ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `address`=VALUES(`address`), `suburb`=VALUES(`suburb`), `website_url`=VALUES(`website_url`);
-
-
 -- Authentication & Role-Based Access Control (Admin & Manager)
 CREATE TABLE IF NOT EXISTS `users` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,

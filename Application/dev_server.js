@@ -36,42 +36,58 @@ const MOCK_CITIES = [
   { id: 6, slug: "hobart", name: "Hobart", state: "TAS", country: "Australia", postcode_prefix: "7", latitude: -42.8821, longitude: 147.3272, event_count: 1 }
 ];
 
-// Real Data Store - populated dynamically via live feeds and discoverEventsFromUrl
-let MOCK_EVENTS = [];
+// --- Persistent Local Database Layer (Mirrors Hostinger MySQL) ---
+const DATA_DIR = path.join(__dirname, 'data');
+const SOURCES_FILE = path.join(DATA_DIR, 'sources.json');
+const VENUES_FILE = path.join(DATA_DIR, 'venues.json');
+const EVENTS_FILE = path.join(DATA_DIR, 'events.json');
+const ITEMS_FILE = path.join(DATA_DIR, 'items.json');
+const TOMBSTONES_FILE = path.join(DATA_DIR, 'tombstones.json');
 
-let MOCK_SOURCES = [
-  { id: 1, slug: "abc-just-in", name: "ABC News", type: "rss", url: "https://www.abc.net.au/news/feed/51120/rss.xml", category_tab: "news", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
-  { id: 2, slug: "sbs-top-stories", name: "SBS News", type: "rss", url: "https://www.sbs.com.au/news/feed", category_tab: "news", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
-  { id: 3, slug: "guardian-au-culture", name: "The Guardian AU Culture", type: "rss", url: "https://www.theguardian.com/au/culture/rss", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
-  { id: 4, slug: "the-conversation-au", name: "The Conversation (AU)", type: "rss", url: "https://theconversation.com/au/politics/articles.atom", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
-  { id: 5, slug: "trouble-mag", name: "Trouble Magazine", type: "rss", url: "https://www.troublemag.com/feed/", category_tab: "blogs", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null },
-  { id: 6, slug: "bar-oussou", name: "Bar Oussou Brunswick", type: "scrape_event", url: "https://www.baroussou.com.au/gigs/", feed_url: "https://www.baroussou.com.au/wp-json/baroussou/v1/events", category_tab: "events", is_active: 1, last_status: "active", http_code: 200, item_count: 0, last_error: null, last_polled_at: null }
-];
-
-let MOCK_VENUES = [
-  {
-    id: 1,
-    city_id: 1,
-    slug: "bar-oussou",
-    name: "Bar Oussou",
-    address: "659 Sydney Rd, Brunswick VIC 3056",
-    suburb: "Brunswick",
-    state: "VIC",
-    postcode: "3056",
-    default_age_policy: "18+",
-    website_url: "https://www.baroussou.com.au",
-    feed_url: "https://www.baroussou.com.au/wp-json/baroussou/v1/events",
-    source_id: 6,
-    is_active: 1
+function loadJson(file, fallback) {
+  try {
+    if (fs.existsSync(file)) {
+      const raw = fs.readFileSync(file, 'utf8');
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    console.warn(`[db] Notice loading ${file}:`, e.message);
   }
-];
+  return fallback;
+}
+
+function saveJson(file, data) {
+  try {
+    fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+  } catch (e) {
+    console.error(`[db] Error saving ${file}:`, e.message);
+  }
+}
+
+// Start with clean database or load previously persisted state
+let MOCK_EVENTS = loadJson(EVENTS_FILE, []);
+let MOCK_SOURCES = loadJson(SOURCES_FILE, []);
+let MOCK_VENUES = loadJson(VENUES_FILE, []);
+let MOCK_ITEMS = loadJson(ITEMS_FILE, { news: [], blogs: [] });
+
+const loadedTombstones = loadJson(TOMBSTONES_FILE, { events: [], items: [], sources: [] });
+const DELETED_EVENT_KEYS = new Set(loadedTombstones.events || []);
+const DELETED_ITEM_LINKS = new Set(loadedTombstones.items || []);
+const DELETED_SOURCE_URLS = new Set(loadedTombstones.sources || []);
 
 let MOCK_SUGGESTIONS = [];
 
-// Tombstones to prevent re-ingestion of items deleted via Admin
-const DELETED_EVENT_KEYS = new Set();
-const DELETED_ITEM_LINKS = new Set();
-const DELETED_SOURCE_URLS = new Set();
+function persistDb() {
+  saveJson(SOURCES_FILE, MOCK_SOURCES);
+  saveJson(VENUES_FILE, MOCK_VENUES);
+  saveJson(EVENTS_FILE, MOCK_EVENTS);
+  saveJson(ITEMS_FILE, MOCK_ITEMS);
+  saveJson(TOMBSTONES_FILE, {
+    events: Array.from(DELETED_EVENT_KEYS),
+    items: Array.from(DELETED_ITEM_LINKS),
+    sources: Array.from(DELETED_SOURCE_URLS)
+  });
+}
 
 let MOCK_USERS = [
   {
@@ -137,11 +153,6 @@ function authenticateUser(req, parsedUrl) {
 
   return null;
 }
-
-const MOCK_ITEMS = {
-  news: [],
-  blogs: []
-};
 
 // Robust IPv4-safe HTTP/HTTPS fetch helper
 function fetchUrl(targetUrl, options = {}) {
@@ -336,6 +347,7 @@ async function syncRssSource(source) {
       source.last_status = 'updated';
       source.last_error = null;
       source.last_polled_at = now;
+      persistDb();
       return source.item_count;
     }
 
@@ -667,6 +679,7 @@ async function syncEventSource(source) {
     source.last_error = null;
     source.http_code = 200;
     source.last_polled_at = now;
+    persistDb();
     return result.detectedEvents.length;
   } catch (err) {
     source.last_status = 'failed';
@@ -1143,6 +1156,8 @@ const requestHandler = async (req, res) => {
           source_id: newSource.id,
           is_active: 0
         });
+
+        persistDb();
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({
@@ -1633,6 +1648,8 @@ const requestHandler = async (req, res) => {
         // If RSS feed, immediately fetch real live dispatches
         if (newSource.type === 'rss') {
           await syncRssSource(newSource);
+        } else if (newSource.type === 'scrape_event' || newSource.type === 'api_event') {
+          await syncEventSource(newSource);
         }
 
         // Update / Insert into MOCK_VENUES if it is an event source
@@ -1658,6 +1675,8 @@ const requestHandler = async (req, res) => {
             });
           }
         }
+
+        persistDb();
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ 
@@ -1702,6 +1721,8 @@ const requestHandler = async (req, res) => {
           v.is_active = source.is_active;
         }
 
+        persistDb();
+
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ 
           status: 'success', 
@@ -1724,6 +1745,7 @@ const requestHandler = async (req, res) => {
           source.is_active = source.is_active ? 0 : 1;
           const v = MOCK_VENUES.find(v => v.source_id === targetId || v.slug === source.slug);
           if (v) v.is_active = source.is_active;
+          persistDb();
         }
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ 
@@ -1749,6 +1771,7 @@ const requestHandler = async (req, res) => {
           source.last_polled_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
           const v = MOCK_VENUES.find(v => v.source_id === source.id || v.slug === source.slug);
           if (v) v.is_active = 1;
+          persistDb();
         }
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ 
@@ -1803,6 +1826,8 @@ const requestHandler = async (req, res) => {
           // 4. Remove from sources
           MOCK_SOURCES = MOCK_SOURCES.filter(s => s.id !== targetId);
 
+          persistDb();
+
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ 
             status: 'success', 
@@ -1849,6 +1874,7 @@ const requestHandler = async (req, res) => {
           if (ev.ticket_url) DELETED_EVENT_KEYS.add(ev.ticket_url);
           DELETED_EVENT_KEYS.add(`${ev.venue_slug}:::${ev.title.toLowerCase()}`);
           MOCK_EVENTS = MOCK_EVENTS.filter(e => e.id !== eventId);
+          persistDb();
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ 
             status: 'success', 
@@ -1892,6 +1918,7 @@ const requestHandler = async (req, res) => {
           if (item.link) DELETED_ITEM_LINKS.add(item.link);
           MOCK_ITEMS.news = MOCK_ITEMS.news.filter(i => i.id !== itemId);
           MOCK_ITEMS.blogs = MOCK_ITEMS.blogs.filter(i => i.id !== itemId);
+          persistDb();
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ 
             status: 'success', 
@@ -1965,6 +1992,8 @@ const requestHandler = async (req, res) => {
           ? await syncEventSource(source)
           : await syncRssSource(source);
 
+        persistDb();
+
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({
           status: 'success',
@@ -1982,6 +2011,7 @@ const requestHandler = async (req, res) => {
     if (action === 'sync_now' && req.method === 'POST') {
       const report = await syncAllActiveSources();
       const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+      persistDb();
 
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({
@@ -2062,9 +2092,5 @@ function startServer(port, isPrimary = false) {
 // Bind both primary port 8001 and port 8000 so all clients remain 100% updated
 PORTS_TO_SERVE.forEach((p, idx) => startServer(p, idx === 0));
 
-// Perform initial live source & feed fetch in background so local development immediately has fresh real dispatches and gigs
-syncAllActiveSources().then(res => {
-  console.log(`[sync] Initial live ingestion complete: ${res.success} sources/venues updated (${res.totalItems} real items/gigs loaded).`);
-}).catch(e => {
-  console.warn('[sync] Initial live sync background error:', e.message);
-});
+// Local persistent database active on boot (No automatic test ingestion)
+console.log(`[db] Local persistent database active: ${MOCK_SOURCES.length} sources, ${MOCK_VENUES.length} venues, ${MOCK_EVENTS.length} events loaded from disk.`);
