@@ -2,22 +2,53 @@
 .env
 .env.*
 !.env.example
+*.local.php
 config.local.php
+Application/config/config.local.php
+
+# Private Keys, Certificates & Credentials
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+
+# Database Exports, Dumps & SQLite
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+*.sql.gz
+dump.sql
+backup*.sql
+
+# Dependencies (if installed locally)
+node_modules/
+vendor/
 
 # Operating System Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# IDE & Editor Files
+# IDE, Editor & Tooling Files
 .idea/
 .vscode/
 *.swp
+*.swo
 *~
+.antigravity/scratch/
 
 # Temporary, Logs and Scratch
 *.log
 scratch/
+tmp/
+temp/
 
-# Local Dev Database
+# Local Dev Database (Runtime Ingestion Files)
 Application/data/*.json
 !Application/data/.gitkeep
