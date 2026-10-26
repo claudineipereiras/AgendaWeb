@@ -41,7 +41,11 @@ Thumbs.db
 *.swp
 *.swo
 *~
-.antigravity/scratch/
+.antigravity/
+
+# Local Notes & Backlog Files
+AGENDAWEB.txt
+agendaweb.txt
 
 # Temporary, Logs and Scratch
 *.log
