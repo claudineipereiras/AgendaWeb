@@ -47,6 +47,11 @@ Thumbs.db
 AGENDAWEB.txt
 agendaweb.txt
 
+# Documentation & Brand Assets (kept local)
+Docs/
+docs/
+*.zip
+
 # Temporary, Logs and Scratch
 *.log
 scratch/
