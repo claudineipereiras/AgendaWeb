@@ -575,13 +575,13 @@
       <div class="form-group">
         <label>Website or Event URL to Ingest</label>
         <div style="display:flex; gap:8px;">
-          <input type="url" id="source-url" class="form-control" placeholder="https://thegasometerhotel.com.au/gigs or RSS link" required>
+          <input type="url" id="source-url" class="form-control" placeholder="https://venue.example.com/gigs, .ics calendar, or RSS link" required>
           <button type="button" class="btn btn-amber" id="btn-detect-events" onclick="detectEventsFromUrl()">
             🔍 Auto-Detect
           </button>
         </div>
         <p style="font-size:0.75rem; color:var(--color-text-muted); margin-top:4px;">
-          Paste any venue gigs page, blog, or broadcaster. The scraper automatically scans for Schema.org JSON-LD events and RSS links.
+          Paste a venue gigs page, .ics calendar, or RSS feed. The scraper auto-scans for Schema.org JSON-LD, iCalendar (.ics), and Event modules.
         </p>
       </div>
 
@@ -598,7 +598,7 @@
       <form onsubmit="handleAddSourceSubmit(event)">
         <div class="form-group">
           <label>Source / Venue Display Name</label>
-          <input type="text" id="source-name" class="form-control" placeholder="e.g. The Gasometer Hotel" required>
+          <input type="text" id="source-name" class="form-control" placeholder="e.g. City Arts Stage" required>
         </div>
         <div class="form-group">
           <label>Channel Destination</label>
@@ -1636,7 +1636,15 @@
           } else if (res.feed_url) {
             previewStatus.innerHTML = `✓ Found linked RSS feed: <code>${escapeHtml(res.feed_url)}</code>`;
           } else {
-            previewStatus.innerHTML = `<span style="color:#b26a00;">ℹ No structured events detected automatically (0 events).</span><br><small style="color:var(--text-muted); display:inline-block; margin-top:4px;">This page may render events through a dynamic client app without Schema.org or REST APIs. You can still save this source or manually curate gigs.</small>`;
+            previewStatus.innerHTML = `<span style="color:#b26a00;">ℹ No structured events detected automatically (0 events).</span>
+              <div style="font-size:0.78rem; color:var(--color-text-muted); margin-top:6px; line-height:1.4;">
+                <strong>Why this happens:</strong> Many venue sites render their gig guides through client-side JavaScript widgets (e.g. Oztix, Humanitix, Eventbrite) or image posters without raw HTML event tags.<br>
+                <strong>What you can try:</strong><br>
+                • Paste the direct gigs subpage URL (e.g. <code>https://venue.com/gigs/</code> instead of the root homepage).<br>
+                • Paste an iCalendar feed URL ending in <code>.ics</code> or <code>webcal://</code>.<br>
+                • Paste an RSS / Atom feed URL.<br>
+                • Or save this source to curate and manage events directly.
+              </div>`;
           }
 
           if (!document.getElementById('source-name').value) {
@@ -1699,7 +1707,13 @@
       if (res && res.status === 'success') {
         closeAddSourceModal();
         await loadDashboard();
-        alert('Curated source and venue database updated successfully!');
+        if (res.item_count !== undefined && res.item_count > 0) {
+          alert(`✓ "${name}" added successfully!\nExtracted ${res.item_count} upcoming events.`);
+        } else if (tab === 'events') {
+          alert(`✓ "${name}" added to Curation sources.\n\nNote: 0 upcoming events were detected automatically.\nIf the venue uses client-side JavaScript (e.g. Oztix/Humanitix widgets), paste their direct events RSS or .ics calendar, or click '🔄 Sync' on the sources table to retry.`);
+        } else {
+          alert(`✓ "${name}" added to Curation sources successfully!`);
+        }
       } else {
         alert('Failed to add source: ' + (res ? res.message : 'Network error'));
       }

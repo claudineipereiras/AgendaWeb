@@ -252,6 +252,64 @@ function escapeXml(unsafe) {
   });
 }
 
+function parseICalendar(iCalStr) {
+  const events = [];
+  const veventRegex = /BEGIN:VEVENT([\s\S]*?)END:VEVENT/gi;
+  let m;
+  while ((m = veventRegex.exec(iCalStr)) !== null && events.length < 100) {
+    const block = m[1];
+    const summaryMatch = block.match(/SUMMARY(?::|;[^\n:]*:)(.*)/i);
+    const summary = summaryMatch ? summaryMatch[1].trim() : 'Upcoming Event';
+
+    const startMatch = block.match(/DTSTART(?::|;[^\n:]*:)([0-9T]+Z?)/i);
+    let startTime = '';
+    if (startMatch) {
+      const rawDate = startMatch[1];
+      if (rawDate.length >= 8) {
+        const y = rawDate.slice(0, 4);
+        const mon = rawDate.slice(4, 6);
+        const d = rawDate.slice(6, 8);
+        let h = '20', min = '00', s = '00';
+        if (rawDate.includes('T')) {
+          const tPart = rawDate.split('T')[1];
+          h = tPart.slice(0, 2) || '20';
+          min = tPart.slice(2, 4) || '00';
+          s = tPart.slice(4, 6) || '00';
+        }
+        startTime = `${y}-${mon}-${d} ${h}:${min}:${s}`;
+      }
+    }
+
+    const locMatch = block.match(/LOCATION(?::|;[^\n:]*:)(.*)/i);
+    const location = locMatch ? locMatch[1].trim().replace(/\\,/g, ',') : '';
+
+    const descMatch = block.match(/DESCRIPTION(?::|;[^\n:]*:)(.*)/i);
+    const desc = descMatch ? descMatch[1].trim().replace(/\\n/g, ' ').replace(/\\,/g, ',') : '';
+
+    const urlMatch = block.match(/URL(?::|;[^\n:]*:)(.*)/i);
+    const ticketUrl = urlMatch ? urlMatch[1].trim() : '';
+
+    if (startTime) {
+      events.push({
+        title: summary,
+        start_time: startTime,
+        end_time: null,
+        category: 'Live Music',
+        venue_name: '',
+        address: location || 'Melbourne VIC',
+        suburb: 'Melbourne',
+        age_restriction: '18+',
+        min_age: 18,
+        is_family_friendly: 0,
+        ticket_url: ticketUrl,
+        image_url: '',
+        description: desc
+      });
+    }
+  }
+  return events;
+}
+
 function parseFeedXml(xmlStr) {
   const isAtom = xmlStr.includes("<feed") && xmlStr.includes("<entry");
   const channelTitleMatch = xmlStr.match(/<channel[^>]*>[\s\S]*?<title[^>]*>([\s\S]*?)<\/title>/i) || xmlStr.match(/<feed[^>]*>[\s\S]*?<title[^>]*>([\s\S]*?)<\/title>/i);
@@ -296,6 +354,14 @@ function parseFeedXml(xmlStr) {
       if (!isNaN(parsed)) pubDate = new Date(parsed).toISOString();
     }
 
+    // Extract Event Module Metadata (<ev:startdate>, <ev:enddate>, <ev:location>)
+    const evStartMatch = raw.match(/<(?:ev|event):startdate\b[^>]*>([\s\S]*?)<\/(?:ev|event):startdate>/i);
+    const evEndMatch = raw.match(/<(?:ev|event):enddate\b[^>]*>([\s\S]*?)<\/(?:ev|event):enddate>/i);
+    const evLocMatch = raw.match(/<(?:ev|event):location\b[^>]*>([\s\S]*?)<\/(?:ev|event):location>/i);
+    const eventStartDate = evStartMatch ? stripHtml(evStartMatch[1]) : null;
+    const eventEndDate = evEndMatch ? stripHtml(evEndMatch[1]) : null;
+    const eventLocation = evLocMatch ? stripHtml(evLocMatch[1]) : null;
+
     const catMatch = raw.match(/<category\b[^>]*term=["']([^"']+)["']/i) || raw.match(/<category\b[^>]*>([\s\S]*?)<\/category>/i);
     const category = catMatch ? stripHtml(catMatch[1]) : "General";
 
@@ -336,7 +402,10 @@ function parseFeedXml(xmlStr) {
       content: fullContent,
       category,
       image_url: imageUrl,
-      published_at: pubDate.replace("T", " ").slice(0, 19)
+      published_at: pubDate.replace("T", " ").slice(0, 19),
+      event_start_date: eventStartDate,
+      event_end_date: eventEndDate,
+      event_location: eventLocation
     });
   }
 
@@ -366,6 +435,55 @@ async function syncRssSource(source) {
 
     if (parsed.items.length > 0) {
       const tab = source.category_tab || 'blogs';
+
+      // If the channel destination is Events, ingest into MOCK_EVENTS
+      if (tab === 'events') {
+        const venueSlug = source.slug || 'venue';
+        for (const item of parsed.items) {
+          if (DELETED_ITEM_LINKS.has(item.link) || DELETED_EVENT_KEYS.has(item.link)) continue;
+          let startTime = item.event_start_date;
+          if (!startTime) {
+            startTime = item.published_at || now;
+          }
+          if (startTime.length === 10) startTime += ' 20:00:00';
+
+          const exists = MOCK_EVENTS.some(e => e.ticket_url === item.link || (e.venue_slug === venueSlug && e.title.toLowerCase() === item.title.toLowerCase()));
+          if (!exists) {
+            const nextId = MOCK_EVENTS.length > 0 ? Math.max(...MOCK_EVENTS.map(e => e.id)) + 1 : 1;
+            MOCK_EVENTS.push({
+              id: nextId,
+              source_id: source.id,
+              city_id: 1,
+              city_slug: "melbourne",
+              city_name: "Melbourne",
+              venue_slug: venueSlug,
+              venue_name: item.event_location || source.name,
+              title: item.title,
+              description: item.summary || item.title,
+              category: item.category || "Live Music",
+              age_restriction: "18+",
+              min_age: 18,
+              is_family_friendly: 0,
+              start_time: startTime,
+              end_time: item.event_end_date ? item.event_end_date.replace('T', ' ').slice(0, 19) : null,
+              address: item.event_location || "Melbourne VIC",
+              suburb: "Melbourne",
+              ticket_url: item.link || source.url,
+              image_url: item.image_url || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=700&q=80",
+              origin: "scraped",
+              is_verified: 1,
+              calendar_url: `calendar.php?id=${nextId}`
+            });
+          }
+        }
+        source.item_count = MOCK_EVENTS.filter(e => e.source_id === source.id).length;
+        source.last_status = 'updated';
+        source.last_error = null;
+        source.last_polled_at = now;
+        persistDb();
+        return source.item_count;
+      }
+
       if (!MOCK_ITEMS[tab]) MOCK_ITEMS[tab] = [];
 
       // Avoid duplicating items by link or re-ingesting items deleted by admin
@@ -479,6 +597,46 @@ async function discoverEventsFromUrl(targetUrl) {
     const pageTitleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
     result.pageTitle = pageTitleMatch ? stripHtml(pageTitleMatch[1]) : '';
 
+    // Check for iCalendar RFC 5545 feed (.ics or webcal://)
+    if (targetUrl.toLowerCase().endsWith('.ics') || targetUrl.startsWith('webcal://') || html.includes('BEGIN:VCALENDAR')) {
+      const icsEvents = parseICalendar(html);
+      if (icsEvents.length > 0) {
+        result.detectedEvents = icsEvents;
+        result.method = 'RFC 5545 iCalendar (.ics)';
+        result.detectedType = 'scrape_event';
+        return result;
+      }
+    }
+
+    // Check if directly passed an RSS/Atom XML feed
+    if (html.includes('<rss') || html.includes('<feed')) {
+      const parsed = parseFeedXml(html);
+      if (parsed.items.length > 0) {
+        result.discoveredFeed = targetUrl;
+        result.pageTitle = parsed.title || result.pageTitle;
+        const hasEventModule = parsed.items.some(i => i.event_start_date);
+        for (const item of parsed.items) {
+          result.detectedEvents.push({
+            title: item.title,
+            start_time: (item.event_start_date || item.published_at || '').replace('T', ' ').slice(0, 19),
+            end_time: item.event_end_date ? item.event_end_date.replace('T', ' ').slice(0, 19) : null,
+            category: item.category || 'Live Music',
+            venue_name: item.event_location || result.pageTitle,
+            address: item.event_location || 'Melbourne VIC',
+            suburb: 'Melbourne',
+            age_restriction: '18+',
+            min_age: 18,
+            is_family_friendly: 0,
+            ticket_url: item.link || targetUrl,
+            image_url: item.image_url || ''
+          });
+        }
+        result.method = hasEventModule ? 'RSS 2.0 with Event Module (ev:)' : 'RSS / Atom XML Feed';
+        result.detectedType = 'rss';
+        return result;
+      }
+    }
+
     // Check for alternate RSS/Atom links
     const rssMatch = html.match(/<link\b[^>]*rel=["']alternate["'][^>]*type=["']application\/(rss\+xml|atom\+xml)["'][^>]*href=["']([^"']+)["']/i)
       || html.match(/<link\b[^>]*href=["']([^"']+)["'][^>]*type=["']application\/(rss\+xml|atom\+xml)["']/i);
@@ -496,7 +654,11 @@ async function discoverEventsFromUrl(targetUrl) {
         const nodes = Array.isArray(data) ? data : (data['@graph'] || [data]);
         for (const node of nodes) {
           const type = node['@type'] || '';
-          if (typeof type === 'string' && (type === 'Event' || type.endsWith('Event'))) {
+          const isEvent = Array.isArray(type)
+            ? type.some(t => typeof t === 'string' && (t === 'Event' || t === 'Festival' || t.endsWith('Event')))
+            : (typeof type === 'string' && (type === 'Event' || type === 'Festival' || type.endsWith('Event')));
+
+          if (isEvent) {
             if (!node.name || !node.startDate) continue;
             const vName = node.location?.name || '';
             if (vName && !result.detectedVenueName) result.detectedVenueName = vName;
@@ -507,7 +669,7 @@ async function discoverEventsFromUrl(targetUrl) {
               title: String(node.name).trim(),
               start_time: node.startDate ? node.startDate.replace('T', ' ').slice(0, 19) : '',
               end_time: node.endDate ? node.endDate.replace('T', ' ').slice(0, 19) : null,
-              category: type.replace('Event', '') || 'Live Music',
+              category: (Array.isArray(type) ? type[0] : type).replace('Event', '') || 'Live Music',
               venue_name: vName,
               address: addr,
               suburb: '',
@@ -648,6 +810,57 @@ async function discoverEventsFromUrl(targetUrl) {
       }
       if (result.detectedEvents.length > 0) {
         result.method = 'HTML Microdata';
+      }
+    }
+
+    // STRATEGY 6: Automatic Event Subpage Discovery (when user pastes homepage)
+    if (result.detectedEvents.length === 0 && !targetUrl.includes('/events') && !targetUrl.includes('/gigs')) {
+      const linkMatch = html.match(/<a\b[^>]*href=["']([^"']*(?:gigs|events|whats-on|calendar|live-music)[^"']*)["'][^>]*>/i);
+      if (linkMatch) {
+        let subUrl = linkMatch[1];
+        try {
+          subUrl = new URL(subUrl, targetUrl).href;
+          if (subUrl !== targetUrl && !subUrl.includes('#') && subUrl.startsWith('http')) {
+            const subRes = await fetchUrl(subUrl, {
+              headers: { 'User-Agent': 'AgendaWeb-Bot/1.0 (+https://agendaweb.app; Melbourne Broadsheet)' }
+            });
+            if (subRes.ok) {
+              const subHtml = await subRes.text();
+              const subJsonLd = subHtml.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+              for (const sm of subJsonLd) {
+                try {
+                  const sdata = JSON.parse(sm[1].trim());
+                  const snodes = Array.isArray(sdata) ? sdata : (sdata['@graph'] || [sdata]);
+                  for (const sn of snodes) {
+                    const stype = sn['@type'] || '';
+                    const isSubEvent = Array.isArray(stype)
+                      ? stype.some(t => typeof t === 'string' && (t === 'Event' || t === 'Festival' || t.endsWith('Event')))
+                      : (typeof stype === 'string' && (stype === 'Event' || stype === 'Festival' || stype.endsWith('Event')));
+                    if (isSubEvent && sn.name && sn.startDate) {
+                      result.detectedEvents.push({
+                        title: String(sn.name).trim(),
+                        start_time: sn.startDate ? sn.startDate.replace('T', ' ').slice(0, 19) : '',
+                        end_time: sn.endDate ? sn.endDate.replace('T', ' ').slice(0, 19) : null,
+                        category: (Array.isArray(stype) ? stype[0] : stype).replace('Event', '') || 'Live Music',
+                        venue_name: sn.location?.name || result.detectedVenueName,
+                        address: typeof sn.location?.address === 'object' ? (sn.location.address.streetAddress || '') : (sn.location?.address || ''),
+                        suburb: '',
+                        age_restriction: '18+',
+                        min_age: 18,
+                        is_family_friendly: 0,
+                        ticket_url: sn.offers?.url || sn.url || subUrl,
+                        image_url: Array.isArray(sn.image) ? sn.image[0] : (sn.image || '')
+                      });
+                    }
+                  }
+                } catch(e) {}
+              }
+              if (result.detectedEvents.length > 0) {
+                result.method = `Deep-link Schema.org (${new URL(subUrl).pathname})`;
+              }
+            }
+          }
+        } catch(e) {}
       }
     }
 

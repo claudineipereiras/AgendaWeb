@@ -84,6 +84,80 @@ function syncRss(PDO $pdo, array $source, string $userAgent): int {
 
     $items = isset($xml->channel->item) ? $xml->channel->item : ($xml->entry ?? []);
     $count = 0;
+
+    // If channel destination is events, insert directly into events table
+    if ($source['category_tab'] === 'events') {
+        $eventStmt = $pdo->prepare("
+            INSERT INTO events (city_id, venue_slug, title, description, category, age_restriction, min_age, is_family_friendly, start_time, end_time, venue_name, address, suburb, ticket_url, image_url, origin)
+            VALUES (:city_id, :slug, :title, :description, :cat, :age, :min_age, :family, :start, :end, :vname, :addr, :suburb, :turl, :image, 'scraped')
+            ON DUPLICATE KEY UPDATE 
+                description = IF(origin = 'manual', description, VALUES(description)),
+                ticket_url = IF(origin = 'manual', ticket_url, VALUES(ticket_url)),
+                end_time = IF(origin = 'manual', end_time, VALUES(end_time)),
+                image_url = IF(origin = 'manual', image_url, VALUES(image_url))
+        ");
+
+        foreach ($items as $item) {
+            if ($count >= 30) break;
+            $title = trim((string)$item->title);
+            $link  = (string)($item->link['href'] ?? $item->link);
+            $rawDesc = (string)($item->description ?? $item->summary ?? '');
+            $date  = (string)($item->pubDate ?? $item->updated ?? date('r'));
+
+            $namespaces = $item->getNameSpaces(true);
+            $evStart = null;
+            $evEnd = null;
+            $evLoc = null;
+            if (isset($namespaces['ev'])) {
+                $evNs = $item->children($namespaces['ev']);
+                if (isset($evNs->startdate)) $evStart = (string)$evNs->startdate;
+                if (isset($evNs->enddate)) $evEnd = (string)$evNs->enddate;
+                if (isset($evNs->location)) $evLoc = (string)$evNs->location;
+            }
+
+            // Extract image
+            $imageUrl = null;
+            if (isset($item->enclosure)) {
+                $encType = (string)$item->enclosure['type'];
+                if (str_starts_with($encType, 'image/')) {
+                    $imageUrl = (string)$item->enclosure['url'];
+                }
+            }
+            if (!$imageUrl && isset($namespaces['media'])) {
+                $media = $item->children($namespaces['media']);
+                if (isset($media->content) && isset($media->content->attributes()->url)) {
+                    $imageUrl = (string)$media->content->attributes()->url;
+                }
+            }
+
+            $startTime = $evStart ? date('Y-m-d H:i:s', strtotime($evStart)) : date('Y-m-d H:i:s', strtotime($date));
+            $endTime = $evEnd ? date('Y-m-d H:i:s', strtotime($evEnd)) : null;
+            $vaddr = $evLoc ?: 'Melbourne VIC';
+            $cityId = resolveAustralianCity($pdo, $vaddr . ' ' . $source['name'], null);
+            $ageInfo = resolveAgeRestriction(null, $title, $rawDesc);
+
+            $eventStmt->execute([
+                'city_id'     => $cityId ?: 1,
+                'slug'        => $source['slug'],
+                'title'       => $title,
+                'description' => strip_tags($rawDesc),
+                'cat'         => isset($item->category) ? trim((string)$item->category) : 'Live Music',
+                'age'         => $ageInfo['age'],
+                'min_age'     => $ageInfo['min_age'],
+                'family'      => $ageInfo['family'],
+                'start'       => $startTime,
+                'end'         => $endTime,
+                'vname'       => $evLoc ?: $source['name'],
+                'addr'        => $vaddr,
+                'suburb'      => 'Melbourne',
+                'turl'        => $link ?: $source['url'],
+                'image'       => $imageUrl
+            ]);
+            $count++;
+        }
+        return $count;
+    }
+
     foreach ($items as $item) {
         if ($count >= 30) break;
         $title = trim((string)$item->title);
@@ -294,7 +368,10 @@ function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): int {
         $nodes = isset($data['@graph']) ? $data['@graph'] : ($data[0] ? $data : [$data]);
         foreach ($nodes as $node) {
             $type = $node['@type'] ?? '';
-            if (is_string($type) && (str_ends_with($type, 'Event') || $type === 'Event')) {
+            $isEvent = is_array($type)
+                ? (in_array('Event', $type, true) || in_array('Festival', $type, true) || count(array_filter($type, fn($t) => is_string($t) && (str_ends_with($t, 'Event') || $t === 'Festival'))) > 0)
+                : (is_string($type) && (str_ends_with($type, 'Event') || $type === 'Event' || $type === 'Festival'));
+            if ($isEvent) {
                 if (empty($node['name']) || empty($node['startDate'])) continue;
 
                 $start = date('Y-m-d H:i:s', strtotime($node['startDate']));
