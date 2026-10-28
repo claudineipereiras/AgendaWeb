@@ -55,15 +55,6 @@
         <span class="btn-text" id="hide-seen-label">Seen</span>
       </button>
 
-      <button class="m3-icon-btn" onclick="toggleHelpModal()" title="About AgendaWeb">
-        <svg class="m3-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
-        </svg>
-        <span class="btn-text">Help</span>
-      </button>
-
       <!-- Theme Mode Toggle (Nightfall / Light) -->
       <button class="m3-icon-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Nightfall Mode" aria-label="Toggle Nightfall Mode">
         <span id="theme-toggle-icon">
@@ -177,7 +168,7 @@
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
-      <input type="search" id="feed-search" class="m3-search-input" placeholder="Search gigs, artists, venues, suburbs..." oninput="handleFeedSearch(this.value)">
+      <input type="search" id="feed-search" class="m3-search-input" placeholder="Search content" oninput="handleFeedSearch(this.value)">
     </div>
   </div>
 
@@ -186,14 +177,23 @@
 
   <!-- Dynamic Broadsheet Feed -->
   <main class="feed-container" id="feed">
-    <div class="state-message">Loading cultural feed...</div>
+    <div class="state-message">Loading Events feed...</div>
   </main>
 
   <!-- Main Settings Drawer Modal -->
   <div class="modal-overlay" id="settings-modal" onclick="if(event.target===this) toggleSettingsModal()">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Reader Preferences & Tools</h3>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <h3 style="margin:0;">Reader Preferences & Tools</h3>
+          <button class="m3-icon-btn" onclick="toggleHelpModal()" title="About AgendaWeb & Help" aria-label="About AgendaWeb & Help" style="padding:4px; height:28px; width:28px; min-width:28px; border-radius:50%; background:var(--color-oat); color:var(--color-nightfall); display:inline-flex; align-items:center; justify-content:center; border:none; cursor:pointer;">
+            <svg class="m3-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </button>
+        </div>
         <button class="icon-btn" onclick="toggleSettingsModal()">✕</button>
       </div>
 

@@ -347,7 +347,16 @@ async function setAudienceFilter(audience, btnElement) {
 
 async function renderCurrentTab() {
   const container = document.getElementById('feed');
-  container.innerHTML = '<div class="state-message">Loading cultural feed...</div>';
+  const tabTitles = {
+    events: 'Events',
+    following: 'Following',
+    reads: 'Reads',
+    blogs: 'Blogs',
+    news: 'News',
+    personal: 'Personal'
+  };
+  const sectionTitle = tabTitles[currentTab] || (currentTab ? (currentTab.charAt(0).toUpperCase() + currentTab.slice(1)) : 'Content');
+  container.innerHTML = `<div class="state-message">Loading ${sectionTitle} feed...</div>`;
 
   const audienceBar = document.getElementById('audience-filter-bar');
   if (audienceBar) {
@@ -1628,7 +1637,6 @@ function openEventReaderModal(ev) {
       ${ev.address ? `<div class="event-reader-item"><strong>Location:</strong> ${escapeHtml(ev.address)}</div>` : ''}
       <div class="event-reader-item"><strong>Schedule:</strong> ${fullDateStr}</div>
       <div class="event-reader-item"><strong>Category:</strong> ${escapeHtml(ev.category || 'Culture')}</div>
-      ${ev.origin ? `<div class="event-reader-item"><strong>Source:</strong> Verified ${escapeHtml(ev.origin)} feed</div>` : ''}
     </div>
     <div class="event-reader-content">
       ${formattedHtml}

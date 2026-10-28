@@ -1102,6 +1102,10 @@ body.hide-seen-active .card.is-read {
   z-index: 1000;
 }
 
+#help-modal {
+  z-index: 1100;
+}
+
 .modal-content {
   background: var(--color-white);
   border-radius: var(--radius-md);
