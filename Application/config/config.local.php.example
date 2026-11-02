@@ -1,0 +1,34 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * =============================================================================
+ * AgendaWeb Hostinger Production Configuration Override
+ * =============================================================================
+ * 
+ * Instructions:
+ * 1. Copy this file to: Application/config/config.local.php
+ * 2. Replace the placeholder database values with your Hostinger MySQL details:
+ *    - In Hostinger hPanel ➔ Databases ➔ Management.
+ * 3. Set your production domain in 'url'.
+ * 4. Generate a unique secret string for 'admin_key'.
+ * 
+ * Note: config.local.php is excluded from Git (.gitignore) to keep secrets safe.
+ */
+
+return [
+    'db' => [
+        'host'    => 'localhost',                    // Hostinger MySQL host (usually 'localhost')
+        'name'    => 'u123456789_agenda',            // Your Hostinger Database Name
+        'user'    => 'u123456789_admin',             // Your Hostinger Database User
+        'pass'    => 'ReplaceWithYourStrongPassword', // Your Hostinger Database Password
+        'charset' => 'utf8mb4',
+    ],
+    'app' => [
+        'env'            => 'production',
+        'url'            => 'https://yourdomain.com', // Your live website URL with https://
+        'timezone'       => 'Australia/Melbourne',
+        'admin_key'      => 'change-me-to-a-very-long-secret-key-2026', // Secret passphrase for admin API & web cron
+        'bot_user_agent' => 'AgendaWeb-Bot/1.0 (+https://yourdomain.com; cultural calendar indexer)',
+    ]
+];

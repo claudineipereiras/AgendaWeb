@@ -9,6 +9,7 @@
 ```
 AgendaWeb/
 ├── Application/                         # All core application source code
+│   ├── .htaccess                        # Apache / LiteSpeed production rules (HTTPS, caching, security, auth)
 │   ├── admin/
 │   │   └── index.html                   # Admin & Curator Portal (RBAC, source & event management, bulk operations)
 │   ├── api/                             # REST & Ingestion API endpoints (PHP backend)
@@ -28,7 +29,9 @@ AgendaWeb/
 │   │   └── techsousa-logo.png           # TechSousa development attribution logo
 │   ├── config/
 │   │   ├── .env.example                 # Environment variables template
-│   │   └── config.php                   # Database & application environment configuration
+│   │   ├── config.local.php.example     # Hostinger production configuration template
+│   │   ├── config.php                   # Database & application environment configuration
+│   │   └── schema.sql                   # Production MySQL DDL and schema seeds
 │   ├── css/
 │   │   ├── style.css                    # Broadsheet editorial typography & responsive styles
 │   │   └── tokens.css                   # Design tokens (Racing Green, Amber Rust, Chalk, Nightfall dark mode)
@@ -46,10 +49,13 @@ AgendaWeb/
 │   ├── feed.php                         # Dual RSS 2.0 + ev: Event module syndication generator with 304 caching
 │   ├── index.html                       # Broadsheet PWA web application (reader-facing)
 │   ├── manifest.webmanifest             # Progressive Web App manifest
+│   ├── setup.php                        # Hostinger automated health diagnostic & schema provisioner
 │   ├── sw.js                            # Offline-first Service Worker with network fallback
 │   ├── sync_sources.php                 # Background cron ingestor (Hostinger scheduled task)
 │   ├── widget-demo.html                 # Live preview demo for embeddable venue widgets
 │   └── widget.js                        # Zero-dependency embeddable venue calendar widget
+├── scripts/
+│   └── package_hostinger.sh             # Creates clean agendaweb-hostinger-deploy.zip for File Manager upload
 ├── Docs/                                # Comprehensive technical documentation (kept local)
 │   ├── API_Spec.md                      # Complete REST and syndication API contracts
 │   ├── Architecture.md                  # System topology, ingestion strategies, and protocols
@@ -60,6 +66,8 @@ AgendaWeb/
 │   ├── Frontend_IndexedDB.md            # Client-side local storage and retention guide
 │   ├── Rules.md                         # Architecture constraints and design directives
 │   └── Schema.sql                       # Production MySQL DDL and schema seeds
+├── .htaccess                            # Root router for Hostinger Git deployment
+├── index.php                            # Root entrypoint router
 └── .gitignore                           # Git ignore rules
 ```
 
@@ -165,5 +173,35 @@ Access points:
 - **Syndication RSS/Atom:** `http://localhost:8001/feed.php?city=melbourne`
 - **iCalendar Export:** `http://localhost:8001/calendar.php?venue=all`
 - **News JSON API:** `http://localhost:8001/api/items.php?tab=news`
+
+---
+
+## 5. Hostinger Production Deployment
+
+AgendaWeb is fully pre-configured for Hostinger Shared & Cloud Hosting (LiteSpeed / Apache + PHP 8.2+ + MySQL 8.x).
+
+### Quick Deployment Steps:
+1. **Build Deployment Package:**
+   ```bash
+   ./scripts/package_hostinger.sh
+   ```
+2. **Upload to Hostinger:**
+   - In Hostinger hPanel ➔ **File Manager**, upload `agendaweb-hostinger-deploy.zip` to `public_html/` and click **Extract**.
+   - *(Or connect GitHub repository in hPanel ➔ Advanced ➔ Git; the root `.htaccess` and `index.php` automatically route to `Application/`).*
+3. **Configure Database:**
+   - In hPanel ➔ **Databases ➔ Management**, create a MySQL database.
+   - Copy `public_html/config/config.local.php.example` to `public_html/config/config.local.php` and enter your database credentials.
+4. **Initialize Database:**
+   - Open `https://yourdomain.com/setup.php` in your browser.
+   - Click **⚡ Initialize Database & Create Tables** (provisions all 8 tables and seeds reference cities).
+   - Click **🔒 Lock Setup** once completed.
+5. **Set Cron Job:**
+   - In hPanel ➔ **Advanced ➔ Cron Jobs**, add a job to run every 30 minutes:
+     ```bash
+     php /home/YOUR_HOSTINGER_USER/public_html/sync_sources.php > /dev/null 2>&1
+     ```
+
+*For complete details, see [Docs/Deployment_Hostinger.md](file:///home/claudinei/GitHub/AgendaWeb/Docs/Deployment_Hostinger.md).*
+
 
 

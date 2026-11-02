@@ -23,8 +23,10 @@ $category = filter_input(INPUT_GET, 'category', FILTER_DEFAULT);
 $city = filter_input(INPUT_GET, 'city', FILTER_DEFAULT) ?? 'all';
 
 $sql = "SELECT e.* FROM events e 
-        LEFT JOIN sources s ON e.source_id = s.id 
-        WHERE e.start_time >= NOW() AND (s.is_active = 1 OR e.source_id IS NULL)";
+        LEFT JOIN venues v ON v.slug = e.venue_slug
+        LEFT JOIN sources s ON v.source_id = s.id 
+        LEFT JOIN cities c ON (c.id = e.city_id OR c.id = v.city_id)
+        WHERE e.start_time >= NOW() AND (s.is_active = 1 OR s.id IS NULL OR e.origin = 'manual')";
 $params = [];
 
 if ($venue !== 'all') {
@@ -36,7 +38,7 @@ if (!empty($category) && $category !== 'All') {
     $params['cat'] = $category;
 }
 if (!empty($city) && $city !== 'all') {
-    $sql .= " AND (e.city_slug = :city OR e.city_id IN (SELECT id FROM cities WHERE slug = :city))";
+    $sql .= " AND (c.slug = :city OR e.address LIKE CONCAT('%', :city, '%'))";
     $params['city'] = $city;
 }
 

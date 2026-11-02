@@ -60,9 +60,29 @@ function runAllSync(PDO $pdo, string $botUserAgent): array {
     return $report;
 }
 
-if (php_sapi_name() === 'cli' || (isset($_SERVER['SCRIPT_FILENAME']) && realpath($_SERVER['SCRIPT_FILENAME']) === realpath(__FILE__))) {
+if (php_sapi_name() === 'cli') {
     $report = runAllSync($pdo, $botUserAgent);
     echo "Sync Complete: {$report['success']} succeeded, {$report['failed']} failed.\n";
+} elseif (isset($_SERVER['SCRIPT_FILENAME']) && realpath($_SERVER['SCRIPT_FILENAME']) === realpath(__FILE__)) {
+    // Direct web execution requires the secret admin key
+    $providedKey = $_GET['key'] ?? ($_SERVER['HTTP_X_ADMIN_KEY'] ?? '');
+    $secretKey = $config['app']['admin_key'] ?? '';
+    if (empty($secretKey) || !hash_equals($secretKey, (string)$providedKey)) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'Unauthorized. Provide valid ?key= parameter or run via Hostinger CLI cron.'
+        ]);
+        exit;
+    }
+    $report = runAllSync($pdo, $botUserAgent);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'status'  => 'success',
+        'report'  => $report
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit;
 }
 
 function syncRss(PDO $pdo, array $source, string $userAgent): int {
