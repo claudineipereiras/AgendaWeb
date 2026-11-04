@@ -297,7 +297,7 @@
       <form id="login-form" onsubmit="handleLogin(event)">
         <div class="form-group">
           <label for="login-email">Email Address</label>
-          <input type="email" id="login-email" class="form-control" placeholder="admin@agendaweb.app" required autofocus autocomplete="username">
+          <input type="email" id="login-email" class="form-control" placeholder="name@domain.com" required autofocus autocomplete="username">
         </div>
         <div class="form-group">
           <label for="login-password">Password</label>
@@ -310,19 +310,6 @@
           Sign In to Portal →
         </button>
       </form>
-
-      <!-- Quick Demo Account Fillers -->
-      <div style="margin-top:20px; padding-top:14px; border-top:1px dashed var(--color-oat); font-size:0.75rem; color:var(--color-text-muted);">
-        <strong style="color:var(--color-nightfall); display:block; margin-bottom:6px;">Demo Credentials:</strong>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button type="button" class="btn btn-outline" style="padding:4px 8px; font-size:0.72rem;" onclick="fillDemoLogin('admin@agendaweb.app', 'AgendaAdmin2026!')">
-            👑 Admin Demo
-          </button>
-          <button type="button" class="btn btn-outline" style="padding:4px 8px; font-size:0.72rem;" onclick="fillDemoLogin('curator@agendaweb.app', 'CuratorPass2026!')">
-            📝 Manager Demo
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -734,7 +721,7 @@
         </div>
         <div class="form-group">
           <label for="new-user-email">Email Address</label>
-          <input type="email" id="new-user-email" class="form-control" required placeholder="alex@agendaweb.app">
+          <input type="email" id="new-user-email" class="form-control" required placeholder="name@domain.com">
         </div>
         <div class="form-group">
           <label for="new-user-password">Initial Password (min 8 characters)</label>
@@ -794,7 +781,7 @@
       if (window.location.protocol === 'file:') {
         const errBox = document.getElementById('login-error');
         if (errBox) {
-          errBox.innerHTML = '⚠️ <strong>Local File Notice:</strong> This page is opened via <code>file://</code> protocol. Browser security blocks API requests from raw files.<br>Please open via the local server: <a href="http://localhost:8001/admin/index.html" style="color:var(--color-nightfall); font-weight:700; text-decoration:underline;">http://localhost:8001/admin/index.html</a>';
+          errBox.innerHTML = '⚠️ <strong>Local File Notice:</strong> This page is opened via <code>file://</code> protocol. Browser security blocks API requests from raw files.<br>Please open via your web domain or local HTTP server.';
           errBox.style.display = 'block';
         }
       }
@@ -819,20 +806,6 @@
       } else {
         input.type = 'password';
         btn.textContent = '👁️';
-      }
-    }
-
-    function fillDemoLogin(email, password) {
-      document.getElementById('login-email').value = email;
-      document.getElementById('login-password').value = password;
-      document.getElementById('login-error').style.display = 'none';
-      const form = document.getElementById('login-form');
-      if (form) {
-        if (typeof form.requestSubmit === 'function') {
-          form.requestSubmit();
-        } else {
-          form.dispatchEvent(new Event('submit', { cancelable: true }));
-        }
       }
     }
 

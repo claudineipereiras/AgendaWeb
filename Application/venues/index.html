@@ -316,14 +316,14 @@
 
           <div class="form-group">
             <label for="venue-name">Venue or Promoter Name *</label>
-            <input type="text" id="venue-name" class="form-control" placeholder="e.g. The Gasometer Hotel" required>
+            <input type="text" id="venue-name" class="form-control" placeholder="e.g. Cultural Stage Venue" required>
             <div class="form-hint">The public display name of your venue, gallery, or independent collective.</div>
           </div>
 
           <div class="form-group">
             <label for="venue-url">Public Events / Gig Guide URL *</label>
             <div style="display:flex; gap:8px;">
-              <input type="url" id="venue-url" class="form-control" placeholder="https://www.thegasometerhotel.com.au/gigs" required>
+              <input type="url" id="venue-url" class="form-control" placeholder="https://venue.example.com/gigs" required>
               <button type="button" id="btn-test-preview" class="btn btn-outline" style="white-space:nowrap;" onclick="testAndPreviewFeed()">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="11" cy="11" r="8"></circle>
@@ -377,7 +377,7 @@
 
           <div class="form-group" style="margin-top:16px;">
             <label for="venue-email">Contact Email (Optional)</label>
-            <input type="email" id="venue-email" class="form-control" placeholder="bookings@thegasometerhotel.com.au">
+            <input type="email" id="venue-email" class="form-control" placeholder="bookings@venue.example.com">
             <div class="form-hint">Optional: We'll send a confirmation once your broadcast feed is approved by the curator.</div>
           </div>
 
@@ -518,13 +518,13 @@
   "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
   "location": {
     "@type": "Place",
-    "name": "The Gasometer Hotel",
+    "name": "Cultural Stage Venue",
     "address": {
       "@type": "PostalAddress",
-      "streetAddress": "484 Smith St",
-      "addressLocality": "Collingwood",
+      "streetAddress": "100 Cultural Way",
+      "addressLocality": "Melbourne",
       "addressRegion": "VIC",
-      "postalCode": "3066",
+      "postalCode": "3000",
       "addressCountry": "AU"
     }
   },
@@ -573,17 +573,17 @@
         <pre class="code-block-content" id="code-rss">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;rss version="2.0" xmlns:ev="http://purl.org/rss/1.0/modules/event/"&gt;
   &lt;channel&gt;
-    &lt;title&gt;The Gasometer Hotel — Live Gigs&lt;/title&gt;
-    &lt;link&gt;https://www.thegasometerhotel.com.au/gigs&lt;/link&gt;
+    &lt;title&gt;Cultural Stage — Live Gigs&lt;/title&gt;
+    &lt;link&gt;https://venue.example.com/gigs&lt;/link&gt;
     &lt;description&gt;Official live music listings, album launches, and residencies.&lt;/description&gt;
     &lt;language&gt;en-au&lt;/language&gt;
     
     &lt;item&gt;
       &lt;title&gt;The Echoes — Album Launch&lt;/title&gt;
-      &lt;link&gt;https://www.thegasometerhotel.com.au/gigs/the-echoes&lt;/link&gt;
+      &lt;link&gt;https://venue.example.com/gigs/the-echoes&lt;/link&gt;
       &lt;ev:startdate&gt;2026-10-24T20:00:00+11:00&lt;/ev:startdate&gt;
       &lt;ev:enddate&gt;2026-10-24T23:30:00+11:00&lt;/ev:enddate&gt;
-      &lt;ev:location&gt;484 Smith St, Collingwood VIC 3066&lt;/ev:location&gt;
+      &lt;ev:location&gt;100 Cultural Way, Melbourne VIC 3000&lt;/ev:location&gt;
       &lt;category&gt;Live Music&lt;/category&gt;
       &lt;description&gt;Indie rock outfit celebrating their debut LP release with special guests.&lt;/description&gt;
       &lt;enclosure url="https://example.com/posters/the-echoes.jpg" type="image/jpeg" length="124500" /&gt;
@@ -613,7 +613,7 @@
           </button>
         </div>
         <pre class="code-block-content" id="code-widget">&lt;!-- 1. Target Container (Replace data-venue with your venue slug) --&gt;
-&lt;div class="agendaweb-widget" data-venue="the-gasometer-hotel" data-limit="5"&gt;&lt;/div&gt;
+&lt;div class="agendaweb-widget" data-venue="venue-slug" data-limit="5"&gt;&lt;/div&gt;
  
 &lt;!-- 2. Lightweight Embed Script (Loads asynchronously) --&gt;
 &lt;script src="https://agendaweb.app/widget.js" async&gt;&lt;/script&gt;</pre>
@@ -622,7 +622,7 @@
         <h4 style="font-size:0.92rem; color:var(--color-nightfall); margin-top:20px; margin-bottom:8px;">Live Widget Preview</h4>
         <div class="widget-preview-card">
           <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--color-oat); padding-bottom:10px; margin-bottom:12px;">
-            <div style="font-family:var(--font-serif); font-size:1.15rem; font-weight:700; color:var(--color-nightfall);">The Gasometer Hotel · Upcoming Gigs</div>
+            <div style="font-family:var(--font-serif); font-size:1.15rem; font-weight:700; color:var(--color-nightfall);">Cultural Stage · Upcoming Gigs</div>
             <span style="font-size:0.75rem; color:var(--color-text-muted);">AgendaWeb Live Widget</span>
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dashed var(--color-oat); font-size:0.88rem;">

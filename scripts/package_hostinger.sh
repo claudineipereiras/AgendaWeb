@@ -25,6 +25,8 @@ zip -r "$OUTPUT_ZIP" . \
   -x "tests/*" \
   -x "dev_server.js" \
   -x "config/config.local.php" \
+  -x "config/.env" \
+  -x "config/.env.*" \
   -x "config/.installed" \
   -x ".DS_Store" \
   -x "*.log"

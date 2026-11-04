@@ -3,7 +3,7 @@
  * Standalone, zero-dependency calendar widget for venue websites.
  * 
  * Usage:
- * <div class="agendaweb-widget" data-venue="the-gasometer-hotel" data-limit="5"></div>
+ * <div class="agendaweb-widget" data-venue="venue-slug" data-limit="5"></div>
  * <script src="https://agendaweb.app/widget.js" async></script>
  */
 

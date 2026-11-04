@@ -70,7 +70,7 @@ class Auth
             return [
                 'id' => 0,
                 'name' => 'System Superadmin',
-                'email' => 'admin@agendaweb.app',
+                'email' => 'admin@agendaweb.local',
                 'role' => 'admin',
                 'is_active' => 1
             ];
