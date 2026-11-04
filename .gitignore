@@ -52,11 +52,12 @@ Docs/
 docs/
 *.zip
 
-# Temporary, Logs and Scratch
+# Temporary, Logs, Scratch and Backups
 *.log
 scratch/
 tmp/
 temp/
+backups/
 
 # Local Dev Database (Runtime Ingestion Files)
 Application/data/*.json
