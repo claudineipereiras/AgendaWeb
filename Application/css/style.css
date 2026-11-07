@@ -198,17 +198,23 @@ header, .app-header {
 /* Material 3 Channels Navigation Tabs */
 .m3-tabs, .tabs {
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-start !important;
   align-items: center;
   gap: 8px;
-  padding: 0 16px;
+  padding: 0 14px;
   background: var(--color-white);
   border-bottom: 1px solid var(--color-oat);
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 .m3-tabs::-webkit-scrollbar, .tabs::-webkit-scrollbar { display: none; }
+.m3-tabs::after, .tabs::after {
+  content: '';
+  flex: 0 0 14px;
+}
 
 .m3-tab-btn, .tab-btn {
   background: transparent;
@@ -255,17 +261,23 @@ header, .app-header {
 /* Material 3 Audience Filter Chips */
 .m3-chip-bar, .audience-filter-bar {
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-start !important;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 10px 14px;
   background: var(--color-chalk);
   border-bottom: 1px solid var(--color-oat);
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 .m3-chip-bar::-webkit-scrollbar, .audience-filter-bar::-webkit-scrollbar { display: none; }
+.m3-chip-bar::after, .audience-filter-bar::after {
+  content: '';
+  flex: 0 0 14px;
+}
 
 .m3-chip, .audience-btn {
   background: var(--color-white);
@@ -415,13 +427,13 @@ header, .app-header {
 
 @media (min-width: 900px) {
   .m3-tabs, .tabs {
-    justify-content: center;
+    justify-content: safe center;
   }
   .m3-chip-bar, .audience-filter-bar {
-    justify-content: center;
+    justify-content: safe center;
   }
   .sub-filter {
-    justify-content: center;
+    justify-content: safe center;
   }
 }
 
@@ -1428,19 +1440,6 @@ body.hide-seen-active .card.is-read {
   font-size: 0.72rem;
   color: var(--color-text-muted);
 }
-
-/* Audience Filter Bar (Age & Family Restrictions) */
-.audience-filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: var(--color-white);
-  border-bottom: 1px solid var(--color-oat);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.audience-filter-bar::-webkit-scrollbar { display: none; }
 
 .audience-btn {
   background: var(--color-chalk);

@@ -275,6 +275,18 @@ async function setTab(tabName) {
     btn.classList.toggle('active', btn.dataset.tab === tabName);
   });
 
+  const mainTabs = document.getElementById('main-tabs');
+  if (mainTabs) {
+    if (tabName === 'events') {
+      mainTabs.scrollTo({ left: 0, behavior: 'smooth' });
+    } else {
+      const activeBtn = mainTabs.querySelector(`.m3-tab-btn[data-tab="${tabName}"]`);
+      if (activeBtn) {
+        activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+      }
+    }
+  }
+
   await renderCurrentTab();
 }
 
@@ -1315,14 +1327,20 @@ function applyChannelVisibility() {
   const checkNews = document.getElementById('channel-news-check');
   const checkBlogs = document.getElementById('channel-blogs-check');
 
-  if (newsTab) newsTab.style.display = channelSettings.show_news ? 'inline-block' : 'none';
-  if (blogsTab) blogsTab.style.display = channelSettings.show_blogs ? 'inline-block' : 'none';
+  if (newsTab) newsTab.style.display = channelSettings.show_news ? 'inline-flex' : 'none';
+  if (blogsTab) blogsTab.style.display = channelSettings.show_blogs ? 'inline-flex' : 'none';
   if (checkNews) checkNews.checked = channelSettings.show_news;
   if (checkBlogs) checkBlogs.checked = channelSettings.show_blogs;
 
   // If current active tab was hidden, revert to events
   if ((currentTab === 'news' && !channelSettings.show_news) || (currentTab === 'blogs' && !channelSettings.show_blogs)) {
     setTab('events');
+  }
+
+  // Ensure scroll is pinned to the far-left corner if Events is active
+  if (currentTab === 'events') {
+    const mainTabs = document.getElementById('main-tabs');
+    if (mainTabs) mainTabs.scrollLeft = 0;
   }
 }
 
@@ -1333,7 +1351,7 @@ async function refreshPersonalFeedsUI() {
   const feeds = await window.agendaDB.getCustomFeeds();
 
   if (personalTabBtn) {
-    personalTabBtn.style.display = feeds.length > 0 ? 'inline-block' : 'none';
+    personalTabBtn.style.display = feeds.length > 0 ? 'inline-flex' : 'none';
   }
 
   if (!listEl) return;
