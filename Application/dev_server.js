@@ -1124,17 +1124,21 @@ const requestHandler = async (req, res) => {
 
     let filtered = rawItems;
     if (category && category !== 'all' && category !== 'All') {
-      filtered = filtered.filter(i => (i.category || '').toLowerCase() === category.toLowerCase());
+      filtered = filtered.filter(i => 
+        (i.source_name || '').toLowerCase() === category.toLowerCase() ||
+        (i.category || '').toLowerCase() === category.toLowerCase()
+      );
     }
 
-    const categories = ['All', ...new Set(rawItems.map(i => i.category).filter(Boolean))];
+    const sources = ['All', ...new Set(rawItems.map(i => i.source_name).filter(Boolean))];
 
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({
       status: 'success',
       tab: tab,
       count: filtered.length,
-      categories: categories,
+      categories: sources,
+      sources: sources,
       data: filtered
     }));
     return;

@@ -269,6 +269,7 @@ async function unfollowFromSettings(name) {
 async function setTab(tabName) {
   currentTab = tabName;
   currentCategory = 'All';
+  isCategoriesExpanded = false;
 
   document.querySelectorAll('.tab-btn, .m3-tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabName);
@@ -368,7 +369,6 @@ async function renderCurrentTab() {
   } else if (currentTab === 'following') {
     await renderFollowing();
   } else if (currentTab === 'reads') {
-    hideSubFilter();
     await renderReads();
   } else if (currentTab === 'personal') {
     await renderPersonalFeeds();
@@ -382,7 +382,7 @@ async function renderCurrentTab() {
   }
 }
 
-// Subcategory Filter Rendering (Dynamic Auto-Grouping with Top 5 + More Expander)
+// Subcategory Filter Rendering (Dynamic Auto-Grouping with Top 8 + More Expander)
 let isCategoriesExpanded = false;
 let currentCategoriesList = [];
 
@@ -397,9 +397,9 @@ function renderSubFilterPills(categories, updateStoredList = true) {
 
   if (updateStoredList) {
     currentCategoriesList = categories || [];
-    // Ensure active category is not hidden on initial load
-    const activeIndex = currentCategoriesList.findIndex(c => c === currentCategory);
-    if (activeIndex >= 5) {
+    // Ensure active category is visible if set beyond threshold
+    const activeIndex = currentCategoriesList.findIndex(c => (c || '').toLowerCase() === (currentCategory || '').toLowerCase());
+    if (activeIndex >= 8) {
       isCategoriesExpanded = true;
     }
   }
@@ -416,10 +416,12 @@ function renderSubFilterPills(categories, updateStoredList = true) {
 
   subFilter.style.display = 'flex';
 
-  // 1. If 5 or fewer categories, show all without 'More' button
-  if (cleanCategories.length <= 5) {
+  const isPillActive = (cat) => (cat || '').toLowerCase() === (currentCategory || '').toLowerCase();
+
+  // 1. If 8 or fewer categories, show all without 'More' button
+  if (cleanCategories.length <= 8) {
     subFilter.innerHTML = cleanCategories.map(cat => `
-      <button class="filter-pill ${cat === currentCategory ? 'active' : ''}" 
+      <button class="filter-pill ${isPillActive(cat) ? 'active' : ''}" 
               onclick="setFilter('${escapeQuote(cat)}', this)">
         ${escapeHtml(cat)}
       </button>
@@ -427,17 +429,25 @@ function renderSubFilterPills(categories, updateStoredList = true) {
     return;
   }
 
-  // 2. More than 5 categories: Collapsed state (Top 5 + 'More ▾')
+  // 2. More than 8 categories: Collapsed state (Top 8 + 'More ▾')
   if (!isCategoriesExpanded) {
-    const top5 = cleanCategories.slice(0, 5);
-    const pillsHtml = top5.map(cat => `
-      <button class="filter-pill ${cat === currentCategory ? 'active' : ''}" 
+    let top8 = cleanCategories.slice(0, 8);
+    // If current category is active but not in top 8, include it in top 8
+    if (currentCategory && currentCategory !== 'All' && !top8.some(c => isPillActive(c))) {
+      const activeMatch = cleanCategories.find(c => isPillActive(c));
+      if (activeMatch) {
+        top8[7] = activeMatch;
+      }
+    }
+
+    const pillsHtml = top8.map(cat => `
+      <button class="filter-pill ${isPillActive(cat) ? 'active' : ''}" 
               onclick="setFilter('${escapeQuote(cat)}', this)">
         ${escapeHtml(cat)}
       </button>
     `).join('');
     const moreBtnHtml = `
-      <button class="filter-pill more-pill" onclick="toggleExpandCategories()" title="Show all categories">
+      <button class="filter-pill more-pill" onclick="toggleExpandCategories()" title="Show all feeds/categories">
         More ▾
       </button>
     `;
@@ -445,13 +455,13 @@ function renderSubFilterPills(categories, updateStoredList = true) {
   } else {
     // 3. Expanded state (All categories + 'Less ▴')
     const pillsHtml = cleanCategories.map(cat => `
-      <button class="filter-pill ${cat === currentCategory ? 'active' : ''}" 
+      <button class="filter-pill ${isPillActive(cat) ? 'active' : ''}" 
               onclick="setFilter('${escapeQuote(cat)}', this)">
         ${escapeHtml(cat)}
       </button>
     `).join('');
     const lessBtnHtml = `
-      <button class="filter-pill more-pill active" onclick="toggleExpandCategories()" title="Show fewer categories">
+      <button class="filter-pill more-pill active" onclick="toggleExpandCategories()" title="Show fewer feeds/categories">
         Less ▴
       </button>
     `;
@@ -475,6 +485,8 @@ async function setFilter(category, btnElement) {
     await renderFollowing(false);
   } else if (currentTab === 'personal') {
     await renderPersonalFeeds(false);
+  } else if (currentTab === 'reads') {
+    await renderReads(false);
   } else {
     await renderItems(currentTab, false);
   }
@@ -889,14 +901,25 @@ async function renderItems(tab, refreshPills = true) {
   let items = res.data || [];
 
   if (refreshPills) {
-    const categories = res.categories && res.categories.length > 1
-      ? res.categories
-      : Array.from(new Set(['All', ...items.map(i => i.category).filter(Boolean)]));
-    renderSubFilterPills(categories);
+    const feedPills = (res.sources && res.sources.length > 1)
+      ? res.sources
+      : (res.categories && res.categories.length > 1)
+        ? res.categories
+        : Array.from(new Set(['All', ...items.map(i => i.source_name || i.category).filter(Boolean)]));
+    renderSubFilterPills(feedPills);
+  }
+
+  // Client-side source/category filter fallback
+  if (currentCategory && currentCategory !== 'All') {
+    const catLower = currentCategory.toLowerCase();
+    items = items.filter(i => 
+      (i.source_name && i.source_name.toLowerCase() === catLower) ||
+      (i.category && i.category.toLowerCase() === catLower)
+    );
   }
 
   if (items.length === 0) {
-    container.innerHTML = `<div class="state-message">No ${tab} dispatches currently available for this category.</div>`;
+    container.innerHTML = `<div class="state-message">No ${tab} dispatches currently available for "${escapeHtml(currentCategory)}".</div>`;
     return;
   }
 
@@ -914,7 +937,7 @@ async function renderItems(tab, refreshPills = true) {
         <div class="card-meta">
           <div class="card-meta-left">
             <span>${dateStr}</span>
-            <span class="card-meta-source">${escapeHtml(item.category || item.source_name || 'Dispatch')}</span>
+            <span class="card-meta-source">${escapeHtml(item.source_name || item.category || 'Dispatch')}</span>
           </div>
           <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
                   onclick="toggleCardCheck('${cardKey}', event, this)" 
@@ -985,23 +1008,28 @@ async function renderPersonalFeeds(refreshPills = true) {
     }
   });
 
-  // Extract automatic categories from feed items
-  const autoCategories = ['All', ...new Set(allItems.map(i => i.category || i.feed_category).filter(Boolean))];
+  // Extract individual personal feed names as active filter pills
+  const feedPills = ['All', ...customFeeds.map(f => f.name).filter(Boolean)];
 
   if (refreshPills) {
-    renderSubFilterPills(autoCategories);
+    renderSubFilterPills(feedPills);
   }
 
   let filtered = allItems;
-  if (currentCategory !== 'All') {
-    filtered = allItems.filter(i => (i.category === currentCategory || i.feed_category === currentCategory));
+  if (currentCategory && currentCategory !== 'All') {
+    const catLower = currentCategory.toLowerCase();
+    filtered = allItems.filter(i => 
+      (i.feed_name && i.feed_name.toLowerCase() === catLower) ||
+      (i.category && i.category.toLowerCase() === catLower) ||
+      (i.feed_category && i.feed_category.toLowerCase() === catLower)
+    );
   }
 
   // Sort reverse chronological
   filtered.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
 
   if (filtered.length === 0) {
-    container.innerHTML = '<div class="state-message">No articles found in personal feeds for this filter.</div>';
+    container.innerHTML = `<div class="state-message">No articles found in personal feed "${escapeHtml(currentCategory)}".</div>`;
     return;
   }
 
@@ -1056,12 +1084,13 @@ async function renderPersonalFeeds(refreshPills = true) {
 }
 
 // Render Reads Tab (Offline Saved Gigs & Articles)
-async function renderReads() {
+async function renderReads(refreshPills = true) {
   const container = document.getElementById('feed');
   const readLaterItems = await window.agendaDB.getReadItems();
   const starredEvents = await window.agendaDB.getStarredEvents();
 
   if (readLaterItems.length === 0 && starredEvents.length === 0) {
+    hideSubFilter();
     container.innerHTML = `
       <div class="state-message">
         <p>Your private offline reading list and saved gigs are empty.</p>
@@ -1071,9 +1100,40 @@ async function renderReads() {
     return;
   }
 
+  const savedSources = ['All', ...new Set([
+    ...starredEvents.map(e => e.venue_name).filter(Boolean),
+    ...readLaterItems.map(i => i.domain || i.source_name).filter(Boolean)
+  ])];
+
+  if (refreshPills) {
+    if (savedSources.length > 2) {
+      renderSubFilterPills(savedSources);
+    } else {
+      hideSubFilter();
+    }
+  }
+
+  let filteredEvents = starredEvents;
+  let filteredReads = readLaterItems;
+
+  if (currentCategory && currentCategory !== 'All') {
+    const catLower = currentCategory.toLowerCase();
+    filteredEvents = starredEvents.filter(e => (e.venue_name || '').toLowerCase() === catLower);
+    filteredReads = readLaterItems.filter(i => (i.domain || i.source_name || '').toLowerCase() === catLower);
+  }
+
+  if (filteredEvents.length === 0 && filteredReads.length === 0) {
+    container.innerHTML = `
+      <div class="state-message">
+        <p>No saved items found for "${escapeHtml(currentCategory)}".</p>
+      </div>
+    `;
+    return;
+  }
+
   let html = '';
 
-  if (starredEvents.length > 0) {
+  if (filteredEvents.length > 0) {
     html += `
       <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="color:var(--color-amber-rust);">
@@ -1082,7 +1142,7 @@ async function renderReads() {
         <h3 style="font-size:0.95rem; margin:0; color:var(--color-nightfall);">Saved Gigs</h3>
       </div>
     `;
-    const eventCards = await Promise.all(starredEvents.map(async (ev) => {
+    const eventCards = await Promise.all(filteredEvents.map(async (ev) => {
       const isRead = await window.agendaDB.isCardRead(ev.id);
       const isFollowed = await window.agendaDB.isEntityFollowed(ev.venue_name);
 
@@ -1150,7 +1210,7 @@ async function renderReads() {
     html += eventCards.join('');
   }
 
-  if (readLaterItems.length > 0) {
+  if (filteredReads.length > 0) {
     html += `
       <div style="display:flex; align-items:center; gap:6px; margin:24px 0 12px 0;">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--color-racing-green);">
@@ -1160,7 +1220,7 @@ async function renderReads() {
         <h3 style="font-size:0.95rem; margin:0; color:var(--color-nightfall);">Offline Reading Queue</h3>
       </div>
     `;
-    const readCards = await Promise.all(readLaterItems.map(async (item) => {
+    const readCards = await Promise.all(filteredReads.map(async (item) => {
       const cardKey = item.url;
       const isRead = await window.agendaDB.isCardRead(cardKey);
 
@@ -1172,7 +1232,7 @@ async function renderReads() {
             </div>` : ''}
           <div class="card-meta">
             <div class="card-meta-left">
-              <span>${escapeHtml(item.domain || 'External')}</span>
+              <span>${escapeHtml(item.domain || item.source_name || 'External')}</span>
             </div>
             <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
                     onclick="toggleCardCheck('${cardKey}', event, this)" 
@@ -1220,7 +1280,7 @@ async function toggleStar(eventData, btn) {
 
 async function removeStarred(id) {
   await window.agendaDB.toggleStarredEvent({ id });
-  await renderReads();
+  await renderReads(true);
 }
 
 async function saveToReads(url, title, description, domain, image_url = '') {
@@ -1230,7 +1290,7 @@ async function saveToReads(url, title, description, domain, image_url = '') {
 
 async function removeRead(url) {
   await window.agendaDB.deleteReadItem(url);
-  await renderReads();
+  await renderReads(true);
 }
 
 // Settings Drawer Management

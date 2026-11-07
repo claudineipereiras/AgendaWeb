@@ -58,7 +58,8 @@ const AgendaAPI = {
       const json = await res.json();
       return {
         data: json.data || [],
-        categories: json.categories || ['All']
+        categories: json.sources || json.categories || ['All'],
+        sources: json.sources || []
       };
     } catch (err) {
       console.warn(`Items API for ${tab} unavailable:`, err);

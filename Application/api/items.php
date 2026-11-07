@@ -32,17 +32,17 @@ try {
     $params = ['tab' => $tab];
 
     if ($category !== 'all' && $category !== 'All') {
-        $where[] = "i.category = :category";
+        $where[] = "(s.name = :category OR i.category = :category)";
         $params['category'] = $category;
     }
 
     $whereSql = implode(' AND ', $where);
 
-    // Dynamic distinct categories for this tab
-    $catStmt = $pdo->prepare("SELECT DISTINCT category FROM items WHERE category_tab = :tab AND category IS NOT NULL AND category != '' ORDER BY category ASC");
-    $catStmt->execute(['tab' => $tab]);
-    $rawCats = $catStmt->fetchAll(PDO::FETCH_COLUMN);
-    $categories = array_values(array_unique(array_merge(['All'], array_filter($rawCats))));
+    // Dynamic distinct active sources/feeds for this tab
+    $srcStmt = $pdo->prepare("SELECT DISTINCT s.name FROM items i JOIN sources s ON s.id = i.source_id WHERE i.category_tab = :tab AND s.name IS NOT NULL AND s.name != '' ORDER BY s.name ASC");
+    $srcStmt->execute(['tab' => $tab]);
+    $rawSources = $srcStmt->fetchAll(PDO::FETCH_COLUMN);
+    $sources = array_values(array_unique(array_merge(['All'], array_filter($rawSources))));
 
     $sql = "SELECT i.id, s.name as source_name, i.category_tab, i.category, i.title, i.link, i.summary, i.content, i.image_url, i.published_at
             FROM items i
@@ -61,7 +61,8 @@ try {
         'count'      => count($items),
         'offset'     => $offset,
         'limit'      => $limit,
-        'categories' => $categories,
+        'categories' => $sources,
+        'sources'    => $sources,
         'data'       => $items
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
