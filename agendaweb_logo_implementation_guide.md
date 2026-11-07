@@ -4,14 +4,13 @@ All logo variants are saved as transparent, production-ready vector assets in yo
 
 ---
 
-## 1. Available Saved Assets & Placeholders
+## 1. Available Production Vector Assets
 
-| Asset Name | Placeholder / Reference | Recommended Use Cases |
-| :--- | :--- | :--- |
-| **Primary Full Logo (Geometric Sans)** | `{{DATA:IMAGE:IMAGE_1}}` | Desktop & mobile website navigation header, sticky headers, invoices, footer branding |
-| **Original Reference Recreation** | `{{DATA:IMAGE:IMAGE_2}}` | 1:1 match of original photo reference (8 calendar grid cells) |
-| **Editorial Serif Logo** | `{{DATA:IMAGE:IMAGE_4}}` | Editorial articles, print, high-end cultural publications |
-| **Standalone Icon / Mark (Square/Favicon)** | `{{DATA:IMAGE:IMAGE_6}}` | Favicon (`32x32`), PWA App Icon (`192x192`, `512x512`), avatar badges, social media profiles |
+| Asset Name | File Path | Viewport / Canvas | Recommended Use Cases |
+| :--- | :--- | :--- | :--- |
+| **Primary Full Logo (Concentric Sans)** | `Application/assets/logo.svg` | $1380 \times 480$ (2.875:1) | Website navigation header, admin portal masthead, invoice branding |
+| **Standalone Icon / Mark (1:1 Square)** | `Application/assets/icon.svg` | $480 \times 480$ (1:1) | Browser favicon, PWA app launcher, mobile touch icons, avatars |
+| **TechSousa Attribution Logo** | `Application/assets/techsousa-logo.png` | PNG | Developer credit in modal footer and settings drawer |
 
 ---
 
@@ -19,14 +18,14 @@ All logo variants are saved as transparent, production-ready vector assets in yo
 
 ### A. Website Header (Navigation Bar)
 ```html
-<header class="site-header">
-  <a href="/" class="brand-link" aria-label="AgendaWeb Home">
+<header class="app-header">
+  <a href="#" class="brand" aria-label="AgendaWeb Home">
     <img 
-      src="{{DATA:IMAGE:IMAGE_1}}" 
+      src="assets/logo.svg" 
       alt="AGENDAWEB - Your Cultural Web Feed" 
-      width="220" 
-      height="100" 
-      style="height: 48px; width: auto; display: block;"
+      width="207" 
+      height="72" 
+      style="height: 52px; width: auto; display: block;"
     />
   </a>
 </header>
@@ -34,8 +33,8 @@ All logo variants are saved as transparent, production-ready vector assets in yo
 
 ### B. Favicon & Mobile Touch Icons
 ```html
-<link rel="icon" type="image/svg+xml" href="{{DATA:IMAGE:IMAGE_6}}" />
-<link rel="apple-touch-icon" href="{{DATA:IMAGE:IMAGE_6}}" />
+<link rel="icon" type="image/svg+xml" href="assets/icon.svg" />
+<link rel="apple-touch-icon" href="assets/icon.svg" />
 ```
 
 ### C. Inline SVG Embedding

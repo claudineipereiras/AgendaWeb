@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 480" width="1020" height="480" fill="none">
-  <!-- AgendaWeb Official Brand Logo - Updated per stitch_agendaweb_brand_logo_system03 with +25% Brand Name & Slogan -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1380 480" width="1380" height="480" fill="none">
+  <!-- AgendaWeb Official Brand Logo - Concentric Compact RSS Arcs (R=96/126, 10°–80°, stroke=18) & +50% Brand Name/Slogan -->
   <defs>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&amp;display=swap');
@@ -15,11 +15,11 @@
   </defs>
 
   <g id="logo-mark" transform="translate(40, 50)">
-    <!-- Outer RSS wave arc in Sage Green (#4A5D4E) -->
-    <path d="M 170 -26 A 166 166 0 0 1 336 140" fill="none" stroke="#4A5D4E" stroke-width="20" stroke-linecap="round" />
+    <!-- Outer RSS wave arc in Sage Green (#4A5D4E) - Concentric with (170, 140), R=126, 10° to 80° -->
+    <path d="M 191.9 15.9 A 126 126 0 0 1 294.1 118.1" fill="none" stroke="#4A5D4E" stroke-width="18" stroke-linecap="round" />
     
-    <!-- Inner RSS wave arc in Sage Green (#4A5D4E) -->
-    <path d="M 170 20 A 120 120 0 0 1 290 140" fill="none" stroke="#4A5D4E" stroke-width="20" stroke-linecap="round" />
+    <!-- Inner RSS wave arc in Sage Green (#4A5D4E) - Concentric with (170, 140), R=96, 10° to 80° -->
+    <path d="M 186.7 45.5 A 96 96 0 0 1 264.5 123.3" fill="none" stroke="#4A5D4E" stroke-width="18" stroke-linecap="round" />
 
     <!-- Bookmark Ribbon in Amber Rust (#C85A32) -->
     <path d="M 20 65 L 170 65 A 75 75 0 0 1 245 140 L 245 410 L 132.5 330 L 20 410 Z" fill="#C85A32" />
@@ -50,21 +50,21 @@
     <rect x="119" y="236" width="28" height="24" rx="3" fill="#1B3B2B" />
   </g>
 
-  <!-- Typography Block: Placed under the rounded RSS lines, with bottom baseline aligning with calendar bottom -->
-  <!-- "AGENDA" in Bold 900 and "WEB" in Regular 400 (Font-size: 100, +25% from 80) -->
-  <!-- Slogan: "YOUR CULTURAL WEB FEED" (Font-size: 31.25, +25% from 25) -->
+  <!-- Typography Block: Centered vertically between bottom of RSS lines and end of ribbon -->
+  <!-- "AGENDA" in Bold 900 and "WEB" in Regular 400 (Font-size: 150, +50% from 100) -->
+  <!-- Slogan: "YOUR CULTURAL WEB FEED" (Font-size: 46.875, +50% from 31.25) -->
   <g id="logo-text">
-    <text x="315" y="292" 
+    <text x="315" y="336" 
           font-family="system-ui, -apple-system, 'Inter', 'Montserrat', 'Helvetica Neue', Arial, sans-serif" 
-          font-size="100" 
-          letter-spacing="1.5" 
+          font-size="150" 
+          letter-spacing="2.25" 
           class="brand-text"
           fill="#1B3B2B"><tspan font-weight="900">AGENDA</tspan><tspan font-weight="400">WEB</tspan></text>
-    <text x="318" y="342" 
+    <text x="318" y="406" 
           font-family="system-ui, -apple-system, 'Inter', 'Montserrat', 'Helvetica Neue', Arial, sans-serif" 
-          font-size="31.25" 
+          font-size="46.875" 
           font-weight="700" 
-          letter-spacing="2.8" 
+          letter-spacing="4.2" 
           class="brand-text"
           fill="#1B3B2B">YOUR CULTURAL WEB FEED</text>
   </g>

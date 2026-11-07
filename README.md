@@ -24,8 +24,8 @@ AgendaWeb/
 │   │   ├── suggestions.php              # Reader suggestion inbox submission
 │   │   └── users.php                    # Staff & role-based access management (Admins & Managers)
 │   ├── assets/                          # SVG brand emblems, iconography, and logos
-│   │   ├── icon.svg                     # Application PWA square icon
-│   │   ├── logo.svg                     # AgendaWeb geometric masthead emblem
+│   │   ├── icon.svg                     # Standalone PWA app icon (480x480 square lockup)
+│   │   ├── logo.svg                     # AgendaWeb brand masthead emblem (1380x480 vector)
 │   │   └── techsousa-logo.png           # TechSousa development attribution logo
 │   ├── config/
 │   │   ├── .env.example                 # Environment variables template
@@ -148,7 +148,7 @@ AgendaWeb/
 3. **Double-Encoded HTML Entity Sanitization:** Strips multi-pass encoded HTML and extracts high-resolution promotional artwork while filtering out publisher SVG logos and tracking pixels.
 
 ### C. Clean Reader Broadsheet Experience
-1. **Top 5 Category Bubbles:** To keep the broadsheet uncluttered, category bubbles beneath the search bar display only the top 5 primary categories without number counts. A 6th **"More ▾"** bubble expands all categories on demand, toggling to **"Less ▴"** to collapse.
+1. **Dynamic Feed & Source Filters:** Filter pills beneath the search bar dynamically surface active feeds and publications (individual personal RSS feeds in the Personal tab, active media publishers in News/Blogs, and saved sources in Reads) centered cleanly across the page. Up to 8 primary feeds are displayed with a **"More ▾"** expander for additional sources.
 2. **Proximity "Near Me" Filtering:** When enabled, the PWA uses the browser's Geolocation API to calculate distances via the Haversine formula, filtering events within 10 km.
 3. **Zero Registration:** Readers never create accounts or submit personal data to the server.
 4. **Local Storage:** All bookmarks, followed venues, channel preferences, and seen-card states persist in the browser's local IndexedDB.
