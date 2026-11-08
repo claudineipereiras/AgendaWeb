@@ -261,20 +261,27 @@ try {
         // If this is an event venue source, automatically register or update the venues database table
         if ($tab === 'events' || $type === 'scrape_event' || !empty($data['is_venue'])) {
             try {
+                require_once __DIR__ . '/../sync_sources.php';
+                $venueAddr = trim((string)($data['address'] ?? ''));
+                $cityId = resolveAustralianCity($pdo, $venueAddr . ' ' . $name, null);
+
                 $vstmt = $pdo->prepare("
-                    INSERT INTO venues (slug, name, address, website_url, feed_url, source_id)
-                    VALUES (:slug, :name, :address, :web, :feed, :sid)
+                    INSERT INTO venues (slug, city_id, name, address, website_url, feed_url, source_id, is_active)
+                    VALUES (:slug, :city_id, :name, :address, :web, :feed, :sid, 1)
                     ON DUPLICATE KEY UPDATE
                         name = VALUES(name),
+                        city_id = COALESCE(VALUES(city_id), city_id),
                         address = IF(VALUES(address) != '', VALUES(address), address),
                         website_url = VALUES(website_url),
                         feed_url = IF(VALUES(feed_url) IS NOT NULL, VALUES(feed_url), feed_url),
-                        source_id = VALUES(source_id)
+                        source_id = VALUES(source_id),
+                        is_active = 1
                 ");
                 $vstmt->execute([
                     'slug'    => $slug,
+                    'city_id' => $cityId,
                     'name'    => $name,
-                    'address' => trim((string)($data['address'] ?? '')),
+                    'address' => $venueAddr,
                     'web'     => $url,
                     'feed'    => !empty($data['feed_url']) ? $data['feed_url'] : null,
                     'sid'     => $newSourceId
@@ -284,10 +291,36 @@ try {
             }
         }
 
+        // Trigger immediate synchronous sync for the newly added source so events are available immediately
+        $itemCount = 0;
+        try {
+            require_once __DIR__ . '/../sync_sources.php';
+            $botAgent = $config['app']['bot_user_agent'] ?? 'AgendaWeb-Bot/1.0 (+https://agendaweb.app)';
+            $newSourceRow = [
+                'id'           => $newSourceId,
+                'slug'         => $slug,
+                'name'         => $name,
+                'type'         => $type,
+                'url'          => $url,
+                'feed_url'     => !empty($data['feed_url']) ? $data['feed_url'] : null,
+                'category_tab' => $tab
+            ];
+            if ($tab === 'events' || $type === 'scrape_event' || $type === 'api_event') {
+                $itemCount = syncSchemaOrgEvents($pdo, $newSourceRow, $botAgent);
+            } else {
+                $itemCount = syncRss($pdo, $newSourceRow, $botAgent);
+            }
+            $pdo->prepare("UPDATE sources SET item_count = :count, last_polled_at = NOW(), last_status = 'updated', http_code = 200 WHERE id = :id")
+                ->execute(['count' => $itemCount, 'id' => $newSourceId]);
+        } catch (\Throwable $se) {
+            // Non-fatal
+        }
+
         echo json_encode([
-            'status'  => 'success',
-            'message' => "Source '$name' added successfully" . (($tab === 'events' || $type === 'scrape_event') ? " and venue database updated" : ""),
-            'id'      => $newSourceId
+            'status'     => 'success',
+            'message'    => "Source '$name' added successfully" . (($tab === 'events' || $type === 'scrape_event') ? " and venue database updated" : ""),
+            'id'         => $newSourceId,
+            'item_count' => $itemCount
         ]);
         exit;
     }

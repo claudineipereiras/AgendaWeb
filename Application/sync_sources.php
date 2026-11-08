@@ -314,6 +314,10 @@ function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): int {
         INSERT INTO events (city_id, venue_slug, title, description, category, age_restriction, min_age, is_family_friendly, start_time, end_time, venue_name, address, suburb, ticket_url, image_url, origin)
         VALUES (:city_id, :slug, :title, :description, :cat, :age, :min_age, :family, :start, :end, :vname, :addr, :suburb, :turl, :image, 'scraped')
         ON DUPLICATE KEY UPDATE 
+            city_id = COALESCE(VALUES(city_id), city_id),
+            venue_name = VALUES(venue_name),
+            address = IF(VALUES(address) != '', VALUES(address), address),
+            suburb = IF(VALUES(suburb) != '', VALUES(suburb), suburb),
             description = IF(origin = 'manual', description, VALUES(description)),
             ticket_url = IF(origin = 'manual', ticket_url, VALUES(ticket_url)),
             end_time = IF(origin = 'manual', end_time, VALUES(end_time)),
@@ -395,7 +399,7 @@ function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): int {
                 if (empty($node['name']) || empty($node['startDate'])) continue;
 
                 $start = date('Y-m-d H:i:s', strtotime($node['startDate']));
-                if (strtotime($start) < time()) continue;
+                if (strtotime($start) < time() - 86400) continue;
 
                 // Extract image from schema.org
                 $imageUrl = null;
@@ -423,8 +427,8 @@ function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): int {
                 // Ensure venues table is updated with auto-detected venue details
                 try {
                     $vstmt = $pdo->prepare("
-                        INSERT INTO venues (slug, city_id, name, address, suburb, state, postcode, default_age_policy, website_url, source_id)
-                        VALUES (:slug, :city_id, :name, :address, :suburb, :state, :postcode, :age_policy, :web, :sid)
+                        INSERT INTO venues (slug, city_id, name, address, suburb, state, postcode, default_age_policy, website_url, source_id, is_active)
+                        VALUES (:slug, :city_id, :name, :address, :suburb, :state, :postcode, :age_policy, :web, :sid, 1)
                         ON DUPLICATE KEY UPDATE 
                             name = VALUES(name),
                             city_id = COALESCE(VALUES(city_id), city_id),
@@ -433,7 +437,8 @@ function syncSchemaOrgEvents(PDO $pdo, array $source, string $userAgent): int {
                             state = VALUES(state),
                             postcode = IF(VALUES(postcode) != '', VALUES(postcode), postcode),
                             website_url = VALUES(website_url),
-                            source_id = VALUES(source_id)
+                            source_id = VALUES(source_id),
+                            is_active = 1
                     ");
                     $vstmt->execute([
                         'slug'       => $source['slug'],

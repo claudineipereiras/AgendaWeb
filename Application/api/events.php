@@ -29,7 +29,7 @@ $offset = max((int)(filter_input(INPUT_GET, 'offset', FILTER_VALIDATE_INT) ?: 0)
 try {
     $pdo = Database::getConnection();
 
-    $where = ["e.start_time >= NOW()"];
+    $where = ["(e.start_time >= DATE_SUB(NOW(), INTERVAL 14 HOUR) OR (e.end_time IS NOT NULL AND e.end_time >= NOW()))"];
     $params = [];
 
     if ($venue !== 'all') {
@@ -41,8 +41,13 @@ try {
         $params['category'] = $category;
     }
     if ($city !== 'all' && $city !== 'All') {
-        $where[] = "(c.slug = :city OR e.address LIKE CONCAT('%', :city, '%'))";
-        $params['city'] = $city;
+        $cityLower = strtolower($city);
+        if ($cityLower === 'melbourne') {
+            $where[] = "(c.slug = 'melbourne' OR c.slug IS NULL OR e.city_id IS NULL OR e.address LIKE '%melbourne%' OR v.address LIKE '%melbourne%' OR e.address LIKE '%VIC%' OR v.address LIKE '%VIC%' OR v.state = 'VIC' OR e.suburb = 'Melbourne' OR v.suburb = 'Melbourne')";
+        } else {
+            $where[] = "(c.slug = :city OR e.address LIKE CONCAT('%', :city, '%') OR v.address LIKE CONCAT('%', :city, '%') OR e.suburb = :city OR v.suburb = :city)";
+            $params['city'] = $city;
+        }
     }
     if ($suburb !== 'all' && $suburb !== 'All') {
         $where[] = "(e.suburb = :suburb OR v.suburb = :suburb OR e.address LIKE CONCAT('%', :suburb, '%'))";
@@ -62,7 +67,7 @@ try {
     $countStmt = $pdo->prepare("
         SELECT COUNT(e.id) 
         FROM events e
-        LEFT JOIN venues v ON v.slug = e.venue_slug
+        LEFT JOIN venues v ON (v.slug = e.venue_slug OR (e.venue_name IS NOT NULL AND v.name = e.venue_name))
         LEFT JOIN cities c ON (c.id = e.city_id OR c.id = v.city_id)
         WHERE {$whereSql}
     ");
@@ -73,14 +78,19 @@ try {
     $catQuery = "
         SELECT DISTINCT e.category 
         FROM events e
-        LEFT JOIN venues v ON v.slug = e.venue_slug
+        LEFT JOIN venues v ON (v.slug = e.venue_slug OR (e.venue_name IS NOT NULL AND v.name = e.venue_name))
         LEFT JOIN cities c ON (c.id = e.city_id OR c.id = v.city_id)
-        WHERE e.start_time >= NOW()
+        WHERE (e.start_time >= DATE_SUB(NOW(), INTERVAL 14 HOUR) OR (e.end_time IS NOT NULL AND e.end_time >= NOW()))
     ";
     $catParams = [];
     if ($city !== 'all' && $city !== 'All') {
-        $catQuery .= " AND (c.slug = :city OR e.address LIKE CONCAT('%', :city, '%'))";
-        $catParams['city'] = $city;
+        $cityLower = strtolower($city);
+        if ($cityLower === 'melbourne') {
+            $catQuery .= " AND (c.slug = 'melbourne' OR c.slug IS NULL OR e.city_id IS NULL OR e.address LIKE '%melbourne%' OR v.address LIKE '%melbourne%' OR e.address LIKE '%VIC%' OR v.address LIKE '%VIC%' OR v.state = 'VIC' OR e.suburb = 'Melbourne' OR v.suburb = 'Melbourne')";
+        } else {
+            $catQuery .= " AND (c.slug = :city OR e.address LIKE CONCAT('%', :city, '%') OR v.address LIKE CONCAT('%', :city, '%') OR e.suburb = :city OR v.suburb = :city)";
+            $catParams['city'] = $city;
+        }
     }
     $catQuery .= " ORDER BY e.category ASC";
     $catStmt = $pdo->prepare($catQuery);
@@ -102,7 +112,7 @@ try {
                 e.start_time, 
                 e.end_time, 
                 e.address, 
-                e.suburb,
+                e.suburb, 
                 e.ticket_url, 
                 e.image_url, 
                 e.origin, 
@@ -110,7 +120,7 @@ try {
                 COALESCE(c.name, 'Melbourne') AS city_name,
                 COALESCE(c.slug, 'melbourne') AS city_slug
             FROM events e
-            LEFT JOIN venues v ON v.slug = e.venue_slug
+            LEFT JOIN venues v ON (v.slug = e.venue_slug OR (e.venue_name IS NOT NULL AND v.name = e.venue_name))
             LEFT JOIN cities c ON (c.id = e.city_id OR c.id = v.city_id)
             WHERE {$whereSql}
             ORDER BY e.start_time ASC
@@ -145,7 +155,8 @@ try {
             SELECT v.slug, v.name, v.address, v.suburb, v.website_url, v.feed_url, v.default_age_policy,
                    COUNT(e.id) AS event_count
             FROM venues v
-            LEFT JOIN events e ON e.venue_slug = v.slug AND e.start_time >= NOW()
+            LEFT JOIN events e ON (e.venue_slug = v.slug OR (e.venue_name IS NOT NULL AND e.venue_name = v.name)) 
+                              AND (e.start_time >= DATE_SUB(NOW(), INTERVAL 14 HOUR) OR (e.end_time IS NOT NULL AND e.end_time >= NOW()))
             WHERE v.is_active = 1
             GROUP BY v.id
             ORDER BY v.name ASC

@@ -23,10 +23,11 @@ $category = filter_input(INPUT_GET, 'category', FILTER_DEFAULT);
 $city = filter_input(INPUT_GET, 'city', FILTER_DEFAULT) ?? 'all';
 
 $sql = "SELECT e.* FROM events e 
-        LEFT JOIN venues v ON v.slug = e.venue_slug
+        LEFT JOIN venues v ON (v.slug = e.venue_slug OR (e.venue_name IS NOT NULL AND v.name = e.venue_name))
         LEFT JOIN sources s ON v.source_id = s.id 
         LEFT JOIN cities c ON (c.id = e.city_id OR c.id = v.city_id)
-        WHERE e.start_time >= NOW() AND (s.is_active = 1 OR s.id IS NULL OR e.origin = 'manual')";
+        WHERE (e.start_time >= DATE_SUB(NOW(), INTERVAL 14 HOUR) OR (e.end_time IS NOT NULL AND e.end_time >= NOW()))
+          AND (s.is_active = 1 OR s.id IS NULL OR e.origin = 'manual')";
 $params = [];
 
 if ($venue !== 'all') {
@@ -38,8 +39,13 @@ if (!empty($category) && $category !== 'All') {
     $params['cat'] = $category;
 }
 if (!empty($city) && $city !== 'all') {
-    $sql .= " AND (c.slug = :city OR e.address LIKE CONCAT('%', :city, '%'))";
-    $params['city'] = $city;
+    $cityLower = strtolower($city);
+    if ($cityLower === 'melbourne') {
+        $sql .= " AND (c.slug = 'melbourne' OR c.slug IS NULL OR e.city_id IS NULL OR e.address LIKE '%melbourne%' OR v.address LIKE '%melbourne%' OR e.address LIKE '%VIC%' OR v.address LIKE '%VIC%' OR v.state = 'VIC' OR e.suburb = 'Melbourne' OR v.suburb = 'Melbourne')";
+    } else {
+        $sql .= " AND (c.slug = :city OR e.address LIKE CONCAT('%', :city, '%') OR v.address LIKE CONCAT('%', :city, '%') OR e.suburb = :city OR v.suburb = :city)";
+        $params['city'] = $city;
+    }
 }
 
 $sql .= " ORDER BY e.start_time ASC LIMIT 60";

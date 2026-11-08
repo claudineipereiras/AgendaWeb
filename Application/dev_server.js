@@ -1057,22 +1057,26 @@ const requestHandler = async (req, res) => {
     const family = parsedUrl.query.family;
 
     // Filter by active sources and venues:
-    // If a source was removed or toggled inactive in Admin, its events MUST NOT appear in the feed
-    const activeSources = MOCK_SOURCES.filter(s => s.is_active);
-    const activeSourceIds = new Set(activeSources.map(s => s.id));
-    const activeSourceSlugs = new Set(activeSources.map(s => s.slug));
-    const activeSourceNames = new Set(activeSources.map(s => (s.name || '').toLowerCase()));
-    const activeVenueSlugs = new Set(MOCK_VENUES.filter(v => v.is_active !== 0).map(v => v.slug));
+    // If a source or venue was removed or toggled inactive in Admin, its events MUST NOT appear in the feed
+    const inactiveSourceIds = new Set(MOCK_SOURCES.filter(s => s.is_active === 0).map(s => s.id));
+    const inactiveVenueSlugs = new Set(MOCK_VENUES.filter(v => v.is_active === 0).map(v => v.slug));
 
     let filtered = MOCK_EVENTS.filter(e => {
-      if (e.source_id && !activeSourceIds.has(e.source_id)) return false;
-      if (e.venue_slug && !activeSourceSlugs.has(e.venue_slug) && !activeVenueSlugs.has(e.venue_slug)) return false;
-      if (!e.source_id && !e.venue_slug && e.venue_name && !activeSourceNames.has(e.venue_name.toLowerCase())) return false;
+      if (e.source_id && inactiveSourceIds.has(e.source_id)) return false;
+      if (e.venue_slug && inactiveVenueSlugs.has(e.venue_slug)) return false;
       return true;
     });
 
     if (city && city !== 'all') {
-      filtered = filtered.filter(e => e.city_slug === city || (e.city_name || '').toLowerCase() === city.toLowerCase());
+      const cityLower = city.toLowerCase();
+      filtered = filtered.filter(e => {
+        const eCity = (e.city_slug || 'melbourne').toLowerCase();
+        const eCityName = (e.city_name || 'Melbourne').toLowerCase();
+        if (cityLower === 'melbourne') {
+          return eCity === 'melbourne' || eCityName === 'melbourne' || !e.city_slug || (e.address || '').toLowerCase().includes('melbourne') || (e.address || '').toUpperCase().includes('VIC');
+        }
+        return eCity === cityLower || eCityName === cityLower || (e.address || '').toLowerCase().includes(cityLower);
+      });
     }
     if (category && category !== 'all' && category !== 'All') {
       filtered = filtered.filter(e => e.category.toLowerCase() === category.toLowerCase());

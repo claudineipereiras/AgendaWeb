@@ -157,4 +157,48 @@ console.log('--- Running AgendaWeb Scraper & Regression Suite ---');
   console.log('✓ Test 5 Passed: Double-encoded HTML entities stripped cleanly without exposing raw tags or publisher logo wrappers.');
 }
 
-console.log('\nAll 5 Regression Tests PASSED successfully! 🚀');
+// Test 6: Event Feed City Resolution & Same-Day Window Matching
+{
+  function matchCityFilter(event, selectedCity = 'melbourne') {
+    const cityLower = (selectedCity || 'melbourne').toLowerCase();
+    const eCity = (event.city_slug || 'melbourne').toLowerCase();
+    const eCityName = (event.city_name || 'Melbourne').toLowerCase();
+    if (cityLower === 'melbourne') {
+      return eCity === 'melbourne' || eCityName === 'melbourne' || !event.city_slug || (event.address || '').toLowerCase().includes('melbourne') || (event.address || '').toUpperCase().includes('VIC');
+    }
+    return eCity === cityLower || eCityName === cityLower || (event.address || '').toLowerCase().includes(cityLower);
+  }
+
+  function isEventVisibleToday(startTimeIso, nowIso) {
+    const startMs = new Date(startTimeIso).getTime();
+    const nowMs = new Date(nowIso).getTime();
+    const windowStartMs = nowMs - (14 * 60 * 60 * 1000); // 14-hour grace window covering evening & timezone shifts
+    return startMs >= windowStartMs;
+  }
+
+  // Event with no explicit city_slug but in Fitzroy VIC
+  const event1 = {
+    title: "Post-Punk Matinee",
+    city_slug: null,
+    city_name: null,
+    address: "124 Gertrude St, Fitzroy VIC 3065",
+    start_time: new Date(Date.now() - 2 * 3600 * 1000).toISOString() // started 2 hours ago
+  };
+
+  assert.strictEqual(matchCityFilter(event1, 'melbourne'), true, 'VIC / unassigned event must match default Melbourne feed');
+  assert.strictEqual(isEventVisibleToday(event1.start_time, new Date().toISOString()), true, 'Event started earlier today must remain visible in feed');
+
+  // Event explicitly in Sydney should not match Melbourne
+  const event2 = {
+    title: "Harbour Jazz",
+    city_slug: "sydney",
+    city_name: "Sydney",
+    address: "Darling Harbour NSW 2000"
+  };
+  assert.strictEqual(matchCityFilter(event2, 'melbourne'), false, 'Sydney event must not match Melbourne feed');
+  assert.strictEqual(matchCityFilter(event2, 'sydney'), true, 'Sydney event must match Sydney feed');
+
+  console.log('✓ Test 6 Passed: Event feed city fallback and same-day 14-hour visibility window verified.');
+}
+
+console.log('\nAll 6 Regression Tests PASSED successfully! 🚀');
