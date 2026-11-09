@@ -2189,6 +2189,45 @@ const requestHandler = async (req, res) => {
       return;
     }
 
+    // Admin action: list curated articles & dispatches
+    if (action === 'items') {
+      const tab = parsedUrl.query.tab || 'all';
+      let allItems = [];
+      if (tab === 'all') {
+        allItems = [...(MOCK_ITEMS.news || []), ...(MOCK_ITEMS.blogs || []), ...(MOCK_ITEMS.politics || []), ...(MOCK_ITEMS.culture || [])];
+      } else {
+        allItems = MOCK_ITEMS[tab] || [];
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        status: 'success',
+        count: allItems.length,
+        total: allItems.length,
+        data: allItems
+      }));
+      return;
+    }
+
+    // Admin action: delete an individual article from the feed
+    if (action === 'delete_item' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        let payload = {};
+        try { payload = JSON.parse(body); } catch (e) {}
+        const itemId = parseInt(payload.id, 10);
+        ['news', 'blogs', 'politics', 'culture'].forEach(tab => {
+          if (MOCK_ITEMS[tab]) {
+            MOCK_ITEMS[tab] = MOCK_ITEMS[tab].filter(i => i.id !== itemId);
+          }
+        });
+        persistDb();
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'success', message: 'Article removed from curated feed' }));
+      });
+      return;
+    }
+
     // Admin action: delete an individual event from the feed
     if (action === 'delete_event' && req.method === 'POST') {
       let body = '';
@@ -2272,6 +2311,14 @@ const requestHandler = async (req, res) => {
               }
             });
             MOCK_EVENTS = MOCK_EVENTS.filter(e => !idSet.has(e.id));
+          }
+        } else if (type === 'items') {
+          if (operation === 'delete') {
+            ['news', 'blogs', 'politics', 'culture'].forEach(tab => {
+              if (MOCK_ITEMS[tab]) {
+                MOCK_ITEMS[tab] = MOCK_ITEMS[tab].filter(i => !idSet.has(i.id));
+              }
+            });
           }
         }
 

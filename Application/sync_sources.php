@@ -111,10 +111,16 @@ function syncRss(PDO $pdo, array $source, string $userAgent): int {
             INSERT INTO events (city_id, venue_slug, title, description, category, age_restriction, min_age, is_family_friendly, start_time, end_time, venue_name, address, suburb, ticket_url, image_url, origin)
             VALUES (:city_id, :slug, :title, :description, :cat, :age, :min_age, :family, :start, :end, :vname, :addr, :suburb, :turl, :image, 'scraped')
             ON DUPLICATE KEY UPDATE 
+                city_id = COALESCE(VALUES(city_id), city_id),
+                venue_name = VALUES(venue_name),
+                address = IF(VALUES(address) != '', VALUES(address), address),
+                suburb = IF(VALUES(suburb) != '', VALUES(suburb), suburb),
                 description = IF(origin = 'manual', description, VALUES(description)),
                 ticket_url = IF(origin = 'manual', ticket_url, VALUES(ticket_url)),
                 end_time = IF(origin = 'manual', end_time, VALUES(end_time)),
-                image_url = IF(origin = 'manual', image_url, VALUES(image_url))
+                image_url = IF(origin = 'manual', image_url, VALUES(image_url)),
+                age_restriction = VALUES(age_restriction),
+                is_family_friendly = VALUES(is_family_friendly)
         ");
 
         foreach ($items as $item) {
@@ -175,6 +181,31 @@ function syncRss(PDO $pdo, array $source, string $userAgent): int {
             ]);
             $count++;
         }
+
+        if ($count > 0) {
+            try {
+                $vstmt = $pdo->prepare("
+                    INSERT INTO venues (slug, city_id, name, address, suburb, state, website_url, source_id, is_active)
+                    VALUES (:slug, :city_id, :name, :address, 'Melbourne', 'VIC', :web, :sid, 1)
+                    ON DUPLICATE KEY UPDATE 
+                        name = VALUES(name),
+                        city_id = COALESCE(VALUES(city_id), city_id),
+                        address = IF(VALUES(address) != '', VALUES(address), address),
+                        website_url = VALUES(website_url),
+                        source_id = VALUES(source_id),
+                        is_active = 1
+                ");
+                $vstmt->execute([
+                    'slug'    => $source['slug'],
+                    'city_id' => $cityId ?: 1,
+                    'name'    => $source['name'],
+                    'address' => $vaddr,
+                    'web'     => $source['url'],
+                    'sid'     => $source['id']
+                ]);
+            } catch (\Throwable $ve) {}
+        }
+
         return $count;
     }
 

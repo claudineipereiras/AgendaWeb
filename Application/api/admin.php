@@ -8,6 +8,8 @@ use AgendaWeb\Database;
 use AgendaWeb\Auth;
 
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Admin-Token, X-Admin-Key');
@@ -305,10 +307,10 @@ try {
                 'feed_url'     => !empty($data['feed_url']) ? $data['feed_url'] : null,
                 'category_tab' => $tab
             ];
-            if ($tab === 'events' || $type === 'scrape_event' || $type === 'api_event') {
-                $itemCount = syncSchemaOrgEvents($pdo, $newSourceRow, $botAgent);
-            } else {
+            if ($type === 'rss') {
                 $itemCount = syncRss($pdo, $newSourceRow, $botAgent);
+            } else {
+                $itemCount = syncSchemaOrgEvents($pdo, $newSourceRow, $botAgent);
             }
             $pdo->prepare("UPDATE sources SET item_count = :count, last_polled_at = NOW(), last_status = 'updated', http_code = 200 WHERE id = :id")
                 ->execute(['count' => $itemCount, 'id' => $newSourceId]);
@@ -561,6 +563,10 @@ try {
             if ($operation === 'delete') {
                 $pdo->prepare("DELETE FROM events WHERE id IN ($in)")->execute($ids);
             }
+        } elseif ($type === 'items') {
+            if ($operation === 'delete') {
+                $pdo->prepare("DELETE FROM items WHERE id IN ($in)")->execute($ids);
+            }
         }
 
         echo json_encode(['status' => 'success', 'message' => "Bulk {$operation} completed for " . count($ids) . " items"]);
@@ -596,6 +602,55 @@ try {
             'count'  => count($events),
             'data'   => $events
         ]);
+        exit;
+    }
+
+    // 5.4 Curated Dispatches & Articles Directory
+    if ($action === 'items') {
+        $tab = filter_input(INPUT_GET, 'tab', FILTER_DEFAULT) ?? 'all';
+        $where = [];
+        $params = [];
+
+        if ($tab !== 'all') {
+            $where[] = "i.category_tab = :tab";
+            $params['tab'] = $tab;
+        }
+        $whereSql = !empty($where) ? "WHERE " . implode(' AND ', $where) : "";
+
+        $stmt = $pdo->prepare("
+            SELECT i.id, i.title, i.category_tab, i.category, i.link, i.summary, i.image_url, i.published_at,
+                   s.name as source_name
+            FROM items i
+            LEFT JOIN sources s ON i.source_id = s.id
+            {$whereSql}
+            ORDER BY i.published_at DESC
+            LIMIT 250
+        ");
+        $stmt->execute($params);
+        $items = $stmt->fetchAll();
+
+        echo json_encode([
+            'status' => 'success',
+            'count'  => count($items),
+            'data'   => $items
+        ]);
+        exit;
+    }
+
+    // 5.5 Delete Curated Article / Dispatch
+    if ($action === 'delete_item' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true) ?: $_POST;
+        $id = (int)($data['id'] ?? 0);
+
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Article ID required']);
+            exit;
+        }
+
+        $pdo->prepare("DELETE FROM items WHERE id = :id")->execute(['id' => $id]);
+        echo json_encode(['status' => 'success', 'message' => 'Article removed from feed']);
         exit;
     }
 

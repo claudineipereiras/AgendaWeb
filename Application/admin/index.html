@@ -334,19 +334,19 @@
     
     <!-- Stats Overview -->
     <div class="stats-grid">
-      <div class="stat-card">
+      <div class="stat-card" style="cursor:pointer;" onclick="switchAdminTab('sources')" title="View curated feeds">
         <div class="stat-title">Curated Feeds</div>
         <div class="stat-value" id="stat-sources">-</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" style="cursor:pointer;" onclick="switchAdminTab('events')" title="View verified gigs">
         <div class="stat-title">Verified Gigs</div>
         <div class="stat-value" id="stat-events">-</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" style="cursor:pointer;" onclick="switchAdminTab('items')" title="View curated dispatches & articles">
         <div class="stat-title">Curated Dispatches</div>
         <div class="stat-value" id="stat-items">-</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" style="cursor:pointer;" onclick="switchAdminTab('suggestions')" title="View reader suggestions">
         <div class="stat-title">New Suggestions</div>
         <div class="stat-value" id="stat-suggestions" style="color:var(--color-amber-rust);">-</div>
       </div>
@@ -359,6 +359,9 @@
       </button>
       <button class="nav-btn" data-tab="events" onclick="switchAdminTab('events')">
         🗓️ Published Events <span class="badge-count" id="events-badge" style="display:none;">0</span>
+      </button>
+      <button class="nav-btn" data-tab="items" id="nav-btn-items" onclick="switchAdminTab('items')">
+        📰 Articles & Dispatches <span class="badge-count" id="items-badge" style="display:none;">0</span>
       </button>
       <button class="nav-btn" data-tab="suggestions" onclick="switchAdminTab('suggestions')">
         📬 Suggestion Inbox <span class="badge-count" id="inbox-badge" style="display:none;">0</span>
@@ -467,6 +470,48 @@
         </thead>
         <tbody id="events-table-body">
           <tr><td colspan="7" style="text-align:center; padding:24px;">Loading published events...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Tab 1.6: Curated Dispatches & Articles -->
+    <section id="tab-items" style="display:none;">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Curated Dispatches & Articles</h2>
+          <p style="font-size:0.85rem; color:var(--color-text-muted);">Browse and manage live news dispatches, reviews, and cultural essays ingested from RSS feeds into MySQL.</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="item-search-input" placeholder="Search dispatches or sources..." oninput="renderAdminItemsTable(this.value)" style="padding:6px 12px; font-size:0.85rem; border:1px solid #ccc; border-radius:var(--radius-sm); min-width:240px;">
+          <button class="btn btn-outline" onclick="loadAdminItems()">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <button class="btn btn-outline filter-item-btn active" onclick="filterAdminItems('all', this)">All Channels</button>
+        <button class="btn btn-outline filter-item-btn" onclick="filterAdminItems('news', this)">News</button>
+        <button class="btn btn-outline filter-item-btn" onclick="filterAdminItems('blogs', this)">Blogs & Articles</button>
+      </div>
+
+      <!-- Items Bulk Actions Toolbar -->
+      <div id="items-bulk-bar" style="display:none; align-items:center; gap:10px; background:#ffebee; border:1px solid #ffcdd2; padding:8px 16px; border-radius:var(--radius-sm); margin-bottom:12px;">
+        <span style="font-weight:700; font-size:0.85rem; color:#b71c1c;" id="items-selected-count">0 selected</span>
+        <button class="btn btn-outline" style="font-size:0.78rem; padding:4px 10px; color:#b71c1c; border-color:#b71c1c;" onclick="executeBulkAction('items', 'delete')">✕ Remove Selected from Feed</button>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:36px;"><input type="checkbox" id="select-all-items" onchange="toggleSelectAllItems(this.checked)"></th>
+            <th style="width:70px;">Channel</th>
+            <th>Article Title & Summary</th>
+            <th>Source Feed</th>
+            <th>Published Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="items-table-body">
+          <tr><td colspan="6" style="text-align:center; padding:24px;">Loading curated dispatches...</td></tr>
         </tbody>
       </table>
     </section>
@@ -913,6 +958,7 @@
 
     async function apiRequest(endpoint, options = {}) {
       options.headers = options.headers || {};
+      options.cache = 'no-store';
       if (authToken) {
         options.headers['Authorization'] = 'Bearer ' + authToken;
         options.headers['X-Admin-Token'] = authToken;
@@ -923,7 +969,12 @@
         options.body = JSON.stringify(options.body);
       }
       try {
-        const res = await fetch(endpoint, options);
+        let url = endpoint;
+        if (!options.method || options.method === 'GET') {
+          const sep = url.includes('?') ? '&' : '?';
+          url = `${url}${sep}_t=${Date.now()}`;
+        }
+        const res = await fetch(url, options);
         if (res.status === 401) {
           logout();
           return null;
@@ -1233,6 +1284,12 @@
         eventsBadge.style.display = statsRes.data.total_events > 0 ? 'inline-block' : 'none';
       }
 
+      const itemsBadge = document.getElementById('items-badge');
+      if (itemsBadge && statsRes.data.total_items !== undefined) {
+        itemsBadge.textContent = statsRes.data.total_items;
+        itemsBadge.style.display = statsRes.data.total_items > 0 ? 'inline-block' : 'none';
+      }
+
       await loadSources();
       return true;
     }
@@ -1242,12 +1299,15 @@
       document.getElementById('tab-sources').style.display = tabName === 'sources' ? 'block' : 'none';
       const tabEvents = document.getElementById('tab-events');
       if (tabEvents) tabEvents.style.display = tabName === 'events' ? 'block' : 'none';
+      const tabItems = document.getElementById('tab-items');
+      if (tabItems) tabItems.style.display = tabName === 'items' ? 'block' : 'none';
       document.getElementById('tab-suggestions').style.display = tabName === 'suggestions' ? 'block' : 'none';
       const tabUsers = document.getElementById('tab-users');
       if (tabUsers) tabUsers.style.display = tabName === 'users' ? 'block' : 'none';
       document.getElementById('tab-system').style.display = tabName === 'system' ? 'block' : 'none';
 
       if (tabName === 'events') loadEvents();
+      if (tabName === 'items') loadAdminItems();
       if (tabName === 'suggestions') loadSuggestions();
       if (tabName === 'sources') loadSources();
       if (tabName === 'users') loadUsers();
@@ -1508,7 +1568,7 @@
     }
 
     async function executeBulkAction(type, op) {
-      const selector = type === 'sources' ? '.source-checkbox:checked' : '.event-checkbox:checked';
+      const selector = type === 'sources' ? '.source-checkbox:checked' : (type === 'items' ? '.item-checkbox:checked' : '.event-checkbox:checked');
       const selectedIds = Array.from(document.querySelectorAll(selector)).map(cb => parseInt(cb.value, 10));
       if (selectedIds.length === 0) {
         alert('Please select at least one item.');
@@ -1529,6 +1589,10 @@
         if (type === 'sources') {
           await loadDashboard();
           updateSourcesBulkBar();
+        } else if (type === 'items') {
+          await loadAdminItems();
+          await loadDashboard();
+          updateItemsBulkBar();
         } else {
           await loadEvents();
           updateEventsBulkBar();
@@ -1550,6 +1614,117 @@
         await loadDashboard();
       } else {
         alert('Failed to delete event: ' + (res ? res.message : 'Error'));
+      }
+    }
+
+    // Curated Dispatches & Articles Directory (News & Blogs)
+    let currentAdminItems = [];
+    let currentItemFilter = 'all';
+
+    function filterAdminItems(channel, btn) {
+      currentItemFilter = channel;
+      document.querySelectorAll('.filter-item-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderAdminItemsTable();
+    }
+
+    async function loadAdminItems() {
+      const tbody = document.getElementById('items-table-body');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px;">Loading curated dispatches from feeds...</td></tr>';
+      const res = await apiRequest('../api/admin.php?action=items');
+      if (!res || res.status !== 'success') {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--color-crimson);">Failed to load curated dispatches.</td></tr>';
+        return;
+      }
+      currentAdminItems = res.data || [];
+      const badge = document.getElementById('items-badge');
+      if (badge) {
+        badge.textContent = currentAdminItems.length;
+        badge.style.display = currentAdminItems.length > 0 ? 'inline-block' : 'none';
+      }
+      renderAdminItemsTable();
+    }
+
+    function renderAdminItemsTable(filterText = '') {
+      const tbody = document.getElementById('items-table-body');
+      if (!tbody) return;
+      let items = currentAdminItems;
+      if (currentItemFilter !== 'all') {
+        items = items.filter(i => i.category_tab === currentItemFilter);
+      }
+      if (filterText) {
+        const q = filterText.toLowerCase();
+        items = items.filter(i => 
+          (i.title || '').toLowerCase().includes(q) ||
+          (i.source_name || '').toLowerCase().includes(q) ||
+          (i.summary || '').toLowerCase().includes(q)
+        );
+      }
+
+      if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--color-text-muted);">No curated dispatches found.</td></tr>';
+        updateItemsBulkBar();
+        return;
+      }
+
+      tbody.innerHTML = items.map(item => `
+        <tr>
+          <td><input type="checkbox" class="item-checkbox" value="${item.id}" onchange="updateItemsBulkBar()"></td>
+          <td><span class="tag-badge tag-${item.category_tab}">${escapeHtml(item.category_tab)}</span></td>
+          <td>
+            <strong>
+              <a href="${escapeHtml(item.link)}" target="_blank" rel="noopener" style="color:var(--color-nightfall); text-decoration:none;">
+                ${escapeHtml(item.title)} ↗
+              </a>
+            </strong>
+            ${item.summary ? `<div style="font-size:0.78rem; color:var(--color-text-muted); margin-top:3px; max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(item.summary)}</div>` : ''}
+          </td>
+          <td>
+            <span style="font-weight:600; font-size:0.83rem;">${escapeHtml(item.source_name || 'RSS Source')}</span>
+            ${item.category && item.category !== 'General' ? `<br><small style="color:var(--color-text-muted); font-size:0.75rem;">${escapeHtml(item.category)}</small>` : ''}
+          </td>
+          <td style="font-size:0.78rem; color:var(--color-text-muted);">${item.published_at ? escapeHtml(item.published_at.slice(0, 16)) : 'Recent'}</td>
+          <td>
+            <button class="btn btn-danger" style="padding:2px 7px; font-size:0.75rem;" onclick="deleteAdminItem(${item.id}, '${escapeQuote(item.title)}')">✕ Remove</button>
+          </td>
+        </tr>
+      `).join('');
+      updateItemsBulkBar();
+    }
+
+    function toggleSelectAllItems(checked) {
+      document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = checked);
+      updateItemsBulkBar();
+    }
+
+    function updateItemsBulkBar() {
+      const selected = Array.from(document.querySelectorAll('.item-checkbox:checked')).map(cb => cb.value);
+      const bar = document.getElementById('items-bulk-bar');
+      const countLabel = document.getElementById('items-selected-count');
+      if (bar) {
+        if (selected.length > 0) {
+          bar.style.display = 'flex';
+          countLabel.textContent = `${selected.length} dispatch${selected.length > 1 ? 'es' : ''} selected`;
+        } else {
+          bar.style.display = 'none';
+          const selectAll = document.getElementById('select-all-items');
+          if (selectAll) selectAll.checked = false;
+        }
+      }
+    }
+
+    async function deleteAdminItem(id, title) {
+      if (!confirm(`Remove "${title}" from the curated feed?`)) return;
+      const res = await apiRequest('../api/admin.php?action=delete_item', {
+        method: 'POST',
+        body: { id }
+      });
+      if (res && res.status === 'success') {
+        alert(`✓ Article removed.`);
+        await loadAdminItems();
+        await loadDashboard();
+      } else {
+        alert('Failed to delete item: ' + (res ? res.message : 'Error'));
       }
     }
 
@@ -1679,9 +1854,27 @@
 
       if (res && res.status === 'success') {
         closeAddSourceModal();
+
+        // Switch sources filter to the newly added category or All so the source is immediately visible in the table
+        currentSourceFilter = tab || 'all';
+        document.querySelectorAll('.filter-source-btn').forEach(b => b.classList.remove('active'));
+        const matchedFilterBtn = Array.from(document.querySelectorAll('.filter-source-btn')).find(b => b.getAttribute('onclick')?.includes(`'${currentSourceFilter}'`));
+        if (matchedFilterBtn) {
+          matchedFilterBtn.classList.add('active');
+        } else {
+          currentSourceFilter = 'all';
+          const allBtn = document.querySelector('.filter-source-btn');
+          if (allBtn) allBtn.classList.add('active');
+        }
+
         await loadDashboard();
-        if (res.item_count !== undefined && res.item_count > 0) {
-          alert(`✓ "${name}" added successfully!\nExtracted ${res.item_count} upcoming events.`);
+        if (currentEvents && currentEvents.length > 0) await loadEvents();
+        if (currentAdminItems && currentAdminItems.length > 0) await loadAdminItems();
+
+        const count = res.item_count !== undefined ? res.item_count : 0;
+        const itemTypeLabel = tab === 'events' ? 'upcoming events' : 'articles & dispatches';
+        if (count > 0) {
+          alert(`✓ "${name}" added successfully!\nExtracted ${count} ${itemTypeLabel}.`);
         } else if (tab === 'events') {
           alert(`✓ "${name}" added to Curation sources.\n\nNote: 0 upcoming events were detected automatically.\nIf the venue uses client-side JavaScript (e.g. Oztix/Humanitix widgets), paste their direct events RSS or .ics calendar, or click '🔄 Sync' on the sources table to retry.`);
         } else {

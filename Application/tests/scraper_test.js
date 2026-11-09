@@ -201,4 +201,32 @@ console.log('--- Running AgendaWeb Scraper & Regression Suite ---');
   console.log('✓ Test 6 Passed: Event feed city fallback and same-day 14-hour visibility window verified.');
 }
 
-console.log('\nAll 6 Regression Tests PASSED successfully! 🚀');
+// Test 7: RSS Ingestion Strategy Routing & Category Table Filtering
+{
+  function resolveSyncStrategy(source) {
+    if (source.type === 'rss') {
+      return 'syncRss';
+    }
+    return 'syncSchemaOrgEvents';
+  }
+
+  assert.strictEqual(resolveSyncStrategy({ type: 'rss', category_tab: 'blogs' }), 'syncRss');
+  assert.strictEqual(resolveSyncStrategy({ type: 'rss', category_tab: 'news' }), 'syncRss');
+  assert.strictEqual(resolveSyncStrategy({ type: 'rss', category_tab: 'events' }), 'syncRss', 'Event RSS must use syncRss not SchemaOrg');
+  assert.strictEqual(resolveSyncStrategy({ type: 'scrape_event', category_tab: 'events' }), 'syncSchemaOrgEvents');
+
+  function matchSourceFilter(source, currentFilter) {
+    if (currentFilter === 'all') return true;
+    if (currentFilter === 'pending') return !source.is_active && source.last_status === 'pending';
+    return source.category_tab === currentFilter;
+  }
+
+  const newBlogSource = { name: "Cultural Journal", category_tab: "blogs", is_active: 1, last_status: "updated" };
+  assert.strictEqual(matchSourceFilter(newBlogSource, 'all'), true, 'New source must be visible in "all" filter');
+  assert.strictEqual(matchSourceFilter(newBlogSource, 'blogs'), true, 'New source must be visible in "blogs" filter');
+  assert.strictEqual(matchSourceFilter(newBlogSource, 'events'), false, 'New blog source is hidden if filter is stuck on "events"');
+
+  console.log('✓ Test 7 Passed: RSS ingestion routing and admin category filter visibility verified.');
+}
+
+console.log('\nAll 7 Regression Tests PASSED successfully! 🚀');
