@@ -140,6 +140,25 @@ if (($action === '--migrate' || $action === 'migrate') && $dbConnected && $pdo) 
     $isLocked = true;
     $message = 'Setup locked successfully! You can delete or keep setup.php safely.';
     $messageType = 'success';
+} elseif ($action === 'reset_admin' && $dbConnected && $pdo) {
+    $email = trim((string)($_POST['admin_email'] ?? 'admin@agendaweb.app'));
+    $password = trim((string)($_POST['admin_password'] ?? 'AgendaAdmin2026!'));
+    if (!empty($email) && !empty($password)) {
+        try {
+            $hash = password_hash($password, PASSWORD_BCRYPT);
+            $stmt = $pdo->prepare("
+                INSERT INTO users (name, email, password_hash, role, is_active)
+                VALUES ('Administrator', :email, :hash, 'admin', 1)
+                ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role = 'admin', is_active = 1
+            ");
+            $stmt->execute(['email' => $email, 'hash' => $hash]);
+            $message = "Admin password for '{$email}' successfully reset! You can now log into /admin/.";
+            $messageType = 'success';
+        } catch (\Throwable $e) {
+            $message = 'Error resetting password: ' . $e->getMessage();
+            $messageType = 'error';
+        }
+    }
 }
 
 // Detect server paths for Hostinger cron
@@ -403,6 +422,32 @@ header('Content-Type: text/html; charset=utf-8');
       </p>
       <code><?= htmlspecialchars($cronCommand) ?></code>
     </div>
+
+    <!-- Admin Account Recovery Tool -->
+    <?php if ($dbConnected && $pdo && count($missingTables) === 0): ?>
+    <div class="card" style="border-left: 4px solid var(--racing-green);">
+      <h3 style="margin-top:0; font-size:1.05rem;">🔑 Admin Account Access Recovery</h3>
+      <p style="font-size:0.88rem; color:#444; margin-top:0;">
+        If you are locked out or need to reset the administrator login credentials on production, enter your email and desired password below:
+      </p>
+      <form method="POST" style="margin-top:10px; display:flex; flex-direction:column; gap:10px; max-width:480px;">
+        <input type="hidden" name="action" value="reset_admin">
+        <div>
+          <label style="display:block; font-size:0.82rem; font-weight:600; margin-bottom:3px;">Admin Email:</label>
+          <input type="email" name="admin_email" value="admin@agendaweb.app" required style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:4px; font-size:0.9rem;">
+        </div>
+        <div>
+          <label style="display:block; font-size:0.82rem; font-weight:600; margin-bottom:3px;">New Password:</label>
+          <input type="text" name="admin_password" value="AgendaAdmin2026!" required minlength="6" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:4px; font-size:0.9rem;">
+        </div>
+        <div>
+          <button type="submit" class="btn" style="background:#15803d; border:none; padding:8px 16px; font-size:0.88rem;">
+            💾 Set Admin Password & Unlock Access
+          </button>
+        </div>
+      </form>
+    </div>
+    <?php endif; ?>
 
     <!-- Actions & Links -->
     <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:24px;">
