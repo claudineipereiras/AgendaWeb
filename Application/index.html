@@ -7,7 +7,7 @@
   <meta name="description" content="Open-web, decentralized cultural calendar and editorial magazine reader for Australia.">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
-  <link rel="apple-touch-icon" href="assets/icon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#1B3B2B">
 
@@ -15,6 +15,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+
+  <!-- RSS & iCalendar Feed Auto-Discovery for Readers and Aggregators -->
+  <link rel="alternate" type="application/rss+xml" title="AgendaWeb Events & Gigs RSS Feed" href="feed.php">
+  <link rel="alternate" type="text/calendar" title="AgendaWeb Events iCalendar (.ics)" href="calendar.php?venue=all">
 
   <!-- Modular Stylesheets -->
   <link rel="stylesheet" href="css/tokens.css?v=0.5.3">
@@ -30,20 +34,27 @@
       </a>
     </div>
 
-    <!-- Centered Material 3 Tonal City Selector Pill -->
-    <div class="header-center">
-      <button class="m3-city-pill" id="city-selector-btn" onclick="openCityModal()" title="Select City Hub">
-        <svg class="m3-icon" viewBox="0 0 24 24" width="17" height="17" fill="currentColor">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-        </svg>
-        <span id="current-city-label" class="m3-city-text">Melbourne VIC</span>
-        <svg class="m3-arrow" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-          <path d="M7 10l5 5 5-5z"/>
-        </svg>
-      </button>
-    </div>
-
     <div class="header-right header-actions">
+      <!-- Location Selector (Outline/No Fill, opens small Melbourne option) -->
+      <div class="location-popover-wrap">
+        <button class="m3-icon-btn" id="header-location-btn" onclick="toggleLocationOption(event)" title="Location: Melbourne" aria-label="Location">
+          <svg class="m3-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <span class="btn-text">Location</span>
+        </button>
+        <div class="location-mini-popup" id="location-mini-popup" style="display:none;">
+          <div class="location-mini-item">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <span>Melbourne</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Toggle Hide Seen Cards (Eye Icon) -->
       <button class="m3-icon-btn" id="hide-seen-btn" onclick="toggleHideSeenCards()" title="Hide cards marked as seen">
         <span id="hide-seen-icon">
@@ -75,9 +86,9 @@
     </div>
   </header>
 
-  <!-- Channels Navigation (Material 3 Tabs) -->
+  <!-- Channels Navigation (Material 3 Tabs with Drag & Drop Reordering) -->
   <nav class="m3-tabs" id="main-tabs">
-    <button class="m3-tab-btn active" data-tab="events" onclick="setTab('events')">
+    <button class="m3-tab-btn active" data-tab="events" draggable="true" onclick="setTab('events')">
       <svg class="tab-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
         <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -86,7 +97,7 @@
       </svg>
       <span>Events</span>
     </button>
-    <button class="m3-tab-btn" id="tab-btn-following" data-tab="following" onclick="setTab('following')">
+    <button class="m3-tab-btn" id="tab-btn-following" data-tab="following" draggable="true" onclick="setTab('following')">
       <svg class="tab-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4 11a9 9 0 0 1 9 9"></path>
         <path d="M4 4a16 16 0 0 1 16 16"></path>
@@ -94,33 +105,11 @@
       </svg>
       <span>Following</span>
     </button>
-    <button class="m3-tab-btn" data-tab="reads" onclick="setTab('reads')">
+    <button class="m3-tab-btn" data-tab="reads" draggable="true" onclick="setTab('reads')">
       <svg class="tab-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
       </svg>
       <span>Reads</span>
-    </button>
-    <button class="m3-tab-btn" id="tab-btn-blogs" data-tab="blogs" style="display:none;" onclick="setTab('blogs')">
-      <svg class="tab-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 20h9"></path>
-        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-      </svg>
-      <span>Blogs</span>
-    </button>
-    <button class="m3-tab-btn" id="tab-btn-news" data-tab="news" style="display:none;" onclick="setTab('news')">
-      <svg class="tab-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path>
-        <path d="M18 14h-8"></path>
-        <path d="M15 18h-5"></path>
-        <path d="M10 6h8v4h-8V6Z"></path>
-      </svg>
-      <span>News</span>
-    </button>
-    <button class="m3-tab-btn" id="tab-btn-personal" data-tab="personal" style="display:none;" onclick="setTab('personal')">
-      <svg class="tab-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-      </svg>
-      <span>Personal</span>
     </button>
   </nav>
 
@@ -200,29 +189,15 @@
       <!-- Broadsheet Channels -->
       <div class="settings-section">
         <div class="settings-section-header">
-          <div class="settings-section-title">Curated Channels</div>
-          <div class="settings-section-desc">Choose which optional reading channels appear in your top navigation bar.</div>
+          <div class="settings-section-title">Core Channels</div>
+          <div class="settings-section-desc">Events, Following lineup, and private Reading queue are active by default.</div>
         </div>
         <div class="setting-row">
           <div class="setting-label">
-            <h4>Events & Reads</h4>
+            <h4>Events, Following & Reads</h4>
             <p>Core cultural broadsheet and private reading queue (always active).</p>
           </div>
           <span style="font-size:0.75rem; background:#e8f5e9; color:#2e7d32; font-weight:700; padding:3px 8px; border-radius:12px;">ACTIVE</span>
-        </div>
-        <div class="setting-row">
-          <div class="setting-label">
-            <h4>Blogs & Articles</h4>
-            <p>Curated cultural reviews.</p>
-          </div>
-          <input type="checkbox" id="channel-blogs-check" onchange="toggleChannel('show_blogs', this.checked)">
-        </div>
-        <div class="setting-row">
-          <div class="setting-label">
-            <h4>News</h4>
-            <p>public Broadcasters.</p>
-          </div>
-          <input type="checkbox" id="channel-news-check" onchange="toggleChannel('show_news', this.checked)">
         </div>
       </div>
 

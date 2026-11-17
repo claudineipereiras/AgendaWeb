@@ -46,6 +46,27 @@ function updateThemeIcon() {
   }
 }
 
+// Location Selector Mini Popover
+function toggleLocationOption(e) {
+  if (e) e.stopPropagation();
+  const popup = document.getElementById('location-mini-popup');
+  if (popup) {
+    const isShowing = popup.style.display === 'block';
+    popup.style.display = isShowing ? 'none' : 'block';
+  }
+}
+
+// Close location mini popup on click outside
+document.addEventListener('click', (e) => {
+  const popup = document.getElementById('location-mini-popup');
+  const btn = document.getElementById('header-location-btn');
+  if (popup && popup.style.display === 'block') {
+    if (!popup.contains(e.target) && !btn?.contains(e.target)) {
+      popup.style.display = 'none';
+    }
+  }
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   // Load Channel Preferences (Default: Clean mode = News & Blogs OFF)
@@ -58,6 +79,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load Personal Feeds count and Followed Lineup count
   await refreshPersonalFeedsUI();
   await refreshFollowedUI();
+
+  // Refresh dynamic navigation tabs with user categories and drag & drop reordering
+  await refreshNavigationTabs();
 
   // Initialize Storage Retention & Metrics
   await initRetentionSettings();
@@ -360,16 +384,15 @@ async function setAudienceFilter(audience, btnElement) {
 
 async function renderCurrentTab() {
   const container = document.getElementById('feed');
-  const tabTitles = {
-    events: 'Events',
-    following: 'Following',
-    reads: 'Reads',
-    blogs: 'Blogs',
-    news: 'News',
-    personal: 'Personal'
-  };
-  const sectionTitle = tabTitles[currentTab] || (currentTab ? (currentTab.charAt(0).toUpperCase() + currentTab.slice(1)) : 'Content');
-  container.innerHTML = `<div class="state-message">Loading ${sectionTitle} feed...</div>`;
+  let sectionTitle = 'Content';
+  if (currentTab === 'events') sectionTitle = 'Events';
+  else if (currentTab === 'following') sectionTitle = 'Following';
+  else if (currentTab === 'reads') sectionTitle = 'Reads';
+  else if (currentTab.startsWith('group:')) sectionTitle = currentTab.slice(6);
+  else if (currentTab === 'personal') sectionTitle = 'Personal';
+  else sectionTitle = currentTab;
+
+  container.innerHTML = `<div class="state-message">Loading ${escapeHtml(sectionTitle)} feed...</div>`;
 
   const audienceBar = document.getElementById('audience-filter-bar');
   if (audienceBar) {
@@ -382,8 +405,11 @@ async function renderCurrentTab() {
     await renderFollowing();
   } else if (currentTab === 'reads') {
     await renderReads();
+  } else if (currentTab.startsWith('group:')) {
+    const groupName = currentTab.slice(6);
+    await renderFeedGroup(groupName);
   } else if (currentTab === 'personal') {
-    await renderPersonalFeeds();
+    await renderFeedGroup('Personal');
   } else {
     await renderItems(currentTab);
   }
@@ -392,6 +418,234 @@ async function renderCurrentTab() {
   if (searchInput && searchInput.value) {
     handleFeedSearch(searchInput.value);
   }
+}
+
+// Dynamic Navigation Tabs with User Category / Group Folders and Drag & Drop
+async function refreshNavigationTabs() {
+  const mainTabs = document.getElementById('main-tabs');
+  if (!mainTabs) return;
+
+  const customFeeds = await window.agendaDB.getCustomFeeds();
+
+  // Group feeds by category/group folder
+  const groupNames = Array.from(new Set(customFeeds.map(f => (f.category || 'Personal').trim()).filter(Boolean)));
+  if (groupNames.length === 0) {
+    groupNames.push('Personal');
+  }
+
+  // Base core tabs
+  const defaultTabs = [
+    {
+      id: 'events',
+      label: 'Events',
+      iconSvg: `
+        <svg class="tab-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>`
+    },
+    {
+      id: 'following',
+      label: 'Following',
+      iconSvg: `
+        <svg class="tab-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 11a9 9 0 0 1 9 9"></path>
+          <path d="M4 4a16 16 0 0 1 16 16"></path>
+          <circle cx="5" cy="19" r="1"></circle>
+        </svg>`
+    },
+    {
+      id: 'reads',
+      label: 'Reads',
+      iconSvg: `
+        <svg class="tab-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+        </svg>`
+    }
+  ];
+
+  // Append user category/group folders
+  groupNames.forEach(grp => {
+    defaultTabs.push({
+      id: `group:${grp}`,
+      label: grp,
+      isGroup: true,
+      groupName: grp,
+      iconSvg: `
+        <svg class="tab-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>`
+    });
+  });
+
+  // Restore saved drag-and-drop order from localStorage
+  let savedOrder = [];
+  try {
+    savedOrder = JSON.parse(localStorage.getItem('agenda_main_tabs_order') || '[]');
+  } catch (e) {}
+
+  if (Array.isArray(savedOrder) && savedOrder.length > 0) {
+    defaultTabs.sort((a, b) => {
+      const idxA = savedOrder.indexOf(a.id);
+      const idxB = savedOrder.indexOf(b.id);
+      if (idxA === -1 && idxB === -1) return 0;
+      if (idxA === -1) return 1;
+      if (idxB === -1) return -1;
+      return idxA - idxB;
+    });
+  }
+
+  mainTabs.innerHTML = defaultTabs.map(t => `
+    <button class="m3-tab-btn ${currentTab === t.id ? 'active' : ''}" 
+            data-tab="${escapeHtml(t.id)}" 
+            draggable="true" 
+            onclick="setTab('${escapeQuote(t.id)}')">
+      ${t.iconSvg}
+      <span>${escapeHtml(t.label)}</span>
+    </button>
+  `).join('');
+
+  initTabDragAndDrop();
+  initTabTouchReorder();
+}
+
+// Drag and Drop Tab Reordering
+function saveTabsOrder() {
+  const mainTabs = document.getElementById('main-tabs');
+  if (!mainTabs) return;
+  const order = Array.from(mainTabs.querySelectorAll('.m3-tab-btn')).map(b => b.dataset.tab);
+  localStorage.setItem('agenda_main_tabs_order', JSON.stringify(order));
+}
+
+function initTabDragAndDrop() {
+  const mainTabs = document.getElementById('main-tabs');
+  if (!mainTabs) return;
+
+  let draggedTab = null;
+
+  mainTabs.querySelectorAll('.m3-tab-btn').forEach(btn => {
+    btn.setAttribute('draggable', 'true');
+
+    btn.ondragstart = (e) => {
+      draggedTab = btn;
+      btn.classList.add('is-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', btn.dataset.tab);
+    };
+
+    btn.ondragend = () => {
+      btn.classList.remove('is-dragging');
+      mainTabs.querySelectorAll('.m3-tab-btn').forEach(b => {
+        b.classList.remove('drag-over-left', 'drag-over-right');
+      });
+      saveTabsOrder();
+    };
+
+    btn.ondragover = (e) => {
+      e.preventDefault();
+      if (!draggedTab || draggedTab === btn) return;
+      e.dataTransfer.dropEffect = 'move';
+
+      const rect = btn.getBoundingClientRect();
+      const midX = rect.left + rect.width / 2;
+      if (e.clientX < midX) {
+        btn.classList.add('drag-over-left');
+        btn.classList.remove('drag-over-right');
+      } else {
+        btn.classList.add('drag-over-right');
+        btn.classList.remove('drag-over-left');
+      }
+    };
+
+    btn.ondragleave = () => {
+      btn.classList.remove('drag-over-left', 'drag-over-right');
+    };
+
+    btn.ondrop = (e) => {
+      e.preventDefault();
+      if (!draggedTab || draggedTab === btn) return;
+
+      const rect = btn.getBoundingClientRect();
+      const midX = rect.left + rect.width / 2;
+      if (e.clientX < midX) {
+        mainTabs.insertBefore(draggedTab, btn);
+      } else {
+        mainTabs.insertBefore(draggedTab, btn.nextSibling);
+      }
+      mainTabs.querySelectorAll('.m3-tab-btn').forEach(b => {
+        b.classList.remove('drag-over-left', 'drag-over-right');
+      });
+      saveTabsOrder();
+    };
+  });
+}
+
+function initTabTouchReorder() {
+  const mainTabs = document.getElementById('main-tabs');
+  if (!mainTabs || mainTabs.dataset.touchBound) return;
+  mainTabs.dataset.touchBound = 'true';
+
+  let touchTab = null;
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let isDraggingTouch = false;
+  let touchHoldTimer = null;
+
+  mainTabs.addEventListener('touchstart', (e) => {
+    const tab = e.target.closest('.m3-tab-btn');
+    if (!tab) return;
+    touchTab = tab;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    isDraggingTouch = false;
+
+    touchHoldTimer = setTimeout(() => {
+      isDraggingTouch = true;
+      if (touchTab) touchTab.classList.add('is-dragging');
+    }, 280);
+  }, { passive: true });
+
+  mainTabs.addEventListener('touchmove', (e) => {
+    if (!touchTab) return;
+    const dx = Math.abs(e.touches[0].clientX - touchStartX);
+    const dy = Math.abs(e.touches[0].clientY - touchStartY);
+
+    if (!isDraggingTouch && (dx > 8 || dy > 8)) {
+      clearTimeout(touchHoldTimer);
+    }
+
+    if (isDraggingTouch) {
+      if (e.cancelable) e.preventDefault();
+      const clientX = e.touches[0].clientX;
+      const clientY = e.touches[0].clientY;
+      const elem = document.elementFromPoint(clientX, clientY);
+      const targetTab = elem?.closest('.m3-tab-btn');
+      if (targetTab && targetTab !== touchTab && targetTab.parentNode === mainTabs) {
+        const rect = targetTab.getBoundingClientRect();
+        const midX = rect.left + rect.width / 2;
+        if (clientX < midX) {
+          mainTabs.insertBefore(touchTab, targetTab);
+        } else {
+          mainTabs.insertBefore(touchTab, targetTab.nextSibling);
+        }
+      }
+    }
+  }, { passive: false });
+
+  const endTouch = () => {
+    clearTimeout(touchHoldTimer);
+    if (isDraggingTouch && touchTab) {
+      touchTab.classList.remove('is-dragging');
+      saveTabsOrder();
+    }
+    touchTab = null;
+    isDraggingTouch = false;
+  };
+
+  mainTabs.addEventListener('touchend', endTouch, { passive: true });
+  mainTabs.addEventListener('touchcancel', endTouch, { passive: true });
 }
 
 // Subcategory Filter Rendering (Dynamic Auto-Grouping with Top 8 + More Expander)
@@ -574,6 +828,231 @@ async function toggleNearMe(btnElement) {
   );
 }
 
+// ==========================================
+// UNIFIED CARD MODEL RENDERERS ACROSS ALL VIEWS
+// ==========================================
+
+// Build Unified Event Card HTML (Category removed from top of event card)
+async function renderEventCardHtml(ev, idx = 0, options = {}) {
+  const isStarred = await window.agendaDB.isEventStarred(ev.id);
+  const isRead = await window.agendaDB.isCardRead(ev.id);
+  const isFollowed = await window.agendaDB.isEntityFollowed(ev.venue_name);
+  const dateParts = parseEventDateParts(ev.start_time);
+  const starBtnClass = isStarred ? 'btn-secondary starred' : 'btn-secondary';
+  const starBtnText = isStarred ? 'Saved' : 'Save';
+
+  // Age restriction badge with Material Symbols vector icons
+  let ageBadgeHtml = '';
+  if (ev.age_restriction === '18+') {
+    ageBadgeHtml = '<span class="badge-age badge-age-18"><svg class="badge-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12.3 2a10 10 0 0 0-1.9 19.8 10 10 0 0 0 11.5-11.5c-.2 0-.4.1-.6.1a10 10 0 0 1-9-8.4z"/></svg> 18+ Nightlife</span>';
+  } else if (ev.age_restriction === 'all_ages') {
+    ageBadgeHtml = '<span class="badge-age badge-age-aa"><svg class="badge-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/></svg> All Ages</span>';
+  } else if (ev.age_restriction === 'kids_family' || ev.is_family_friendly) {
+    ageBadgeHtml = '<span class="badge-age badge-age-kids"><svg class="badge-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><circle cx="9" cy="4" r="2"/><path d="M9 7c-1.66 0-3 1.34-3 3v4h2v7h2v-7h2v-4c0-1.66-1.34-3-3-3z"/><circle cx="16" cy="9" r="1.5"/><path d="M16 11.5c-1.1 0-2 .9-2 2v2.5h1.2v5h1.6v-5H18v-2.5c0-1.1-.9-2-2-2z"/></svg> Kids & Family</span>';
+  }
+
+  // Suburb / City badge
+  const suburbName = ev.suburb || (ev.city_name ? ev.city_name : '');
+  const suburbBadgeHtml = suburbName ? `<span class="badge-suburb"><svg class="badge-icon" viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> ${escapeHtml(suburbName)}</span>` : '';
+  const distanceBadgeHtml = ev.distance_km !== undefined && ev.distance_km !== null ? `<span class="badge-distance">📍 ${ev.distance_km} km</span>` : '';
+
+  // Modern Image Loading Priority: Top 2 images get fetchpriority="high", rest use loading="lazy"
+  const imgPriorityAttr = idx < 2 ? 'fetchpriority="high"' : 'loading="lazy"';
+
+  return `
+    <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${ev.id}">
+      ${ev.image_url ? `
+        <div class="card-image-wrapper">
+          <img src="${ev.image_url}" class="card-image" alt="${escapeHtml(ev.title)}" ${imgPriorityAttr} onerror="this.parentElement.style.display='none'">
+        </div>` : ''}
+
+      <div class="card-header-row">
+        <div class="card-date-tile" title="${dateParts.dayName} ${dateParts.day} ${dateParts.month}">
+          <span class="date-month">${dateParts.month}</span>
+          <span class="date-day">${dateParts.day}</span>
+          <span class="date-dayname">${dateParts.dayName}</span>
+        </div>
+
+        <div class="card-header-content">
+          <div class="card-meta">
+            <div class="card-meta-left">
+              ${suburbBadgeHtml}
+              ${distanceBadgeHtml}
+              ${ageBadgeHtml}
+            </div>
+            <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
+                    onclick="toggleCardCheck('${ev.id}', event, this)" 
+                    title="${isRead ? 'Mark as unread' : 'Mark as read'}">
+              ${renderCheckCircleSvg(isRead)}
+            </button>
+          </div>
+
+          <h2 class="card-title">
+            <a href="#" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')}); return false;">${escapeHtml(ev.title)}</a>
+          </h2>
+
+          <div class="card-location">
+            <svg class="loc-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="vertical-align:-2px; margin-right:3px; color:var(--color-racing-green);">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+            ${escapeHtml(ev.venue_name || '')}${ev.address || ev.suburb ? ` · ${escapeHtml(ev.address || ev.suburb)}` : ''}${dateParts.time ? ` · ${dateParts.time}` : ''}
+          </div>
+        </div>
+      </div>
+
+      ${ev.description ? `<p class="card-summary">${escapeHtml(ev.description)}</p>` : ''}
+
+      <div class="card-actions">
+        <div class="card-actions-left">
+          ${ev.ticket_url ? `
+            <a href="${ev.ticket_url}" class="btn btn-primary" target="_blank" rel="noopener" onclick="handleCardOpen('${ev.id}')">
+              <span>Tickets ↗</span>
+            </a>
+            <button class="btn btn-outline" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">
+              <span>Details</span>
+            </button>
+          ` : `
+            <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+              <span>Read in Full</span>
+            </button>
+          `}
+          ${options.inReads ? `
+            <button class="btn btn-outline" onclick="removeStarred(${ev.id})">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              <span>Remove</span>
+            </button>
+          ` : `
+            <button class="btn ${starBtnClass}" onclick="toggleStar(${JSON.stringify(ev).replace(/"/g, '&quot;')}, this)">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="${isStarred ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>${starBtnText}</span>
+            </button>
+          `}
+        </div>
+
+        <div class="card-actions-right">
+          <a href="calendar.php?id=${ev.id}" class="btn-icon-action" target="_blank" title="Add to Calendar (.ics)" onclick="handleCardOpen('${ev.id}')">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </a>
+          <button class="btn btn-follow ${isFollowed ? 'is-following' : ''}" 
+                  onclick="toggleFollow('${escapeQuote(ev.venue_name)}', 'venue', this)" 
+                  title="${isFollowed ? 'Unfollow ' + escapeHtml(ev.venue_name) : 'Follow ' + escapeHtml(ev.venue_name)}">
+            <svg class="rss-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+              <circle cx="6.18" cy="17.82" r="2.18"/>
+              <path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"/>
+            </svg>
+            <span>${isFollowed ? 'Following' : 'Follow'}</span>
+          </button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+// Build Unified Article / Dispatch Card HTML (Exact same layout & model as events)
+async function renderArticleCardHtml(item, idx = 0, options = {}) {
+  const cardKey = item.link || item.url || String(item.id);
+  const isRead = await window.agendaDB.isCardRead(cardKey);
+  const dateParts = parseEventDateParts(item.published_at || item.pubDate || item.date || item.saved_at);
+  const sourceName = item.feed_name || item.source_name || item.domain || 'Feed';
+  const imgPriorityAttr = idx < 2 ? 'fetchpriority="high"' : 'loading="lazy"';
+  const summaryText = cleanCardSummary(item.summary || item.description || '');
+
+  return `
+    <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${cardKey}">
+      ${item.image_url ? `
+        <div class="card-image-wrapper">
+          <img src="${item.image_url}" class="card-image" alt="${escapeHtml(item.title)}" ${imgPriorityAttr} onerror="this.parentElement.style.display='none'">
+        </div>` : ''}
+
+      <div class="card-header-row">
+        <div class="card-date-tile" title="${dateParts.dayName} ${dateParts.day} ${dateParts.month}">
+          <span class="date-month">${dateParts.month}</span>
+          <span class="date-day">${dateParts.day}</span>
+          <span class="date-dayname">${dateParts.dayName}</span>
+        </div>
+
+        <div class="card-header-content">
+          <div class="card-meta">
+            <div class="card-meta-left">
+              <span class="badge-suburb">
+                <svg class="badge-icon" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 11a9 9 0 0 1 9 9"></path>
+                  <path d="M4 4a16 16 0 0 1 16 16"></path>
+                  <circle cx="5" cy="19" r="1"></circle>
+                </svg>
+                ${escapeHtml(sourceName)}
+              </span>
+            </div>
+            <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
+                    onclick="toggleCardCheck('${cardKey}', event, this)" 
+                    title="${isRead ? 'Mark as unread' : 'Mark as read'}">
+              ${renderCheckCircleSvg(isRead)}
+            </button>
+          </div>
+
+          <h2 class="card-title">
+            <a href="${item.link || item.url || '#'}" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">${escapeHtml(item.title)}</a>
+          </h2>
+
+          <div class="card-location">
+            <svg class="loc-pin" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:3px; color:var(--color-racing-green);">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+            ${escapeHtml(sourceName)}${dateParts.time ? ` · ${dateParts.time}` : ''}
+          </div>
+        </div>
+      </div>
+
+      ${summaryText ? `<p class="card-summary">${escapeHtml(summaryText)}</p>` : ''}
+
+      <div class="card-actions">
+        <div class="card-actions-left">
+          <button class="btn btn-primary" onclick="openReaderModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+            <span>Full Text</span>
+          </button>
+          ${options.inReads ? `
+            <button class="btn btn-outline" onclick="removeRead('${cardKey}')">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              <span>Remove</span>
+            </button>
+          ` : `
+            <button class="btn btn-outline" onclick="saveToReads('${item.link || item.url}', '${escapeQuote(item.title)}', '${escapeQuote(summaryText)}', '${escapeQuote(sourceName)}', '${escapeQuote(item.image_url || '')}', this)">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>Read Later</span>
+            </button>
+          `}
+        </div>
+
+        <div class="card-actions-right">
+          <a href="${item.link || item.url || '#'}" class="btn-icon-action" target="_blank" rel="noopener" title="Source ↗" onclick="handleCardOpen('${cardKey}')">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
 // Render Events Tab
 async function renderEvents(refreshPills = true) {
   const container = document.getElementById('feed');
@@ -614,127 +1093,12 @@ async function renderEvents(refreshPills = true) {
     return;
   }
 
-  const html = await Promise.all(events.map(async (ev, idx) => {
-    const isStarred = await window.agendaDB.isEventStarred(ev.id);
-    const isRead = await window.agendaDB.isCardRead(ev.id);
-    const isFollowed = await window.agendaDB.isEntityFollowed(ev.venue_name);
-    const dateParts = parseEventDateParts(ev.start_time);
-    const starBtnClass = isStarred ? 'btn-secondary starred' : 'btn-secondary';
-    const starBtnText = isStarred ? 'Saved' : 'Save';
-
-    // Age restriction badge with Material Symbols vector icons
-    let ageBadgeHtml = '';
-    if (ev.age_restriction === '18+') {
-      ageBadgeHtml = '<span class="badge-age badge-age-18"><svg class="badge-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12.3 2a10 10 0 0 0-1.9 19.8 10 10 0 0 0 11.5-11.5c-.2 0-.4.1-.6.1a10 10 0 0 1-9-8.4z"/></svg> 18+ Nightlife</span>';
-    } else if (ev.age_restriction === 'all_ages') {
-      ageBadgeHtml = '<span class="badge-age badge-age-aa"><svg class="badge-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/></svg> All Ages</span>';
-    } else if (ev.age_restriction === 'kids_family' || ev.is_family_friendly) {
-      ageBadgeHtml = '<span class="badge-age badge-age-kids"><svg class="badge-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><circle cx="9" cy="4" r="2"/><path d="M9 7c-1.66 0-3 1.34-3 3v4h2v7h2v-7h2v-4c0-1.66-1.34-3-3-3z"/><circle cx="16" cy="9" r="1.5"/><path d="M16 11.5c-1.1 0-2 .9-2 2v2.5h1.2v5h1.6v-5H18v-2.5c0-1.1-.9-2-2-2z"/></svg> Kids & Family</span>';
-    }
-
-    // Suburb / City badge
-    const suburbName = ev.suburb || (ev.city_name ? ev.city_name : '');
-    const suburbBadgeHtml = suburbName ? `<span class="badge-suburb"><svg class="badge-icon" viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> ${escapeHtml(suburbName)}</span>` : '';
-    const distanceBadgeHtml = ev.distance_km !== undefined && ev.distance_km !== null ? `<span class="badge-distance">📍 ${ev.distance_km} km</span>` : '';
-
-    // Modern Image Loading Priority: Top 2 images get fetchpriority="high", rest use loading="lazy"
-    const imgPriorityAttr = idx < 2 ? 'fetchpriority="high"' : 'loading="lazy"';
-
-    return `
-      <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${ev.id}">
-        ${ev.image_url ? `
-          <div class="card-image-wrapper">
-            <img src="${ev.image_url}" class="card-image" alt="${escapeHtml(ev.title)}" ${imgPriorityAttr} onerror="this.parentElement.style.display='none'">
-          </div>` : ''}
-
-        <div class="card-header-row">
-          <div class="card-date-tile" title="${dateParts.dayName} ${dateParts.day} ${dateParts.month}">
-            <span class="date-month">${dateParts.month}</span>
-            <span class="date-day">${dateParts.day}</span>
-            <span class="date-dayname">${dateParts.dayName}</span>
-          </div>
-
-          <div class="card-header-content">
-            <div class="card-meta">
-              <div class="card-meta-left">
-                <span class="card-meta-source">${escapeHtml(ev.category || 'Culture')}</span>
-                ${suburbBadgeHtml}
-                ${distanceBadgeHtml}
-                ${ageBadgeHtml}
-              </div>
-              <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
-                      onclick="toggleCardCheck('${ev.id}', event, this)" 
-                      title="${isRead ? 'Mark as unread' : 'Mark as read'}">
-                ${renderCheckCircleSvg(isRead)}
-              </button>
-            </div>
-
-            <h2 class="card-title">
-              <a href="#" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')}); return false;">${escapeHtml(ev.title)}</a>
-            </h2>
-
-            <div class="card-location">
-              <svg class="loc-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="vertical-align:-2px; margin-right:3px; color:var(--color-racing-green);">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-              </svg>
-              ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || ev.suburb || '')}${dateParts.time ? ` · ${dateParts.time}` : ''}
-            </div>
-          </div>
-        </div>
-
-        ${ev.description ? `<p class="card-summary">${escapeHtml(ev.description)}</p>` : ''}
-
-        <div class="card-actions">
-          <div class="card-actions-left">
-            ${ev.ticket_url ? `
-              <a href="${ev.ticket_url}" class="btn btn-primary" target="_blank" rel="noopener" onclick="handleCardOpen('${ev.id}')">
-                <span>Tickets ↗</span>
-              </a>
-              <button class="btn btn-outline" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">
-                <span>Details</span>
-              </button>
-            ` : `
-              <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                </svg>
-                <span>Read in Full</span>
-              </button>
-            `}
-            <button class="btn ${starBtnClass}" onclick="toggleStar(${JSON.stringify(ev).replace(/"/g, '&quot;')}, this)">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="${isStarred ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-              </svg>
-              <span>${starBtnText}</span>
-            </button>
-          </div>
-
-          <div class="card-actions-right">
-            <a href="calendar.php?id=${ev.id}" class="btn-icon-action" target="_blank" title="Add to Calendar (.ics)" onclick="handleCardOpen('${ev.id}')">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-            </a>
-            <button class="btn btn-follow ${isFollowed ? 'is-following' : ''}" 
-                    onclick="toggleFollow('${escapeQuote(ev.venue_name)}', 'venue', this)" 
-                    title="${isFollowed ? 'Unfollow ' + escapeHtml(ev.venue_name) : 'Follow ' + escapeHtml(ev.venue_name)}">
-              <svg class="rss-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
-                <circle cx="6.18" cy="17.82" r="2.18"/>
-                <path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"/>
-              </svg>
-              <span>${isFollowed ? 'Following' : 'Follow'}</span>
-            </button>
-          </div>
-        </div>
-      </article>
-    `;
-  }));
-
+  const html = await Promise.all(events.map((ev, idx) => renderEventCardHtml(ev, idx)));
   container.innerHTML = html.join('');
   updateHiddenSeenNotice();
 }
 
-// Render Following Tab (Grouped by Followed Venue / Organizer)
+// Render Following Tab (Clean listing with unified card model)
 async function renderFollowing(refreshPills = true) {
   const container = document.getElementById('feed');
   const followedList = await window.agendaDB.getFollowedEntities();
@@ -745,7 +1109,7 @@ async function renderFollowing(refreshPills = true) {
       <div class="state-message">
         <h3 style="font-size:1.05rem; margin-bottom:8px; color:var(--color-nightfall);">Your Following Lineup is Empty</h3>
         <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:14px; max-width:440px; margin-left:auto; margin-right:auto;">
-          Follow your favorite venues, artists, and independent organisers by tapping the <strong>Follow [RSS]</strong> button on any gig card.
+          Follow your favorite venues, artists, and independent organisers by tapping the <strong>Follow</strong> button on any gig card.
         </p>
         <button class="btn btn-primary" onclick="setTab('events')">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
@@ -758,6 +1122,12 @@ async function renderFollowing(refreshPills = true) {
     return;
   }
 
+  // Sub-filter pills: 'All Followed' + distinct followed venue names
+  const venueOptions = ['All Followed', ...followedList.map(f => f.name)];
+  if (refreshPills) {
+    renderSubFilterPills(venueOptions);
+  }
+
   // Fetch all events
   const res = await window.agendaAPI.getEvents('All');
   if (res.venues && res.venues.length > 0) {
@@ -765,145 +1135,93 @@ async function renderFollowing(refreshPills = true) {
   }
   let events = res.data || [];
 
-  // Sub-filter pills: 'All Followed' + distinct followed venue names
-  const venueOptions = ['All Followed', ...followedList.map(f => f.name)];
-  if (refreshPills) {
-    renderSubFilterPills(venueOptions);
+  // Filter events by followed venues
+  const followedNames = new Set(followedList.map(f => f.name.toLowerCase()));
+  let filteredEvents = events.filter(e => e.venue_name && followedNames.has(e.venue_name.toLowerCase()));
+
+  if (currentCategory && currentCategory !== 'All' && currentCategory !== 'All Followed') {
+    filteredEvents = filteredEvents.filter(e => (e.venue_name || '').toLowerCase() === currentCategory.toLowerCase());
   }
 
-  // Header showing followed chips count
-  let headerHtml = `
-    <div class="following-header">
-      <span class="following-header-label">Following (${followedList.length} Venues):</span>
-      ${followedList.map(f => `
-        <span class="following-chip">
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" style="color:var(--color-racing-green); flex-shrink:0;">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-          </svg>
-          <span>${escapeHtml(f.name)}</span>
-          <button class="following-chip-remove" onclick="unfollowFromSettings('${escapeQuote(f.name)}')">✕</button>
-        </span>
-      `).join('')}
-    </div>
-  `;
-
-  // Determine which venues to show based on subfilter pill
-  let activeVenues = followedList;
-  if (currentCategory !== 'All' && currentCategory !== 'All Followed') {
-    activeVenues = followedList.filter(f => f.name.toLowerCase() === currentCategory.toLowerCase());
+  if (filteredEvents.length === 0) {
+    const filterLabel = (currentCategory === 'All' || currentCategory === 'All Followed')
+      ? 'your followed venues'
+      : `"${escapeHtml(currentCategory)}"`;
+    container.innerHTML = `<div class="state-message">No upcoming gigs currently announced for ${filterLabel}. Monitoring feed for new dates.</div>`;
+    return;
   }
 
-  // Group events by venue
-  const groupsHtml = await Promise.all(activeVenues.map(async (f) => {
-    const venueName = f.name;
-    const venueEvents = events.filter(e => (e.venue_name || '').toLowerCase() === venueName.toLowerCase());
-
-    // Lookup venue metadata
-    const venueMeta = (window.agendaVenues || []).find(v => v.name.toLowerCase() === venueName.toLowerCase());
-    const address = (venueMeta && venueMeta.address) ? venueMeta.address : (venueEvents[0]?.address || '');
-    const hasFeed = (venueMeta && venueMeta.feed_url) || venueEvents.some(e => e.origin === 'scraped');
-
-    let cardsHtml = '';
-    if (venueEvents.length === 0) {
-      cardsHtml = `<div class="venue-empty-notice">No upcoming gigs currently announced for this venue. Monitoring website feed for new dates.</div>`;
-    } else {
-      const renderedCards = await Promise.all(venueEvents.map(async (ev) => {
-        const isStarred = await window.agendaDB.isEventStarred(ev.id);
-        const isRead = await window.agendaDB.isCardRead(ev.id);
-        const dateStr = formatDate(ev.start_time);
-        const starBtnClass = isStarred ? 'btn-secondary starred' : 'btn-secondary';
-        const starBtnText = isStarred ? 'Saved' : 'Save';
-
-        return `
-          <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${ev.id}">
-            ${ev.image_url ? `
-              <div class="card-image-wrapper">
-                <img src="${ev.image_url}" class="card-image" alt="${escapeHtml(ev.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
-              </div>` : ''}
-            <div class="card-meta">
-              <div class="card-meta-left">
-                <span>${dateStr}</span>
-                <span class="card-meta-source">${escapeHtml(ev.category || 'Culture')}</span>
-              </div>
-              <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
-                      onclick="toggleCardCheck('${ev.id}', event, this)" 
-                      title="${isRead ? 'Mark as unread' : 'Mark as read'}">
-                ${renderCheckCircleSvg(isRead)}
-              </button>
-            </div>
-            <h2 class="card-title">
-              <a href="#" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')}); return false;">${escapeHtml(ev.title)}</a>
-            </h2>
-            <div class="card-location">
-              <svg class="loc-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="vertical-align:-2px; margin-right:3px; color:var(--color-racing-green);">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-              </svg>
-              ${escapeHtml(ev.venue_name)} · ${escapeHtml(ev.address || '')}
-            </div>
-            ${ev.description ? `<p class="card-summary">${escapeHtml(ev.description)}</p>` : ''}
-            <div class="card-actions">
-              <div class="card-actions-left">
-                <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                  </svg>
-                  <span>Read in Full</span>
-                </button>
-                <a href="calendar.php?id=${ev.id}" class="btn btn-outline" target="_blank" onclick="handleCardOpen('${ev.id}')">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                  </svg>
-                  <span>Calendar</span>
-                </a>
-                <button class="btn ${starBtnClass}" onclick="toggleStar(${JSON.stringify(ev).replace(/"/g, '&quot;')}, this)">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="${isStarred ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  <span>${starBtnText}</span>
-                </button>
-                ${ev.ticket_url ? `<a href="${ev.ticket_url}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${ev.id}')">Tickets</a>` : ''}
-              </div>
-            </div>
-          </article>
-        `;
-      }));
-      cardsHtml = renderedCards.join('');
-    }
-
-    return `
-      <section class="venue-group">
-        <div class="venue-group-header">
-          <div class="venue-group-title-wrap">
-            <h3 class="venue-group-title">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="color:var(--color-racing-green); vertical-align:-2px; margin-right:4px;">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-              </svg>
-              ${escapeHtml(venueName)}
-            </h3>
-            ${address ? `<span class="venue-group-address">${escapeHtml(address)}</span>` : ''}
-          </div>
-          <div class="venue-group-meta">
-            <span class="venue-group-count">${venueEvents.length} upcoming gig${venueEvents.length === 1 ? '' : 's'}</span>
-            ${hasFeed ? `
-              <span class="badge-rss-pill" title="Live syndication active">
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" style="margin-right:3px; vertical-align:-1px;">
-                  <circle cx="6.18" cy="17.82" r="2.18"/>
-                  <path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"/>
-                </svg>
-                <span>Live RSS</span>
-              </span>` : ''}
-            <button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="unfollowFromSettings('${escapeQuote(venueName)}')">Unfollow</button>
-          </div>
-        </div>
-        <div class="venue-group-cards">
-          ${cardsHtml}
-        </div>
-      </section>
-    `;
-  }));
-
-  container.innerHTML = headerHtml + groupsHtml.join('');
+  const html = await Promise.all(filteredEvents.map((ev, idx) => renderEventCardHtml(ev, idx)));
+  container.innerHTML = html.join('');
   updateHiddenSeenNotice();
+}
+
+// Render Dynamic Category / Group Folder from Personal Feeds
+async function renderFeedGroup(groupName, refreshPills = true) {
+  const container = document.getElementById('feed');
+  const customFeeds = await window.agendaDB.getCustomFeeds();
+  const groupFeeds = customFeeds.filter(f => (f.category || 'Personal').toLowerCase() === groupName.toLowerCase());
+
+  if (groupFeeds.length === 0) {
+    hideSubFilter();
+    container.innerHTML = `
+      <div class="state-message">
+        <p>No feeds found in folder "<strong>${escapeHtml(groupName)}</strong>".</p>
+        <button class="btn btn-primary" style="margin-top:12px;" onclick="openAddFeedModal()">+ Add Feed</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Submenu pills: 'All' + individual feed names in this group
+  const feedPills = ['All', ...groupFeeds.map(f => f.name).filter(Boolean)];
+  if (refreshPills) {
+    renderSubFilterPills(feedPills);
+  }
+
+  // Fetch feeds in this group
+  const feedPromises = groupFeeds.map(f => window.agendaAPI.fetchCustomFeed(f.feed_url));
+  const results = await Promise.all(feedPromises);
+
+  let allItems = [];
+  results.forEach((r, idx) => {
+    const feedInfo = groupFeeds[idx];
+    if (r.items && Array.isArray(r.items)) {
+      r.items.forEach(item => {
+        allItems.push({
+          ...item,
+          feed_name: feedInfo.name,
+          feed_category: feedInfo.category || groupName
+        });
+      });
+    }
+  });
+
+  let filtered = allItems;
+  if (currentCategory && currentCategory !== 'All') {
+    const catLower = currentCategory.toLowerCase();
+    filtered = allItems.filter(i => 
+      (i.feed_name && i.feed_name.toLowerCase() === catLower) ||
+      (i.category && i.category.toLowerCase() === catLower)
+    );
+  }
+
+  // Sort reverse chronological
+  filtered.sort((a, b) => new Date(b.published_at || b.pubDate || 0) - new Date(a.published_at || a.pubDate || 0));
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="state-message">No articles found in feed "${escapeHtml(currentCategory)}".</div>`;
+    return;
+  }
+
+  const html = await Promise.all(filtered.map((item, idx) => renderArticleCardHtml(item, idx)));
+  container.innerHTML = html.join('');
+  updateHiddenSeenNotice();
+}
+
+// Render Personal Custom Feeds Tab
+async function renderPersonalFeeds(refreshPills = true) {
+  await renderFeedGroup('Personal', refreshPills);
 }
 
 // Render Curated News / Blogs Tab
@@ -935,162 +1253,7 @@ async function renderItems(tab, refreshPills = true) {
     return;
   }
 
-  const html = await Promise.all(items.map(async (item) => {
-    const cardKey = item.link || String(item.id);
-    const isRead = await window.agendaDB.isCardRead(cardKey);
-    const dateStr = formatDate(item.published_at);
-
-    return `
-      <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${cardKey}">
-        ${item.image_url ? `
-          <div class="card-image-wrapper">
-            <img src="${item.image_url}" class="card-image" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
-          </div>` : ''}
-        <div class="card-meta">
-          <div class="card-meta-left">
-            <span>${dateStr}</span>
-            <span class="card-meta-source">${escapeHtml(item.source_name || item.category || 'Dispatch')}</span>
-          </div>
-          <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
-                  onclick="toggleCardCheck('${cardKey}', event, this)" 
-                  title="${isRead ? 'Mark as unread' : 'Mark as read'}">
-            ${renderCheckCircleSvg(isRead)}
-          </button>
-        </div>
-        <h2 class="card-title">
-          <a href="${item.link}" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">${escapeHtml(item.title)}</a>
-        </h2>
-        <p class="card-summary">${escapeHtml(cleanCardSummary(item.summary || ''))}</p>
-        <div class="card-actions">
-          <div class="card-actions-left">
-            <button class="btn btn-primary" onclick="openReaderModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-              </svg>
-              <span>Full Text</span>
-            </button>
-            <a href="${item.link}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Source ↗</a>
-            <button class="btn btn-outline" onclick="saveToReads('${item.link}', '${escapeQuote(item.title)}', '${escapeQuote(item.summary || '')}', '${escapeQuote(item.source_name || '')}', '${escapeQuote(item.image_url || '')}')">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-              </svg>
-              <span>Read Later</span>
-            </button>
-          </div>
-        </div>
-      </article>
-    `;
-  }));
-
-  container.innerHTML = html.join('');
-  updateHiddenSeenNotice();
-}
-
-// Render Personal Custom Feeds Tab
-async function renderPersonalFeeds(refreshPills = true) {
-  const container = document.getElementById('feed');
-  const customFeeds = await window.agendaDB.getCustomFeeds();
-
-  if (customFeeds.length === 0) {
-    hideSubFilter();
-    container.innerHTML = `
-      <div class="state-message">
-        <p>You haven't added any personal RSS feeds yet.</p>
-        <button class="btn btn-primary" style="margin-top:12px;" onclick="openAddFeedModal()">+ Add Your First Feed</button>
-      </div>
-    `;
-    return;
-  }
-
-  // Fetch all custom feeds concurrently via CORS proxy
-  const feedPromises = customFeeds.map(f => window.agendaAPI.fetchCustomFeed(f.feed_url));
-  const results = await Promise.all(feedPromises);
-
-  let allItems = [];
-  results.forEach((r, idx) => {
-    const feedInfo = customFeeds[idx];
-    if (r.items && Array.isArray(r.items)) {
-      r.items.forEach(item => {
-        allItems.push({
-          ...item,
-          feed_name: feedInfo.name,
-          feed_category: feedInfo.category || 'Personal'
-        });
-      });
-    }
-  });
-
-  // Extract individual personal feed names as active filter pills
-  const feedPills = ['All', ...customFeeds.map(f => f.name).filter(Boolean)];
-
-  if (refreshPills) {
-    renderSubFilterPills(feedPills);
-  }
-
-  let filtered = allItems;
-  if (currentCategory && currentCategory !== 'All') {
-    const catLower = currentCategory.toLowerCase();
-    filtered = allItems.filter(i => 
-      (i.feed_name && i.feed_name.toLowerCase() === catLower) ||
-      (i.category && i.category.toLowerCase() === catLower) ||
-      (i.feed_category && i.feed_category.toLowerCase() === catLower)
-    );
-  }
-
-  // Sort reverse chronological
-  filtered.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
-
-  if (filtered.length === 0) {
-    container.innerHTML = `<div class="state-message">No articles found in personal feed "${escapeHtml(currentCategory)}".</div>`;
-    return;
-  }
-
-  const html = await Promise.all(filtered.map(async (item) => {
-    const cardKey = item.link;
-    const isRead = await window.agendaDB.isCardRead(cardKey);
-
-    return `
-      <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${cardKey}">
-        ${item.image_url ? `
-          <div class="card-image-wrapper">
-            <img src="${item.image_url}" class="card-image" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
-          </div>` : ''}
-        <div class="card-meta">
-          <div class="card-meta-left">
-            <span>${formatDate(item.published_at)}</span>
-            <span class="card-meta-source">${escapeHtml(item.category || item.feed_name)}</span>
-          </div>
-          <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
-                  onclick="toggleCardCheck('${cardKey}', event, this)" 
-                  title="${isRead ? 'Mark as unread' : 'Mark as read'}">
-            ${renderCheckCircleSvg(isRead)}
-          </button>
-        </div>
-        <h2 class="card-title">
-          <a href="${item.link}" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">${escapeHtml(item.title)}</a>
-        </h2>
-        <p class="card-summary">${escapeHtml(cleanCardSummary(item.summary || ''))}</p>
-        <div class="card-actions">
-          <div class="card-actions-left">
-            <button class="btn btn-primary" onclick="openReaderModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-              </svg>
-              <span>Full Text</span>
-            </button>
-            <a href="${item.link}" class="btn btn-outline" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Source ↗</a>
-            <button class="btn btn-outline" onclick="saveToReads('${item.link}', '${escapeQuote(item.title)}', '${escapeQuote(item.summary || '')}', '${escapeQuote(item.feed_name)}', '${escapeQuote(item.image_url || '')}')">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-              </svg>
-              <span>Read Later</span>
-            </button>
-          </div>
-        </div>
-      </article>
-    `;
-  }));
-
+  const html = await Promise.all(items.map((item, idx) => renderArticleCardHtml(item, idx)));
   container.innerHTML = html.join('');
   updateHiddenSeenNotice();
 }
@@ -1154,71 +1317,7 @@ async function renderReads(refreshPills = true) {
         <h3 style="font-size:0.95rem; margin:0; color:var(--color-nightfall);">Saved Gigs</h3>
       </div>
     `;
-    const eventCards = await Promise.all(filteredEvents.map(async (ev) => {
-      const isRead = await window.agendaDB.isCardRead(ev.id);
-      const isFollowed = await window.agendaDB.isEntityFollowed(ev.venue_name);
-
-      return `
-        <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${ev.id}">
-          ${ev.image_url ? `
-            <div class="card-image-wrapper">
-              <img src="${ev.image_url}" class="card-image" alt="${escapeHtml(ev.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
-            </div>` : ''}
-          <div class="card-meta">
-            <div class="card-meta-left">
-              <span>${formatDate(ev.start_time)}</span>
-            </div>
-            <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
-                    onclick="toggleCardCheck('${ev.id}', event, this)" 
-                    title="${isRead ? 'Mark as unread' : 'Mark as read'}">
-              ${renderCheckCircleSvg(isRead)}
-            </button>
-          </div>
-          <h2 class="card-title">
-            <a href="#" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')}); return false;">${escapeHtml(ev.title)}</a>
-          </h2>
-          <div class="card-location">
-            <svg class="loc-pin" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="vertical-align:-2px; margin-right:3px; color:var(--color-racing-green);">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-            </svg>
-            ${escapeHtml(ev.venue_name)}
-          </div>
-          <div class="card-actions">
-            <div class="card-actions-left">
-              <button class="btn btn-primary" onclick="openEventReaderModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                </svg>
-                <span>Read in Full</span>
-              </button>
-              <a href="calendar.php?id=${ev.id}" class="btn btn-outline" onclick="handleCardOpen('${ev.id}')">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
-                <span>Calendar</span>
-              </a>
-              <button class="btn btn-outline" onclick="removeStarred(${ev.id})">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-                <span>Remove</span>
-              </button>
-            </div>
-            <div class="card-actions-right">
-              <button class="btn btn-follow ${isFollowed ? 'is-following' : ''}" 
-                      onclick="toggleFollow('${escapeQuote(ev.venue_name)}', 'venue', this)">
-                <svg class="rss-icon" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
-                  <circle cx="6.18" cy="17.82" r="2.18"/>
-                  <path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"/>
-                </svg>
-                <span>${isFollowed ? 'Following' : 'Follow'}</span>
-              </button>
-            </div>
-          </div>
-        </article>
-      `;
-    }));
+    const eventCards = await Promise.all(filteredEvents.map((ev, idx) => renderEventCardHtml(ev, idx, { inReads: true })));
     html += eventCards.join('');
   }
 
@@ -1232,45 +1331,7 @@ async function renderReads(refreshPills = true) {
         <h3 style="font-size:0.95rem; margin:0; color:var(--color-nightfall);">Offline Reading Queue</h3>
       </div>
     `;
-    const readCards = await Promise.all(filteredReads.map(async (item) => {
-      const cardKey = item.url;
-      const isRead = await window.agendaDB.isCardRead(cardKey);
-
-      return `
-        <article class="card ${isRead ? 'is-read' : ''}" data-card-id="${cardKey}">
-          ${item.image_url ? `
-            <div class="card-image-wrapper">
-              <img src="${item.image_url}" class="card-image" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
-            </div>` : ''}
-          <div class="card-meta">
-            <div class="card-meta-left">
-              <span>${escapeHtml(item.domain || item.source_name || 'External')}</span>
-            </div>
-            <button class="card-check-btn ${isRead ? 'is-read' : ''}" 
-                    onclick="toggleCardCheck('${cardKey}', event, this)" 
-                    title="${isRead ? 'Mark as unread' : 'Mark as read'}">
-              ${renderCheckCircleSvg(isRead)}
-            </button>
-          </div>
-          <h2 class="card-title">
-            <a href="${item.url}" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">${escapeHtml(item.title)}</a>
-          </h2>
-          <p class="card-summary">${escapeHtml(cleanCardSummary(item.description || ''))}</p>
-          <div class="card-actions">
-            <div class="card-actions-left">
-              <a href="${item.url}" class="btn btn-primary" target="_blank" rel="noopener" onclick="handleCardOpen('${cardKey}')">Open Link ↗</a>
-              <button class="btn btn-outline" onclick="removeRead('${item.url}')">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-                <span>Remove</span>
-              </button>
-            </div>
-          </div>
-        </article>
-      `;
-    }));
+    const readCards = await Promise.all(filteredReads.map((item, idx) => renderArticleCardHtml(item, idx, { inReads: true })));
     html += readCards.join('');
   }
 
@@ -1347,29 +1408,25 @@ function applyChannelVisibility() {
 // Personal Feeds Manager
 async function refreshPersonalFeedsUI() {
   const listEl = document.getElementById('personal-feeds-list');
-  const personalTabBtn = document.getElementById('tab-btn-personal');
   const feeds = await window.agendaDB.getCustomFeeds();
 
-  if (personalTabBtn) {
-    personalTabBtn.style.display = feeds.length > 0 ? 'inline-flex' : 'none';
+  if (listEl) {
+    if (feeds.length === 0) {
+      listEl.innerHTML = '<p style="font-size:0.8rem; color:var(--color-text-muted);">No custom feeds added yet.</p>';
+    } else {
+      listEl.innerHTML = feeds.map(f => `
+        <div class="personal-feed-item">
+          <div>
+            <strong>${escapeHtml(f.name)}</strong>
+            <span class="personal-feed-badge">${escapeHtml(f.category || 'Personal')}</span>
+          </div>
+          <button class="icon-btn" style="color:#C85A32;" onclick="removePersonalFeed('${escapeQuote(f.feed_url)}')">✕ Delete</button>
+        </div>
+      `).join('');
+    }
   }
 
-  if (!listEl) return;
-
-  if (feeds.length === 0) {
-    listEl.innerHTML = '<p style="font-size:0.8rem; color:var(--color-text-muted);">No custom feeds added yet.</p>';
-    return;
-  }
-
-  listEl.innerHTML = feeds.map(f => `
-    <div class="personal-feed-item">
-      <div>
-        <strong>${escapeHtml(f.name)}</strong>
-        <span class="personal-feed-badge">${escapeHtml(f.category || 'Personal')}</span>
-      </div>
-      <button class="icon-btn" style="color:#C85A32;" onclick="removePersonalFeed('${escapeQuote(f.feed_url)}')">✕ Delete</button>
-    </div>
-  `).join('');
+  await refreshNavigationTabs();
 }
 
 function openAddFeedModal() {
@@ -1404,8 +1461,8 @@ async function removePersonalFeed(url) {
   if (confirm('Remove this custom feed?')) {
     await window.agendaDB.deleteCustomFeed(url);
     await refreshPersonalFeedsUI();
-    if (currentTab === 'personal') {
-      await renderPersonalFeeds();
+    if (currentTab.startsWith('group:') || currentTab === 'personal') {
+      await renderCurrentTab();
     }
   }
 }

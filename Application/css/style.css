@@ -168,31 +168,84 @@ header, .app-header {
 /* Mobile Header Adjustment */
 @media (max-width: 640px) {
   header, .app-header {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     padding: 10px 14px;
     gap: 8px;
   }
   .header-left {
     order: 1;
-    flex: auto;
+    flex: 1;
   }
   .header-right {
     order: 2;
     flex: auto;
-  }
-  .header-center {
-    order: 3;
-    width: 100%;
-    flex: none;
-    margin-top: 4px;
-  }
-  .m3-city-pill {
-    width: 100%;
-    justify-content: center;
+    justify-content: flex-end;
   }
   .m3-icon-btn .btn-text {
     display: none;
   }
+}
+
+/* Location Mini Popup */
+.location-popover-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.location-mini-popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+  padding: 4px;
+  z-index: 1000;
+  min-width: 120px;
+}
+
+.location-mini-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-tonal);
+  cursor: default;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.location-mini-item svg {
+  flex-shrink: 0;
+  color: var(--color-racing-green);
+}
+
+/* Drag and Drop Reordering for M3 Tabs */
+.m3-tab-btn[draggable="true"] {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.m3-tab-btn.is-dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+  transform: scale(0.95);
+  background: var(--bg-surface-tonal) !important;
+}
+
+.m3-tab-btn.drag-over-left {
+  box-shadow: -3px 0 0 0 var(--color-amber-rust) inset !important;
+}
+
+.m3-tab-btn.drag-over-right {
+  box-shadow: 3px 0 0 0 var(--color-amber-rust) inset !important;
 }
 
 /* Material 3 Channels Navigation Tabs */
