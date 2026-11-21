@@ -1,7 +1,10 @@
-const CACHE_NAME = 'agendaweb-v0.6.0';
+const CACHE_NAME = 'agendaweb-v0.7.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './about.html',
+  './contact.html',
+  './terms.html',
   './css/tokens.css',
   './css/style.css',
   './js/db.js',

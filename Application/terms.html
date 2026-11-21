@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms & Privacy Policy — AgendaWeb</title>
+  <meta name="description" content="Terms of service, content syndication licensing, AI crawler policy, and privacy commitments for AgendaWeb.">
+  <link rel="canonical" href="https://agendaweb.app/terms.html">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="stylesheet" href="css/tokens.css?v=0.6.1">
+  <link rel="stylesheet" href="css/style.css?v=0.6.1">
+  <link rel="alternate" type="text/markdown" href="llms.txt" title="LLM Context Document">
+
+  <!-- JSON-LD: WebPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Terms of Service and Privacy Policy",
+    "url": "https://agendaweb.app/terms.html",
+    "description": "Terms of service, AI agent usage policies, and client-side privacy commitments for AgendaWeb.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "AgendaWeb",
+      "url": "https://agendaweb.app/",
+      "email": "curator@agendaweb.app"
+    }
+  }
+  </script>
+</head>
+<body style="background:var(--color-chalk); color:var(--color-nightfall); min-height:100vh; display:flex; flex-direction:column;">
+
+  <!-- Header -->
+  <header class="app-header" style="background:var(--color-white); border-bottom:1px solid var(--color-oat); padding:12px 20px;">
+    <div style="max-width:800px; margin:0 auto; width:100%; display:flex; justify-content:space-between; align-items:center;">
+      <a href="./" class="brand-link" aria-label="AgendaWeb Home">
+        <img src="assets/logo.svg" alt="AgendaWeb Logo" width="130" height="42">
+      </a>
+      <nav style="display:flex; gap:14px; font-size:0.9rem; font-weight:600;">
+        <a href="./" style="color:var(--color-nightfall); text-decoration:none;">Feed</a>
+        <a href="venues/" style="color:var(--color-nightfall); text-decoration:none;">Venues</a>
+        <a href="about.html" style="color:var(--color-nightfall); text-decoration:none;">About</a>
+        <a href="contact.html" style="color:var(--color-nightfall); text-decoration:none;">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Content Container -->
+  <main style="max-width:800px; margin:32px auto; padding:0 20px; flex:1;">
+    <article style="background:var(--color-white); border:1px solid var(--color-oat); border-radius:var(--radius-md); padding:32px; box-shadow:var(--shadow-card);">
+      
+      <span style="font-size:0.75rem; font-weight:700; color:var(--color-amber-rust); text-transform:uppercase; letter-spacing:1px;">Legal & Governance</span>
+      <h1 style="font-family:var(--font-serif); font-size:2.2rem; margin:8px 0 20px; color:var(--color-nightfall); line-height:1.2;">
+        Terms of Service & Privacy Policy
+      </h1>
+
+      <p style="font-size:0.9rem; color:var(--color-text-muted); margin-bottom:20px;">
+        Last Updated: November 2026
+      </p>
+
+      <h2 style="font-family:var(--font-serif); font-size:1.3rem; margin:24px 0 10px; color:var(--color-nightfall);">1. Privacy by Design (Client-Side Storage)</h2>
+      <p style="line-height:1.7; margin-bottom:16px;">
+        AgendaWeb is committed to user privacy. We do not use third-party behavioral analytics, fingerprinting, or tracking cookies. All user customizations—including followed venues, reading lists, custom RSS feeds, and theme preferences—are stored strictly on your local device using standard browser IndexedDB and LocalStorage APIs.
+      </p>
+
+      <h2 style="font-family:var(--font-serif); font-size:1.3rem; margin:24px 0 10px; color:var(--color-nightfall);">2. Artificial Intelligence & Automated Agents Policy</h2>
+      <p style="line-height:1.7; margin-bottom:16px;">
+        In accordance with our <a href="robots.txt" style="color:var(--color-amber-rust);">robots.txt</a> and Content Signals declaration (<code>Content-Signal: search=yes, ai-train=no</code>):
+      </p>
+      <ul style="line-height:1.7; margin-left:20px; margin-bottom:16px;">
+        <li><strong>Search & Retrieval:</strong> Automated AI agents, search engines, and real-time retrieval-augmented generation (RAG) agents are welcomed to index and search cultural gig data.</li>
+        <li><strong>Model Training:</strong> Bulk harvesting of original articles or broadsheet content for model pre-training or fine-tuning without explicit authorization is not permitted.</li>
+        <li><strong>Machine-Readable Formats:</strong> Agents are encouraged to use our official endpoints: <a href="llms.txt" style="color:var(--color-amber-rust);">/llms.txt</a>, Markdown content negotiation via <code>Accept: text/markdown</code>, and the Model Context Protocol (MCP) server card at <a href="/.well-known/mcp/server-card.json" style="color:var(--color-amber-rust);">/.well-known/mcp/server-card.json</a>.</li>
+      </ul>
+
+      <h2 style="font-family:var(--font-serif); font-size:1.3rem; margin:24px 0 10px; color:var(--color-nightfall);">3. Syndicated Content & Venue Listings</h2>
+      <p style="line-height:1.7; margin-bottom:16px;">
+        Gig schedules, concert dates, and venue information are syndicated directly from public publisher websites and official venue feeds under fair-dealing cultural indexing principles. Intellectual property of event posters, artist images, and performance descriptions remains with the respective artists and venues.
+      </p>
+
+      <h2 style="font-family:var(--font-serif); font-size:1.3rem; margin:24px 0 10px; color:var(--color-nightfall);">4. Contact & Inquiries</h2>
+      <p style="line-height:1.7;">
+        For takedown requests, feed additions, or privacy questions, please email our editorial desk directly at <a href="mailto:curator@agendaweb.app" style="color:var(--color-amber-rust); font-weight:600;">curator@agendaweb.app</a>.
+      </p>
+
+    </article>
+  </main>
+
+  <!-- Footer -->
+  <footer style="background:var(--color-white); border-top:1px solid var(--color-oat); padding:20px; font-size:0.85rem; color:var(--color-text-muted); text-align:center;">
+    <div style="max-width:800px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div>&copy; 2026 AgendaWeb — Curated for Independent Culture.</div>
+      <div style="display:flex; gap:14px;">
+        <a href="./" style="color:inherit; text-decoration:none;">Home</a>
+        <a href="about.html" style="color:inherit; text-decoration:none;">About</a>
+        <a href="contact.html" style="color:inherit; text-decoration:none;">Contact</a>
+        <a href="terms.html" style="color:inherit; text-decoration:none;">Terms & Privacy</a>
+        <a href="llms.txt" style="color:inherit; text-decoration:none;">llms.txt</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

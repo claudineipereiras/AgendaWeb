@@ -92,6 +92,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize Hide-Seen Preference
   updateHideSeenUI();
 
+  // Register WebMCP Tools for In-Browser Agents
+  initWebMcpTools();
+
   // Render initial tab
   await setTab('events');
 
@@ -102,6 +105,109 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 });
+
+// WebMCP In-Browser Agent Tools Registration (Model Context Protocol in-browser)
+function initWebMcpTools() {
+  const tools = {
+    search_events: {
+      name: 'search_events',
+      description: 'Search upcoming live music concerts, band lineups, and cultural events across Australia (Melbourne, Sydney, Brisbane, Perth, Adelaide, Hobart).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Band name, artist, venue, or keyword search query' },
+          city: { type: 'string', description: 'City slug (melbourne, sydney, brisbane, perth, adelaide, hobart, or all)', default: 'melbourne' },
+          category: { type: 'string', description: 'Category filter (e.g. Live Music, Culture)', default: 'all' },
+          audience: { type: 'string', enum: ['all', '18+', 'all_ages', 'kids_family'], default: 'all' }
+        }
+      },
+      execute: async (params = {}) => {
+        const res = await window.agendaAPI.getEvents(
+          params.category || 'all',
+          'all',
+          params.city || 'all',
+          params.audience || 'all'
+        );
+        let events = res.data || [];
+        if (params.query) {
+          const q = params.query.toLowerCase().trim();
+          events = events.filter(e => 
+            (e.title && e.title.toLowerCase().includes(q)) ||
+            (e.venue_name && e.venue_name.toLowerCase().includes(q)) ||
+            (e.description && e.description.toLowerCase().includes(q))
+          );
+        }
+        return {
+          count: events.length,
+          events: events.slice(0, 20).map(e => ({
+            id: e.id,
+            title: e.title,
+            venue: e.venue_name,
+            start_time: e.start_time,
+            category: e.category,
+            age_restriction: e.age_restriction,
+            ticket_url: e.ticket_url
+          }))
+        };
+      }
+    },
+    get_venues: {
+      name: 'get_venues',
+      description: 'List independent live music venues and cultural spaces across Australia.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          city: { type: 'string', description: 'City slug filter (e.g. melbourne)' }
+        }
+      },
+      execute: async (params = {}) => {
+        const eventsRes = await window.agendaAPI.getEvents('all', 'all', params.city || 'all');
+        return {
+          venues: eventsRes.venues || []
+        };
+      }
+    },
+    get_calendar_feed: {
+      name: 'get_calendar_feed',
+      description: 'Get standard iCalendar (.ics) subscription URL for syncing events to personal calendar apps.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          venue: { type: 'string', description: 'Venue slug or all', default: 'all' }
+        }
+      },
+      execute: async (params = {}) => {
+        return {
+          url: `https://agendaweb.app/calendar.php?venue=${encodeURIComponent(params.venue || 'all')}`,
+          format: 'text/calendar'
+        };
+      }
+    }
+  };
+
+  // 1. Standard navigator.modelContext WebMCP API
+  if (typeof navigator !== 'undefined' && navigator.modelContext && typeof navigator.modelContext.registerTool === 'function') {
+    try {
+      for (const t of Object.values(tools)) {
+        navigator.modelContext.registerTool(t);
+      }
+      console.log('✓ WebMCP tools registered with navigator.modelContext.');
+    } catch (e) {
+      console.warn('WebMCP registration skipped:', e);
+    }
+  }
+
+  // 2. Global window object for in-browser agent accessibility
+  window.agendaWebMCP = {
+    tools,
+    callTool: async (name, params) => {
+      if (tools[name] && typeof tools[name].execute === 'function') {
+        return await tools[name].execute(params);
+      }
+      throw new Error(`Tool "${name}" not found.`);
+    }
+  };
+}
 
 // Seen / Read State & Hide-Seen Toggle Controller
 let isHideSeenActive = localStorage.getItem('agendaweb_hide_seen') === 'true';
@@ -679,13 +785,20 @@ function renderSubFilterPills(categories, updateStoredList = true) {
 
   subFilter.style.display = 'flex';
 
-  const isPillActive = (cat) => (cat || '').toLowerCase() === (currentCategory || '').toLowerCase();
+  const isPillActive = (cat) => {
+    const cLower = (cat || '').toLowerCase().trim();
+    const curLower = (currentCategory || '').toLowerCase().trim();
+    if (cLower === curLower) return true;
+    if ((cLower === 'all' || cLower === 'all followed') && (curLower === 'all' || curLower === 'all followed')) return true;
+    return false;
+  };
 
   // 1. If 8 or fewer categories, show all without 'More' button
   if (cleanCategories.length <= 8) {
     subFilter.innerHTML = cleanCategories.map(cat => `
       <button class="filter-pill ${isPillActive(cat) ? 'active' : ''}" 
-              onclick="setFilter('${escapeQuote(cat)}', this)">
+              data-category="${escapeHtml(cat)}"
+              onclick="setFilter(this.dataset.category, this)">
         ${escapeHtml(cat)}
       </button>
     `).join('');
@@ -696,7 +809,7 @@ function renderSubFilterPills(categories, updateStoredList = true) {
   if (!isCategoriesExpanded) {
     let top8 = cleanCategories.slice(0, 8);
     // If current category is active but not in top 8, include it in top 8
-    if (currentCategory && currentCategory !== 'All' && !top8.some(c => isPillActive(c))) {
+    if (currentCategory && currentCategory !== 'All' && currentCategory !== 'All Followed' && !top8.some(c => isPillActive(c))) {
       const activeMatch = cleanCategories.find(c => isPillActive(c));
       if (activeMatch) {
         top8[7] = activeMatch;
@@ -705,7 +818,8 @@ function renderSubFilterPills(categories, updateStoredList = true) {
 
     const pillsHtml = top8.map(cat => `
       <button class="filter-pill ${isPillActive(cat) ? 'active' : ''}" 
-              onclick="setFilter('${escapeQuote(cat)}', this)">
+              data-category="${escapeHtml(cat)}"
+              onclick="setFilter(this.dataset.category, this)">
         ${escapeHtml(cat)}
       </button>
     `).join('');
@@ -719,7 +833,8 @@ function renderSubFilterPills(categories, updateStoredList = true) {
     // 3. Expanded state (All categories + 'Less ▴')
     const pillsHtml = cleanCategories.map(cat => `
       <button class="filter-pill ${isPillActive(cat) ? 'active' : ''}" 
-              onclick="setFilter('${escapeQuote(cat)}', this)">
+              data-category="${escapeHtml(cat)}"
+              onclick="setFilter(this.dataset.category, this)">
         ${escapeHtml(cat)}
       </button>
     `).join('');
@@ -738,7 +853,7 @@ function hideSubFilter() {
 }
 
 async function setFilter(category, btnElement) {
-  currentCategory = category;
+  currentCategory = category || 'All';
   document.querySelectorAll('.filter-pill').forEach(btn => btn.classList.remove('active'));
   if (btnElement) btnElement.classList.add('active');
 
@@ -746,10 +861,13 @@ async function setFilter(category, btnElement) {
     await renderEvents(false);
   } else if (currentTab === 'following') {
     await renderFollowing(false);
-  } else if (currentTab === 'personal') {
-    await renderPersonalFeeds(false);
   } else if (currentTab === 'reads') {
     await renderReads(false);
+  } else if (currentTab.startsWith('group:')) {
+    const groupName = currentTab.slice(6);
+    await renderFeedGroup(groupName, false);
+  } else if (currentTab === 'personal') {
+    await renderFeedGroup('Personal', false);
   } else {
     await renderItems(currentTab, false);
   }
@@ -1079,10 +1197,11 @@ async function renderEvents(refreshPills = true) {
   }
 
   if (refreshPills) {
-    const categories = res.categories && res.categories.length > 1
-      ? res.categories
-      : ['All', 'Live Music', 'Art', 'Community'];
-    renderSubFilterPills(categories);
+    if (res.categories && res.categories.length > 1) {
+      renderSubFilterPills(res.categories);
+    } else {
+      hideSubFilter();
+    }
   }
 
   if (events.length === 0) {
@@ -1120,24 +1239,36 @@ async function renderFollowing(refreshPills = true) {
   }
 
   // Sub-filter pills: 'All Followed' + distinct followed venue names
-  const venueOptions = ['All Followed', ...followedList.map(f => f.name)];
+  const venueOptions = ['All Followed', ...followedList.map(f => f.name).filter(Boolean)];
   if (refreshPills) {
-    renderSubFilterPills(venueOptions);
+    if (venueOptions.length > 2) {
+      renderSubFilterPills(venueOptions);
+    } else {
+      hideSubFilter();
+    }
   }
 
   // Fetch all events
-  const res = await window.agendaAPI.getEvents('All');
+  const selectedCity = await window.agendaDB.getSelectedCity();
+  const res = await window.agendaAPI.getEvents('all', 'all', selectedCity || 'all');
   if (res.venues && res.venues.length > 0) {
     window.agendaVenues = res.venues;
   }
   let events = res.data || [];
 
-  // Filter events by followed venues
-  const followedNames = new Set(followedList.map(f => f.name.toLowerCase()));
-  let filteredEvents = events.filter(e => e.venue_name && followedNames.has(e.venue_name.toLowerCase()));
+  // Filter events by followed venues (case-insensitive & trimmed)
+  const followedNames = new Set(followedList.map(f => (f.name || '').trim().toLowerCase()).filter(Boolean));
+  let filteredEvents = events.filter(e => {
+    const vName = (e.venue_name || '').trim().toLowerCase();
+    return followedNames.has(vName) || Array.from(followedNames).some(fn => vName.includes(fn) || fn.includes(vName));
+  });
 
-  if (currentCategory && currentCategory !== 'All' && currentCategory !== 'All Followed') {
-    filteredEvents = filteredEvents.filter(e => (e.venue_name || '').toLowerCase() === currentCategory.toLowerCase());
+  if (currentCategory && currentCategory !== 'All' && currentCategory !== 'all' && currentCategory !== 'All Followed') {
+    const catLower = currentCategory.trim().toLowerCase();
+    filteredEvents = filteredEvents.filter(e => {
+      const vName = (e.venue_name || '').trim().toLowerCase();
+      return vName === catLower || vName.includes(catLower) || catLower.includes(vName);
+    });
   }
 
   if (filteredEvents.length === 0) {
@@ -1152,6 +1283,9 @@ async function renderFollowing(refreshPills = true) {
   container.innerHTML = html.join('');
   updateHiddenSeenNotice();
 }
+
+// In-memory cache for custom feed items per folder
+let cachedGroupItems = {};
 
 // Render Dynamic Category / Group Folder from Personal Feeds
 async function renderFeedGroup(groupName, refreshPills = true) {
@@ -1173,41 +1307,54 @@ async function renderFeedGroup(groupName, refreshPills = true) {
   // Submenu pills: 'All' + individual feed names in this group
   const feedPills = ['All', ...groupFeeds.map(f => f.name).filter(Boolean)];
   if (refreshPills) {
-    renderSubFilterPills(feedPills);
+    if (feedPills.length > 2) {
+      renderSubFilterPills(feedPills);
+    } else {
+      hideSubFilter();
+    }
   }
 
-  // Fetch feeds in this group
-  const feedPromises = groupFeeds.map(f => window.agendaAPI.fetchCustomFeed(f.feed_url));
-  const results = await Promise.all(feedPromises);
-
   let allItems = [];
-  results.forEach((r, idx) => {
-    const feedInfo = groupFeeds[idx];
-    if (r.items && Array.isArray(r.items)) {
-      r.items.forEach(item => {
-        allItems.push({
-          ...item,
-          feed_name: feedInfo.name,
-          feed_category: feedInfo.category || groupName
+  if (!refreshPills && cachedGroupItems[groupName] && cachedGroupItems[groupName].length > 0) {
+    allItems = cachedGroupItems[groupName];
+  } else {
+    // Fetch feeds in this group
+    const feedPromises = groupFeeds.map(f => window.agendaAPI.fetchCustomFeed(f.feed_url));
+    const results = await Promise.all(feedPromises);
+
+    results.forEach((r, idx) => {
+      const feedInfo = groupFeeds[idx];
+      if (r && r.items && Array.isArray(r.items)) {
+        r.items.forEach(item => {
+          allItems.push({
+            ...item,
+            feed_name: feedInfo.name,
+            feed_category: feedInfo.category || groupName
+          });
         });
-      });
-    }
-  });
+      }
+    });
+    cachedGroupItems[groupName] = allItems;
+  }
 
   let filtered = allItems;
-  if (currentCategory && currentCategory !== 'All') {
-    const catLower = currentCategory.toLowerCase();
-    filtered = allItems.filter(i => 
-      (i.feed_name && i.feed_name.toLowerCase() === catLower) ||
-      (i.category && i.category.toLowerCase() === catLower)
-    );
+  if (currentCategory && currentCategory !== 'All' && currentCategory !== 'all') {
+    const catLower = currentCategory.trim().toLowerCase();
+    filtered = allItems.filter(i => {
+      const fName = (i.feed_name || '').trim().toLowerCase();
+      const iCat = (i.category || '').trim().toLowerCase();
+      return fName === catLower || fName.includes(catLower) || catLower.includes(fName) || iCat === catLower;
+    });
   }
 
   // Sort reverse chronological
   filtered.sort((a, b) => new Date(b.published_at || b.pubDate || 0) - new Date(a.published_at || a.pubDate || 0));
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="state-message">No articles found in feed "${escapeHtml(currentCategory)}".</div>`;
+    const filterLabel = (currentCategory === 'All' || currentCategory === 'all')
+      ? `folder "${escapeHtml(groupName)}"`
+      : `feed "${escapeHtml(currentCategory)}"`;
+    container.innerHTML = `<div class="state-message">No articles found in ${filterLabel}.</div>`;
     return;
   }
 
@@ -1237,12 +1384,13 @@ async function renderItems(tab, refreshPills = true) {
   }
 
   // Client-side source/category filter fallback
-  if (currentCategory && currentCategory !== 'All') {
-    const catLower = currentCategory.toLowerCase();
-    items = items.filter(i => 
-      (i.source_name && i.source_name.toLowerCase() === catLower) ||
-      (i.category && i.category.toLowerCase() === catLower)
-    );
+  if (currentCategory && currentCategory !== 'All' && currentCategory !== 'all') {
+    const catLower = currentCategory.trim().toLowerCase();
+    items = items.filter(i => {
+      const sName = (i.source_name || '').trim().toLowerCase();
+      const iCat = (i.category || '').trim().toLowerCase();
+      return sName === catLower || sName.includes(catLower) || catLower.includes(sName) || iCat === catLower;
+    });
   }
 
   if (items.length === 0) {
@@ -1288,10 +1436,16 @@ async function renderReads(refreshPills = true) {
   let filteredEvents = starredEvents;
   let filteredReads = readLaterItems;
 
-  if (currentCategory && currentCategory !== 'All') {
-    const catLower = currentCategory.toLowerCase();
-    filteredEvents = starredEvents.filter(e => (e.venue_name || '').toLowerCase() === catLower);
-    filteredReads = readLaterItems.filter(i => (i.domain || i.source_name || '').toLowerCase() === catLower);
+  if (currentCategory && currentCategory !== 'All' && currentCategory !== 'all') {
+    const catLower = currentCategory.trim().toLowerCase();
+    filteredEvents = starredEvents.filter(e => {
+      const v = (e.venue_name || '').trim().toLowerCase();
+      return v === catLower || v.includes(catLower) || catLower.includes(v);
+    });
+    filteredReads = readLaterItems.filter(i => {
+      const d = (i.domain || i.source_name || '').trim().toLowerCase();
+      return d === catLower || d.includes(catLower) || catLower.includes(d);
+    });
   }
 
   if (filteredEvents.length === 0 && filteredReads.length === 0) {

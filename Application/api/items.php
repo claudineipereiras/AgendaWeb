@@ -32,7 +32,7 @@ try {
     $params = ['tab' => $tab];
 
     if ($category !== 'all' && $category !== 'All') {
-        $where[] = "(s.name = :category OR i.category = :category)";
+        $where[] = "(LOWER(TRIM(s.name)) = LOWER(TRIM(:category)) OR LOWER(TRIM(i.category)) = LOWER(TRIM(:category)))";
         $params['category'] = $category;
     }
 

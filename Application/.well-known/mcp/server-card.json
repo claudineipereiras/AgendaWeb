@@ -1,0 +1,77 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/server-card/v1.json",
+  "name": "AgendaWeb Cultural Protocol",
+  "version": "1.0.0",
+  "description": "Decentralized cultural calendar, live music venue directory, and RSS syndication server for Australia (Melbourne, Sydney, Brisbane, Perth, Adelaide, Hobart).",
+  "homepage": "https://agendaweb.app",
+  "endpoint": "https://agendaweb.app/api/mcp.php",
+  "capabilities": {
+    "tools": true,
+    "resources": true,
+    "prompts": false
+  },
+  "tools": [
+    {
+      "name": "get_events",
+      "description": "Fetch upcoming live concerts, arts exhibitions, and community gigs across Melbourne and Australian hubs with filtering by city, category, and age rating.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "Metropolitan city slug (melbourne, sydney, brisbane, perth, adelaide, hobart, or all)",
+            "default": "melbourne"
+          },
+          "category": {
+            "type": "string",
+            "description": "Event category filter (e.g. Live Music, Culture, Community, or all)",
+            "default": "all"
+          },
+          "age": {
+            "type": "string",
+            "enum": ["all", "18+", "all_ages", "kids_family"],
+            "description": "Audience age restriction filter",
+            "default": "all"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of events to return (1-50)",
+            "default": 20
+          }
+        }
+      }
+    },
+    {
+      "name": "get_venues",
+      "description": "Query directory of independent Australian live music venues, cultural halls, addresses, and age policies.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "City slug (e.g. melbourne)"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_calendar_feed",
+      "description": "Get standard RFC 5545 iCalendar (.ics) synchronization URL for adding events to calendar applications.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "venue": {
+            "type": "string",
+            "description": "Specific venue slug, or 'all' for full city lineup",
+            "default": "all"
+          }
+        }
+      }
+    }
+  ],
+  "contact": {
+    "name": "AgendaWeb Curator Team",
+    "email": "curator@agendaweb.app",
+    "url": "https://agendaweb.app/contact.html"
+  }
+}

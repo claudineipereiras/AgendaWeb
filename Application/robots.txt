@@ -1,0 +1,36 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /config/
+Disallow: /data/
+Disallow: /src/
+
+# Content Signals (Declaring content usage rights for AI agents)
+Content-Signal: search=yes, ai-train=no
+
+# AI Search & Crawler Policies
+User-agent: GPTBot
+Allow: /
+Disallow: /admin/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /admin/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /admin/
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /admin/
+
+User-agent: CCBot
+Disallow: /
+
+# Canonical Sitemap Declaration
+Sitemap: https://agendaweb.app/sitemap.xml

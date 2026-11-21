@@ -37,7 +37,7 @@ try {
         $params['venue'] = $venue;
     }
     if ($category !== 'all' && $category !== 'All') {
-        $where[] = "e.category = :category";
+        $where[] = "LOWER(TRIM(e.category)) = LOWER(TRIM(:category))";
         $params['category'] = $category;
     }
     if ($city !== 'all' && $city !== 'All') {

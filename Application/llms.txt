@@ -1,0 +1,36 @@
+# AgendaWeb Cultural Guide & Gig Ingestion Platform
+
+> An open-web, community-first cultural publication, decentralized live gig calendar, and venue directory for Australia (Melbourne, Sydney, Brisbane, Perth, Adelaide, Hobart).
+
+AgendaWeb provides real-time access to live music concerts, independent venue schedules, arts exhibitions, and cultural magazine dispatches. It is built on decentralized open standards: RSS 2.0 / Atom syndication, Schema.org JSON-LD microformats, iCalendar feeds, and local-first privacy architecture.
+
+## Primary Capabilities for AI Agents
+
+- **Search Live Gigs:** Query concerts and gigs by metropolitan city, venue name, genre category, or audience rating (All Ages, 18+, Kids/Family).
+- **Venue Directory:** Explore independent Australian venues, addresses, operating hours, and age policies.
+- **Calendar Synchronization:** Generate live standard iCalendar (.ics) subscription URLs for users.
+- **Syndication & Microformats:** Ingest RSS/Atom feeds and read Schema.org Event metadata.
+- **WebMCP In-Browser Tooling:** Execute client-side tools registered directly on `navigator.modelContext`.
+- **Model Context Protocol (MCP) Server:** Connect via standard MCP JSON-RPC protocol.
+
+## Core URLs & Resources
+
+- [Homepage & Live Broadsheet](https://agendaweb.app/): Main live cultural feed with dynamic filtering and card reader.
+- [Venues Directory](https://agendaweb.app/venues/): Directory of independent music venues, theatres, and cultural spaces.
+- [About AgendaWeb](https://agendaweb.app/about.html): Organizational background, architectural pillars, and publisher details.
+- [Contact & Curator Desk](https://agendaweb.app/contact.html): Official curator inbox (curator@agendaweb.app) and intake form.
+- [Terms & Agent Policies](https://agendaweb.app/terms.html): Terms of service, Content-Signal policies, and client privacy.
+- [Sitemap](https://agendaweb.app/sitemap.xml): XML sitemap for search and crawler discovery.
+- [MCP Server Card](https://agendaweb.app/.well-known/mcp/server-card.json): SEP-1649 Model Context Protocol server manifest.
+
+## Machine-Readable Feeds & Endpoints
+
+- [RSS 2.0 / Atom Feed](https://agendaweb.app/feed.php): Live RSS XML feed of upcoming gigs and cultural announcements. Supports venue filtering (`?venue=slug`).
+- [iCalendar Sync Feed](https://agendaweb.app/calendar.php?venue=all): RFC 5545 `.ics` live calendar stream for Apple Calendar, Google Calendar, and Outlook.
+- [Events REST API](https://agendaweb.app/api/events.php): JSON API returning live event arrays, cities, and categories. Parameters: `city`, `category`, `venue`, `age`, `family`.
+- [Venues REST API](https://agendaweb.app/api/cities.php): JSON list of active metropolitan hubs and coordinate centroids.
+- [MCP JSON-RPC Endpoint](https://agendaweb.app/api/mcp.php): Standard MCP server endpoint supporting `tools/list` and `tools/call`.
+
+## Optional / Expanded Documentation
+
+- [Full Agent Documentation](https://agendaweb.app/llms-full.txt): Detailed API schemas, parameters, sample payloads, and WebMCP specifications.

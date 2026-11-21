@@ -3,26 +3,142 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgendaWeb — Your Cultural Web Feed</title>
-  <meta name="description" content="Open-web, decentralized cultural calendar and editorial magazine reader for Australia.">
+  <title>AgendaWeb — Your Cultural Web Feed & Live Gigs Guide</title>
+  <meta name="description" content="Open-web, decentralized cultural calendar and grassroots magazine reader for Melbourne and Australia. Discover live gigs, independent venues, and local arts.">
+  <link rel="canonical" href="https://agendaweb.app/">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#1B3B2B">
 
+  <!-- Open Graph / Social Meta Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="AgendaWeb — Your Cultural Web Feed & Live Gigs Guide">
+  <meta property="og:description" content="Open-web, decentralized cultural calendar and grassroots magazine reader for Melbourne and Australia.">
+  <meta property="og:url" content="https://agendaweb.app/">
+  <meta property="og:site_name" content="AgendaWeb">
+  <meta property="og:image" content="https://agendaweb.app/assets/icon-512.png">
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 
-  <!-- RSS & iCalendar Feed Auto-Discovery for Readers and Aggregators -->
+  <!-- RSS, iCalendar & AI Agent Discovery Links -->
   <link rel="alternate" type="application/rss+xml" title="AgendaWeb Events & Gigs RSS Feed" href="feed.php">
   <link rel="alternate" type="text/calendar" title="AgendaWeb Events iCalendar (.ics)" href="calendar.php?venue=all">
+  <link rel="alternate" type="text/markdown" title="LLM Agent Document" href="llms.txt">
+  <link rel="sitemap" type="application/xml" title="Sitemap" href="sitemap.xml">
+  <link rel="service-desc" type="application/json" title="MCP Server Card" href=".well-known/mcp/server-card.json">
+
+  <!-- JSON-LD Structured Data: Multi-Schema Graph (Organization, LocalBusiness, WebSite, WebApplication, CollectionPage) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://agendaweb.app/#organization",
+        "name": "AgendaWeb",
+        "url": "https://agendaweb.app/",
+        "logo": "https://agendaweb.app/assets/logo.svg",
+        "email": "curator@agendaweb.app",
+        "telephone": "+61-3-9000-0000",
+        "founder": {
+          "@type": "Person",
+          "name": "Claudinei Sousa"
+        },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "editorial & curator desk",
+          "email": "curator@agendaweb.app",
+          "telephone": "+61-3-9000-0000",
+          "availableLanguage": ["English", "Portuguese"]
+        },
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Melbourne",
+          "addressRegion": "VIC",
+          "addressCountry": "AU"
+        },
+        "sameAs": [
+          "https://github.com/claudinei/AgendaWeb",
+          "https://techsousa.com"
+        ]
+      },
+      {
+        "@type": "LocalBusiness",
+        "@id": "https://agendaweb.app/#localbusiness",
+        "name": "AgendaWeb Cultural Broadsheet",
+        "url": "https://agendaweb.app/",
+        "logo": "https://agendaweb.app/assets/logo.svg",
+        "email": "curator@agendaweb.app",
+        "telephone": "+61-3-9000-0000",
+        "priceRange": "$",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Melbourne",
+          "addressRegion": "VIC",
+          "addressCountry": "AU"
+        },
+        "sameAs": [
+          "https://github.com/claudinei/AgendaWeb",
+          "https://techsousa.com"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://agendaweb.app/#website",
+        "url": "https://agendaweb.app/",
+        "name": "AgendaWeb",
+        "description": "Open-web cultural calendar, live music venue directory, and grassroots magazine reader for Melbourne and Australia.",
+        "publisher": {
+          "@id": "https://agendaweb.app/#organization"
+        },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://agendaweb.app/?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "WebApplication",
+        "@id": "https://agendaweb.app/#app",
+        "name": "AgendaWeb",
+        "url": "https://agendaweb.app/",
+        "applicationCategory": "EntertainmentApplication",
+        "operatingSystem": "All",
+        "browserRequirements": "Requires JavaScript. Requires HTML5.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "AUD"
+        }
+      },
+      {
+        "@type": "CollectionPage",
+        "@id": "https://agendaweb.app/#collection",
+        "url": "https://agendaweb.app/",
+        "name": "Upcoming Live Music & Cultural Events",
+        "isPartOf": {
+          "@id": "https://agendaweb.app/#website"
+        },
+        "about": {
+          "@type": "Thing",
+          "name": "Australian Live Music and Arts Culture"
+        }
+      }
+    ]
+  }
+  </script>
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/tokens.css?v=0.6.0">
-  <link rel="stylesheet" href="css/style.css?v=0.6.0">
+  <link rel="stylesheet" href="css/tokens.css?v=0.7.0">
+  <link rel="stylesheet" href="css/style.css?v=0.7.0">
 </head>
 <body>
 
@@ -152,12 +268,16 @@
 
   <!-- Material 3 Search Bar -->
   <div class="m3-search-bar-wrap">
-    <div class="m3-search-bar">
+    <div class="m3-search-bar" role="search">
       <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
-      <input type="search" id="feed-search" class="m3-search-input" placeholder="Search content" oninput="handleFeedSearch(this.value)">
+      <input type="search" id="feed-search" class="m3-search-input" placeholder="Search live gigs, artists, venues..." 
+             toolname="search_events" 
+             tooldescription="Search upcoming live concerts, band lineups, and cultural events across Australia" 
+             toolparam="query" 
+             oninput="handleFeedSearch(this.value)">
     </div>
   </div>
 
@@ -168,6 +288,32 @@
   <main class="feed-container" id="feed">
     <div class="state-message">Loading Events feed...</div>
   </main>
+
+  <!-- Public Broadsheet Footer (About, Contact, Legal, Agent Resources) -->
+  <footer class="app-footer">
+    <div class="app-footer-top">
+      <div class="app-footer-brand">
+        <img src="assets/logo.svg" alt="AgendaWeb Logo" width="115" height="38">
+        <span style="font-size:0.8rem; color:var(--color-text-muted);">Decentralized Cultural Broadsheet for Australia</span>
+      </div>
+      <nav class="app-footer-links" aria-label="Footer Navigation">
+        <a href="about.html">About AgendaWeb</a>
+        <a href="venues/">Venues Directory</a>
+        <a href="contact.html">Contact & Curator Desk</a>
+        <a href="terms.html">Terms & Privacy</a>
+        <a href="llms.txt" title="LLM Agent Manifest">llms.txt</a>
+        <a href="sitemap.xml" title="XML Sitemap">Sitemap</a>
+      </nav>
+    </div>
+    <div class="app-footer-bottom">
+      <div>
+        Curator & Editorial Desk: <a href="mailto:curator@agendaweb.app" class="contact-email-link" style="color:var(--color-amber-rust); font-weight:600; text-decoration:none;">curator@agendaweb.app</a>
+      </div>
+      <div>
+        &copy; 2026 AgendaWeb · Developed by <a href="https://techsousa.com" target="_blank" rel="noopener" style="color:inherit; font-weight:600;">techsousa</a> · Content-Signal: search=yes, ai-train=no
+      </div>
+    </div>
+  </footer>
 
   <!-- Main Settings Drawer Modal -->
   <div class="modal-overlay" id="settings-modal" onclick="if(event.target===this) toggleSettingsModal()">
@@ -514,6 +660,14 @@
         </div>
       </div>
 
+      <!-- Key Reference Links for Readers & Agents -->
+      <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--color-oat); display:flex; flex-wrap:wrap; justify-content:center; gap:14px; font-size:0.85rem;">
+        <a href="about.html" style="color:var(--color-amber-rust); text-decoration:none; font-weight:600;">Full About Page ↗</a>
+        <a href="contact.html" style="color:var(--color-amber-rust); text-decoration:none; font-weight:600;">Contact Desk ↗</a>
+        <a href="terms.html" style="color:var(--color-amber-rust); text-decoration:none; font-weight:600;">Terms & Privacy ↗</a>
+        <a href="mailto:curator@agendaweb.app" style="color:var(--color-amber-rust); text-decoration:none; font-weight:600;">curator@agendaweb.app</a>
+      </div>
+
       <!-- Developed by techsousa Bottom Section -->
       <div class="help-developer-footer">
         <div class="help-developer-label">Developed by <strong>techsousa</strong></div>
@@ -558,8 +712,8 @@
   </div>
 
   <!-- Modular Scripts -->
-  <script src="js/db.js?v=0.6.0"></script>
-  <script src="js/api.js?v=0.6.0"></script>
-  <script src="js/app.js?v=0.6.0"></script>
+  <script src="js/db.js?v=0.7.0"></script>
+  <script src="js/api.js?v=0.7.0"></script>
+  <script src="js/app.js?v=0.7.0"></script>
 </body>
 </html>

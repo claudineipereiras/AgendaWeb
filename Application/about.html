@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About AgendaWeb — Independent Cultural Guide & Grassroots Broadsheet</title>
+  <meta name="description" content="AgendaWeb is an open-web, community-first cultural calendar celebrating Melbourne and Australia's live music, neighborhood arts, and independent venues.">
+  <link rel="canonical" href="https://agendaweb.app/about.html">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="stylesheet" href="css/tokens.css?v=0.6.1">
+  <link rel="stylesheet" href="css/style.css?v=0.6.1">
+  <link rel="alternate" type="text/markdown" href="llms.txt" title="LLM Context Document">
+
+  <!-- JSON-LD Structured Data: AboutPage & Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "AboutPage",
+        "@id": "https://agendaweb.app/about.html#webpage",
+        "url": "https://agendaweb.app/about.html",
+        "name": "About AgendaWeb",
+        "description": "Information about the open-web cultural publishing platform AgendaWeb, its mission, and its technology.",
+        "isPartOf": {
+          "@type": "WebSite",
+          "@id": "https://agendaweb.app/#website",
+          "name": "AgendaWeb",
+          "url": "https://agendaweb.app/"
+        }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://agendaweb.app/#organization",
+        "name": "AgendaWeb",
+        "url": "https://agendaweb.app/",
+        "logo": "https://agendaweb.app/assets/logo.svg",
+        "email": "curator@agendaweb.app",
+        "founder": {
+          "@type": "Person",
+          "name": "Claudinei Sousa"
+        },
+        "sameAs": [
+          "https://github.com/claudinei/AgendaWeb",
+          "https://techsousa.com"
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body style="background:var(--color-chalk); color:var(--color-nightfall); min-height:100vh; display:flex; flex-direction:column;">
+
+  <!-- Header -->
+  <header class="app-header" style="background:var(--color-white); border-bottom:1px solid var(--color-oat); padding:12px 20px;">
+    <div style="max-width:800px; margin:0 auto; width:100%; display:flex; justify-content:space-between; align-items:center;">
+      <a href="./" class="brand-link" aria-label="AgendaWeb Home">
+        <img src="assets/logo.svg" alt="AgendaWeb Logo" width="130" height="42">
+      </a>
+      <nav style="display:flex; gap:14px; font-size:0.9rem; font-weight:600;">
+        <a href="./" style="color:var(--color-nightfall); text-decoration:none;">Feed</a>
+        <a href="venues/" style="color:var(--color-nightfall); text-decoration:none;">Venues</a>
+        <a href="about.html" style="color:var(--color-amber-rust); text-decoration:none;">About</a>
+        <a href="contact.html" style="color:var(--color-nightfall); text-decoration:none;">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Content Container -->
+  <main style="max-width:800px; margin:32px auto; padding:0 20px; flex:1;">
+    <article style="background:var(--color-white); border:1px solid var(--color-oat); border-radius:var(--radius-md); padding:32px; box-shadow:var(--shadow-card);">
+      
+      <span style="font-size:0.75rem; font-weight:700; color:var(--color-amber-rust); text-transform:uppercase; letter-spacing:1px;">Our Mission</span>
+      <h1 style="font-family:var(--font-serif); font-size:2.2rem; margin:8px 0 20px; color:var(--color-nightfall); line-height:1.2;">
+        An Open-Web Cultural Broadsheet for Live Music & Independent Stages
+      </h1>
+
+      <p style="font-size:1.05rem; line-height:1.7; margin-bottom:18px;">
+        <strong>AgendaWeb</strong> is an open-web, community-first cultural publication and decentralized gig directory designed specifically for Australia’s independent venues, artist-run spaces, and local audiences.
+      </p>
+
+      <p style="line-height:1.7; margin-bottom:18px; color:var(--color-text-muted);">
+        Mainstream social algorithms increasingly hide live music behind paywalls, walled gardens, and opaque feeds. AgendaWeb returns to the open principles of the World Wide Web: direct RSS syndication, machine-readable microformats (Schema.org JSON-LD), standard iCalendar feeds, and private client-side storage with zero user tracking.
+      </p>
+
+      <h2 style="font-family:var(--font-serif); font-size:1.4rem; margin:28px 0 12px; color:var(--color-nightfall);">Key Architectural Pillars</h2>
+      <ul style="line-height:1.8; margin-left:20px; margin-bottom:24px;">
+        <li><strong>Direct from Source:</strong> Schedules are gathered straight from venue websites, zine feeds, and official publishers. Venues maintain sovereign ownership of their listings.</li>
+        <li><strong>Privacy by Architecture:</strong> User bookmarks, followed lineups, custom RSS subscriptions, and reading queues live in your local browser’s IndexedDB. We do not track user behavior or sell data.</li>
+        <li><strong>Agent & AI Ready:</strong> Full support for LLM consumption via <a href="llms.txt" style="color:var(--color-amber-rust);">llms.txt</a>, clean Markdown content negotiation, RFC 8288 link discovery, and WebMCP tooling.</li>
+        <li><strong>Open Standards:</strong> Native support for RSS 2.0 / Atom (<a href="feed.php" style="color:var(--color-amber-rust);">feed.php</a>) and standard iCalendar (<a href="calendar.php?venue=all" style="color:var(--color-amber-rust);">calendar.php</a>).</li>
+      </ul>
+
+      <h2 style="font-family:var(--font-serif); font-size:1.4rem; margin:28px 0 12px; color:var(--color-nightfall);">Publisher & Organization Information</h2>
+      <p style="line-height:1.6; margin-bottom:8px;">
+        <strong>Organization:</strong> AgendaWeb Cultural Guide<br>
+        <strong>Headquarters:</strong> Melbourne, Victoria, Australia<br>
+        <strong>Lead Developer & Curator:</strong> Claudinei Sousa (techsousa)<br>
+        <strong>Official Contact:</strong> <a href="mailto:curator@agendaweb.app" style="color:var(--color-amber-rust); font-weight:600;">curator@agendaweb.app</a><br>
+        <strong>Code Repository:</strong> <a href="https://github.com/claudinei/AgendaWeb" target="_blank" rel="noopener" style="color:var(--color-amber-rust);">github.com/claudinei/AgendaWeb</a>
+      </p>
+
+    </article>
+  </main>
+
+  <!-- Footer -->
+  <footer style="background:var(--color-white); border-top:1px solid var(--color-oat); padding:20px; font-size:0.85rem; color:var(--color-text-muted); text-align:center;">
+    <div style="max-width:800px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div>&copy; 2026 AgendaWeb — Curated for Independent Culture.</div>
+      <div style="display:flex; gap:14px;">
+        <a href="./" style="color:inherit; text-decoration:none;">Home</a>
+        <a href="about.html" style="color:inherit; text-decoration:none;">About</a>
+        <a href="contact.html" style="color:inherit; text-decoration:none;">Contact</a>
+        <a href="terms.html" style="color:inherit; text-decoration:none;">Terms & Privacy</a>
+        <a href="llms.txt" style="color:inherit; text-decoration:none;">llms.txt</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,95 @@
+# AgendaWeb — Full LLM & Agent Technical Reference
+
+> Complete technical documentation for AI agents, LLMs, and retrieval engines interacting with AgendaWeb.
+
+## 1. Organization & Identity
+
+- **Name:** AgendaWeb
+- **Type:** Cultural Guide, Event Aggregator, and RSS Syndication Platform
+- **Canonical Domain:** `https://agendaweb.app`
+- **Contact:** `curator@agendaweb.app`
+- **Publisher:** Claudinei Sousa (techsousa)
+- **Content-Signal:** `search=yes, ai-train=no`
+
+## 2. Structured Data & Schema.org Implementation
+
+AgendaWeb publishes Schema.org JSON-LD structured data on all primary pages:
+- **Homepage:** Implements `Organization`, `WebSite`, `WebApplication`, and `ItemList` nodes.
+- **Venues Page:** Implements `ItemList` of `LocalBusiness` / `MusicVenue` nodes.
+- **Events:** Individual events provide Schema.org `MusicEvent` / `Event` nodes with `startDate`, `endDate`, `location` (`Place`), `offers`, and `image`.
+
+## 3. Machine-Readable REST APIs
+
+All REST endpoints return `application/json; charset=utf-8` and support CORS headers.
+
+### GET /api/events.php
+Query upcoming live music and cultural events.
+
+#### Query Parameters:
+- `category` (string, default: `all`): Filter by category (e.g. `Live Music`, `Culture`, `Community`).
+- `city` (string, default: `all`): Australian metropolitan slug (`melbourne`, `sydney`, `brisbane`, `perth`, `adelaide`, `hobart`).
+- `venue` (string, default: `all`): Venue slug (e.g. `the-corner-hotel`, `the-night-cat`, `bar-oussou`).
+- `age` (string, default: `all`): Audience restriction filter (`18+`, `all_ages`, `kids_family`, `unrated`).
+- `family` (boolean, default: `false`): Restrict to family-friendly verified events.
+- `limit` (integer, default: 50, max: 100): Page limit.
+- `offset` (integer, default: 0): Result offset for pagination.
+
+#### Sample JSON Response:
+```json
+{
+  "status": "success",
+  "count": 42,
+  "city": "melbourne",
+  "categories": ["All", "Live Music", "Culture"],
+  "data": [
+    {
+      "id": 104,
+      "venue_slug": "bar-oussou",
+      "venue_name": "Bar Oussou",
+      "title": "Sunday Sunset Afro-Beat Session",
+      "description": "Live jazz and afrobeat ensemble performance.",
+      "category": "Live Music",
+      "age_restriction": "18+",
+      "start_time": "2026-11-22 18:30:00",
+      "end_time": null,
+      "address": "659 Sydney Rd, Brunswick VIC 3056",
+      "suburb": "Brunswick",
+      "ticket_url": "https://events.baroussou.com.au",
+      "image_url": "https://agendaweb.app/assets/poster.jpg"
+    }
+  ]
+}
+```
+
+### GET /calendar.php
+RFC 5545 iCalendar stream.
+- Parameter: `venue=all` (or specific venue slug).
+- Header: `Content-Type: text/calendar; charset=utf-8`.
+
+### GET /feed.php
+RSS 2.0 / Atom syndication feed.
+- Parameter: `venue=slug` (optional).
+- Header: `Content-Type: application/rss+xml; charset=utf-8`.
+
+## 4. Model Context Protocol (MCP) Server Card
+
+AgendaWeb serves a SEP-1649 MCP Server Card at:
+`https://agendaweb.app/.well-known/mcp/server-card.json`
+
+The JSON-RPC endpoint is hosted at `https://agendaweb.app/api/mcp.php`.
+
+Supported MCP Tools:
+1. `get_events`: Retrieve upcoming live concerts and cultural exhibitions.
+2. `get_venues`: Retrieve independent venues directory and addresses.
+3. `export_calendar`: Get calendar URL for event scheduling.
+
+## 5. WebMCP In-Browser Agent Tools
+
+When loaded in an agentic web browser supporting `navigator.modelContext`, AgendaWeb registers:
+- `search_events`: Real-time gig search directly through the in-page client layer.
+- `get_venue_details`: Venue lookup.
+- `get_cultural_channels`: Syndication feed inquiry.
+
+## 6. Content Negotiation: Markdown
+
+Requesting `Accept: text/markdown` or `Accept: text/plain` on the homepage (`/`) or `/index.html` returns a markdown document.

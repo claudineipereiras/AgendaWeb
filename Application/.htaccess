@@ -32,8 +32,13 @@ AddDefaultCharset UTF-8
   RewriteRule ^(config|data|src|tests)/ - [F,L]
 
   # Block sensitive file extensions (credentials, databases, logs, shell scripts)
-  RewriteRule \.(env.*|sql|db|sqlite|log|sh|bak|swp|md)$ - [F,L]
+  RewriteRule \.(env.*|sql|db|sqlite|log|sh|bak|swp)$ - [F,L]
   RewriteRule (^|/)\.(git|github|antigravity|idea|vscode) - [F,L]
+
+  # Content Negotiation: Serve Markdown for AI Agents requesting text/markdown on root
+  RewriteCond %{HTTP:Accept} text/(x-)?markdown [NC]
+  RewriteCond %{REQUEST_URI} ^/(index\.html)?$
+  RewriteRule ^.*$ markdown.php [L]
 
   # Venue Subdomain Routing (e.g., venue.agendaweb.app -> feed.php?venue=venue)
   RewriteCond %{HTTP_HOST} ^([a-zA-Z0-9_-]+)\.([a-zA-Z0-9_.-]+)\.[a-z]{2,}$ [NC]
@@ -41,12 +46,17 @@ AddDefaultCharset UTF-8
   RewriteRule ^$ feed.php?venue=%1 [L,QSA]
 </IfModule>
 
-# 3. Security Headers
+# 3. Security & Agent Discovery Headers
 <IfModule mod_headers.c>
   Header set X-Content-Type-Options "nosniff"
   Header set X-Frame-Options "SAMEORIGIN"
   Header set X-XSS-Protection "1; mode=block"
   Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # RFC 8288 Link Headers for AI Agent Discovery
+  Header add Link "</llms.txt>; rel=\"alternate\"; type=\"text/markdown\""
+  Header add Link "</sitemap.xml>; rel=\"sitemap\"; type=\"application/xml\""
+  Header add Link "</.well-known/mcp/server-card.json>; rel=\"service-desc\"; type=\"application/json\""
 </IfModule>
 
 # 4. Gzip / Deflate Compression
