@@ -155,13 +155,17 @@ class AgendaDB {
       const data = {
         feed_url: feed.feed_url,
         name: feed.name || 'Personal Feed',
-        category: feed.category || 'Personal',
+        category: (feed.category || 'Personal').trim(),
         added_at: new Date().toISOString()
       };
       const req = store.put(data);
       req.onsuccess = () => resolve(data);
       req.onerror = () => reject(req.error);
     });
+  }
+
+  saveCustomFeed(feed) {
+    return this.addCustomFeed(feed);
   }
 
   async getCustomFeeds() {
@@ -528,6 +532,48 @@ ${outlines || '      <!-- No personal feeds added -->'}
     a.download = `agendaweb-feeds-${new Date().toISOString().slice(0, 10)}.opml`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async importOpml(xmlString) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+    const parseError = xmlDoc.querySelector('parsererror');
+    if (parseError) {
+      throw new Error('Invalid OPML or XML format.');
+    }
+
+    const outlines = Array.from(xmlDoc.querySelectorAll('outline[xmlUrl], outline[xmlurl]'));
+    if (!outlines.length) {
+      throw new Error('No valid RSS/Atom feed subscriptions found in this OPML file.');
+    }
+
+    let importedCount = 0;
+    for (const el of outlines) {
+      const feedUrl = (el.getAttribute('xmlUrl') || el.getAttribute('xmlurl') || '').trim();
+      if (!feedUrl) continue;
+
+      const title = (el.getAttribute('text') || el.getAttribute('title') || 'Imported Feed').trim();
+      let category = (el.getAttribute('category') || '').trim();
+
+      // If category attribute not present, check parent outline (folder structure in OPML)
+      if (!category && el.parentElement && el.parentElement.tagName.toLowerCase() === 'outline') {
+        category = (el.parentElement.getAttribute('text') || el.parentElement.getAttribute('title') || '').trim();
+      }
+      if (!category) {
+        category = 'Personal';
+      }
+
+      await this.saveCustomFeed({
+        feed_url: feedUrl,
+        name: title,
+        category: category,
+        icon: 'rss',
+        enabled: 1
+      });
+      importedCount++;
+    }
+
+    return importedCount;
   }
 }
 

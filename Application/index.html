@@ -21,8 +21,8 @@
   <link rel="alternate" type="text/calendar" title="AgendaWeb Events iCalendar (.ics)" href="calendar.php?venue=all">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/tokens.css?v=0.5.3">
-  <link rel="stylesheet" href="css/style.css?v=0.5.3">
+  <link rel="stylesheet" href="css/tokens.css?v=0.6.0">
+  <link rel="stylesheet" href="css/style.css?v=0.6.0">
 </head>
 <body>
 
@@ -203,9 +203,16 @@
 
       <!-- Personal RSS Feeds Manager -->
       <div class="settings-section">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-wrap:wrap; gap:6px;">
           <div class="settings-section-title" style="margin-bottom:0;">Personal Feeds</div>
-          <button class="btn btn-primary" style="font-size:0.78rem; padding:4px 10px;" onclick="openAddFeedModal()">+ Add Feed</button>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <button class="btn btn-outline" style="font-size:0.75rem; padding:3px 8px;" onclick="handleExportOpml()" title="Export your feeds as standard OPML">Export OPML</button>
+            <label class="btn btn-outline" style="font-size:0.75rem; padding:3px 8px; cursor:pointer; margin-bottom:0;" title="Import feeds from an OPML or XML file">
+              Import OPML
+              <input type="file" accept=".opml,.xml" style="display:none;" onchange="handleImportOpmlFile(this)">
+            </label>
+            <button class="btn btn-primary" style="font-size:0.78rem; padding:4px 10px;" onclick="openAddFeedModal()">+ Add Feed</button>
+          </div>
         </div>
         <div class="settings-section-desc">Subscribe directly to your own RSS or Atom feeds. Saved privately on your device.</div>
         <div id="personal-feeds-list"></div>
@@ -551,8 +558,8 @@
   </div>
 
   <!-- Modular Scripts -->
-  <script src="js/db.js?v=0.5.3"></script>
-  <script src="js/api.js?v=0.5.3"></script>
-  <script src="js/app.js?v=0.5.3"></script>
+  <script src="js/db.js?v=0.6.0"></script>
+  <script src="js/api.js?v=0.6.0"></script>
+  <script src="js/app.js?v=0.6.0"></script>
 </body>
 </html>

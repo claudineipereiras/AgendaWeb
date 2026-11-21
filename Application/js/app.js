@@ -427,11 +427,8 @@ async function refreshNavigationTabs() {
 
   const customFeeds = await window.agendaDB.getCustomFeeds();
 
-  // Group feeds by category/group folder
+  // Group feeds by category/group folder (only folders with actual feeds)
   const groupNames = Array.from(new Set(customFeeds.map(f => (f.category || 'Personal').trim()).filter(Boolean)));
-  if (groupNames.length === 0) {
-    groupNames.push('Personal');
-  }
 
   // Base core tabs
   const defaultTabs = [
@@ -1454,15 +1451,25 @@ async function handleAddFeedSubmit(e) {
   await window.agendaDB.addCustomFeed({ name: name || 'Personal Feed', feed_url: url, category });
   closeAddFeedModal();
   await refreshPersonalFeedsUI();
-  alert('Personal RSS feed added successfully!');
+  await refreshNavigationTabs();
+  await setTab(`group:${category}`);
+  alert(`Personal RSS feed added to folder "${category}"!`);
 }
 
 async function removePersonalFeed(url) {
   if (confirm('Remove this custom feed?')) {
     await window.agendaDB.deleteCustomFeed(url);
     await refreshPersonalFeedsUI();
+    await refreshNavigationTabs();
     if (currentTab.startsWith('group:') || currentTab === 'personal') {
-      await renderCurrentTab();
+      const customFeeds = await window.agendaDB.getCustomFeeds();
+      const groupName = currentTab.startsWith('group:') ? currentTab.slice(6) : 'Personal';
+      const stillHasFeeds = customFeeds.some(f => (f.category || 'Personal').toLowerCase() === groupName.toLowerCase());
+      if (stillHasFeeds) {
+        await renderCurrentTab();
+      } else {
+        await setTab('events');
+      }
     }
   }
 }
@@ -1491,6 +1498,23 @@ async function handleImportBackupFile(inputEl) {
 
 async function handleExportOpml() {
   await window.agendaDB.exportOpml();
+}
+
+async function handleImportOpmlFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const count = await window.agendaDB.importOpml(e.target.result);
+      alert(`Successfully imported ${count} feed(s) from OPML! Reloading...`);
+      window.location.reload();
+    } catch (err) {
+      alert('Failed to import OPML: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
 }
 
 // Local Storage & Retention Settings Handlers

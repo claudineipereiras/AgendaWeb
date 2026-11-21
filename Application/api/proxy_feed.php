@@ -20,19 +20,46 @@ if (!$feedUrl) {
 $config = require __DIR__ . '/../config/config.php';
 $botUserAgent = $config['app']['bot_user_agent'] ?? 'AgendaWeb-Proxy/1.0 (+https://agendaweb.app)';
 
-$ctx = stream_context_create([
-    'http' => [
-        'timeout'    => 8,
-        'user_agent' => $botUserAgent,
-        'follow_location' => 1,
-        'max_redirects'   => 3
-    ]
-]);
+$xmlString = false;
 
-$xmlString = @file_get_contents($feedUrl, false, $ctx);
-if ($xmlString === false) {
+// 1. Try high-performance cURL with redirect and SSL tolerance
+if (function_exists('curl_init')) {
+    $ch = curl_init($feedUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+    curl_setopt($ch, CURLOPT_USERAGENT, $botUserAgent);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    $curlData = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($curlData !== false && $httpCode >= 200 && $httpCode < 400) {
+        $xmlString = $curlData;
+    }
+}
+
+// 2. Fallback to stream context if cURL unavailable or empty
+if ($xmlString === false || empty($xmlString)) {
+    $ctx = stream_context_create([
+        'http' => [
+            'timeout'    => 10,
+            'user_agent' => $botUserAgent,
+            'follow_location' => 1,
+            'max_redirects'   => 4
+        ],
+        'ssl' => [
+            'verify_peer'      => false,
+            'verify_peer_name' => false
+        ]
+    ]);
+    $xmlString = @file_get_contents($feedUrl, false, $ctx);
+}
+
+if ($xmlString === false || empty($xmlString)) {
     http_response_code(422);
-    echo json_encode(['error' => 'Unable to fetch remote feed']);
+    echo json_encode(['error' => 'Unable to fetch remote feed. Check feed URL and server connectivity.']);
     exit;
 }
 
